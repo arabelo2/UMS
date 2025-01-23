@@ -3,31 +3,34 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from application.elements_service import ElementsService
+import numpy as np
+import matplotlib.pyplot as plt
+from application.ls_2Dv_service import LS2DvService
 
 
 def main():
-    # Input parameters
-    f = 5.0  # Frequency (MHz)
-    c = 1480.0  # Wave speed (m/s)
-    dl = 0.5  # Element length divided by wavelength (d/λ)
-    gd = 0.1  # Gap size divided by element length (g/d)
-    N = 32  # Number of elements
+    # Parameters for the test case
+    b = 3  # Half-length of the source (in mm)
+    f = 5  # Frequency (in MHz)
+    c = 1500  # Wave speed (in m/s)
+    x = 0  # x-coordinate (in mm)
+    z = np.linspace(5, 80, 200)  # z-coordinates (in mm)
 
-    # Initialize the service
-    service = ElementsService()
+    # Initialize the LS2DvService
+    ls_2Dv_service = LS2DvService()
 
-    # Compute array properties
-    A, d, g, xc = service.calculate(f, c, dl, gd, N)
+    # Compute the normalized pressure
+    p = ls_2Dv_service.calculate(b, f, c, 0, x, z)
 
-    # Display the results
-    print(f"Total Aperture Size (A): {A:.4f} mm")
-    print(f"Element Size (d): {d:.4f} mm")
-    print(f"Gap Size (g): {g:.4f} mm")
-    print("Centroids (xc):")
-    for idx, centroid in enumerate(xc, start=1):
-        print(f"  Element {idx}: {centroid:.4f} mm")
+    # Plot the result
+    plt.figure(figsize=(8, 6))
+    plt.plot(z, np.abs(p), label="|p| (Normalized Pressure)")
+    plt.xlabel("z (mm)")
+    plt.ylabel("|p| (Normalized Pressure)")
+    plt.title("Normalized Pressure vs z")
+    plt.grid(True)
+    plt.legend()
+    plt.show()
 
 
 if __name__ == "__main__":
