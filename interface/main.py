@@ -3,35 +3,31 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import numpy as np
-import matplotlib.pyplot as plt
-from application.discrete_windows_service import DiscreteWindowsService
+
+from application.elements_service import ElementsService
 
 
 def main():
-    # Parameters
-    M = 16  # Number of elements
-    window_type = 'tri'  # Window type
+    # Input parameters
+    f = 5.0  # Frequency (MHz)
+    c = 1480.0  # Wave speed (m/s)
+    dl = 0.5  # Element length divided by wavelength (d/λ)
+    gd = 0.1  # Gap size divided by element length (g/d)
+    N = 32  # Number of elements
 
-    # Initialize service
-    service = DiscreteWindowsService()
+    # Initialize the service
+    service = ElementsService()
 
-    # Compute apodization amplitudes
-    amplitudes = service.get_amplitudes(M, window_type)
+    # Compute array properties
+    A, d, g, xc = service.calculate(f, c, dl, gd, N)
 
-    # Display results
-    print(f"Apodization Amplitudes for {window_type} window:")
-    for i, amp in enumerate(amplitudes, start=1):
-        print(f"Element {i}: {amp:.4f}")
-
-    # Plot the amplitudes
-    plt.figure(figsize=(8, 6))
-    plt.stem(range(1, M + 1), amplitudes)  # Removed `use_line_collection`
-    plt.xlabel("Element Index")
-    plt.ylabel("Amplitude")
-    plt.title(f"Apodization Amplitudes for {window_type} Window")
-    plt.grid(True)
-    plt.show()
+    # Display the results
+    print(f"Total Aperture Size (A): {A:.4f} mm")
+    print(f"Element Size (d): {d:.4f} mm")
+    print(f"Gap Size (g): {g:.4f} mm")
+    print("Centroids (xc):")
+    for idx, centroid in enumerate(xc, start=1):
+        print(f"  Element {idx}: {centroid:.4f} mm")
 
 
 if __name__ == "__main__":
