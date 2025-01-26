@@ -1,4 +1,4 @@
-# interface/main.py
+# interface/ls_2Dint_interface.py
 
 import sys
 import os
