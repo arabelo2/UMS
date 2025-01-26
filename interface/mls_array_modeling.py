@@ -1,4 +1,4 @@
-# interface/main.py
+# interface/mls_array_modeling.py
 
 import sys
 import os

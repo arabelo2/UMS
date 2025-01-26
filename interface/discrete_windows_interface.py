@@ -1,4 +1,4 @@
-# interface/main.py
+# interface/discrete_windows_interface.py
 
 import sys
 import os

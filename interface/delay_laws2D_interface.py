@@ -1,4 +1,4 @@
-# interface/main.py
+# interface/delay_laws2D_interface.py
 
 import sys
 import os
