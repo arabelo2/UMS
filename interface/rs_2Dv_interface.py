@@ -1,4 +1,4 @@
-# interface/main.py
+# interface/rs_2Dv_interface.py
 
 import sys
 import os
