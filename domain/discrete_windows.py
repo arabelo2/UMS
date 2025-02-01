@@ -39,3 +39,26 @@ class DiscreteWindows:
             )
 
         return amp
+
+    def compute_weights(M, type_):
+        """
+        Compute amplitude weights for an array using a given window function.
+
+        Parameters:
+            M (int): Number of elements in the array.
+            type_ (str): Type of window function ('rect', 'hamming', etc.).
+
+        Returns:
+            np.ndarray: Array of amplitude weights.
+        """
+
+        if type_.lower() == "rect":
+            return np.ones(M)  # Rectangular window (uniform weighting)
+        elif type_.lower() == "hamming":
+            return np.hamming(M)  # Hamming window
+        elif type_.lower() == "hanning":
+            return np.hanning(M)  # Hanning window
+        elif type_.lower() == "blackman":
+            return np.blackman(M)  # Blackman window
+        else:
+            raise ValueError(f"Unsupported window type: {type_}")
