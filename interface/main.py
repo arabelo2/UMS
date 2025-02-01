@@ -20,10 +20,16 @@ def main():
 
     # ✅ Initialize service BEFORE calling compute_delays()
     service = DelayLaws2DInterfaceService()
-
-    # ✅ Check if plt_option exists and is valid
-    if "plt_option" in globals() and plt_option in ["y", "n"]:
-        td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option)
+    
+    # ✅ Ensure plt_option is always declared
+    # plt_option = " "  # Default: No ray plot. Change to 'y' for visualization.
+    
+    # ✅ Check if plt_option exists in the local or global scope
+    if "plt_option" in locals() or "plt_option" in globals():
+        if plt_option in ["y", "n"]:
+            td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option)
+        else:
+            td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2)
     else:
         td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2)  # No plt_option passed
 
