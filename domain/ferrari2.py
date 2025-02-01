@@ -75,7 +75,16 @@ class FerrariSolver:
             Q = -alpha**3 / 108 + alpha * gamma / 3 - beta**2 / 8
             Rm = Q / 2 - np.sqrt(Q**2 / 4 + P**3 / 27)
             U = np.cbrt(Rm)
-            y = -5 / 6 * alpha if U == 0 else -5 / 6 * alpha - U + P / (3 * U)
+            
+            # ✅ Use NumPy condition to avoid ambiguous truth value error
+            U_is_zero = np.isclose(U, 0)
+
+            y = np.where(
+                U_is_zero, 
+                -5 / 6 * alpha, 
+                -5 / 6 * alpha - U + P / (3 * U)
+            )
+            
             W = np.sqrt(max(0, alpha + 2 * y))
 
             roots = [
