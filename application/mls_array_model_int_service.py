@@ -46,7 +46,9 @@ class MLSArrayModelInterfaceService:
         elements_service = ElementsService()
         delay_service = DelayLaws2DInterfaceService()
         window_service = DiscreteWindowsService()
-        ls_2Dint_service = LS2DInterfaceService()
+
+        # ✅ Pass required arguments when initializing LS2DInterfaceService
+        ls_2Dint_service = LS2DInterfaceService(b, f, mat, angt, DT0)
 
         # Compute element center distances
         e = elements_service.compute_element_positions(M, s)
@@ -66,18 +68,13 @@ class MLSArrayModelInterfaceService:
         # Compute normalized pressure field
         p = np.zeros_like(xx, dtype=np.complex128)
         for mm in range(M):
-            p += Ct[mm] * delay[mm] * ls_2Dint_service.compute_pressure(b, f, mat, e[mm], angt, DT0, xx, zz, 1)
+            p += Ct[mm] * delay[mm] * ls_2Dint_service.compute_pressure(xx, zz, e[mm])
 
         return x, z, np.abs(p)
 
     def plot_pressure_field(self, x, z, p):
         """
         Plot the computed pressure field as a 2D heatmap.
-
-        Parameters:
-            x (np.ndarray): X-coordinates.
-            z (np.ndarray): Z-coordinates.
-            p (np.ndarray): Pressure field.
         """
         plt.figure(figsize=(8, 6))
         plt.imshow(
@@ -89,3 +86,4 @@ class MLSArrayModelInterfaceService:
         plt.ylabel("z (mm)")
         plt.title("2D Pressure Field for MLS Array Model")
         plt.show()
+        
