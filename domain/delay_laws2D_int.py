@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from domain.ferrari2 import Ferrari2Solver  # Ensure this exists
+from application.ferrari_service import FerrariService
 
 class DelayLaws2DInterface:
     """
@@ -48,8 +48,6 @@ class DelayLaws2DInterface:
             else:
                 td = 1000 * (M - m) * s * np.abs(np.sin(np.radians(ang10 - angt))) / c1
 
-            if plt_option == 'y':
-                DelayLaws2DInterface._plot_rays_steering(M, e, DT, ang10, angt, ang20, DT0)
             return td
 
         # Steering and Focusing Case
@@ -58,17 +56,16 @@ class DelayLaws2DInterface:
         r2 = np.zeros(M)
 
         for mm in range(M):
-            xi[mm] = Ferrari2Solver.solve(cr, DF, DT[mm], DX[mm])
+            ferrari_service = FerrariService(cr, DF, DT[mm], DX[mm])
+            xi[mm] = ferrari_service.calculate_intersection()
             r1[mm] = np.sqrt(xi[mm]**2 + (DT0 + e[mm] * np.sin(np.radians(angt)))**2)
             r2[mm] = np.sqrt((xi[mm] + e[mm] * np.cos(np.radians(angt)) - DX0)**2 + DF**2)
 
         t = 1000 * r1 / c1 + 1000 * r2 / c2
         td = np.max(t) - t  # Convert to time delays
 
-        if plt_option == 'y':
-            DelayLaws2DInterface._plot_rays_focusing(M, e, DT, xi, DX0, DF, angt)
-
         return td
+
 
     @staticmethod
     def _plot_rays_steering(M, e, DT, ang10, angt, ang20, DT0):
