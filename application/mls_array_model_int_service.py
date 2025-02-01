@@ -47,11 +47,11 @@ class MLSArrayModelInterfaceService:
         delay_service = DelayLaws2DInterfaceService()
         window_service = DiscreteWindowsService()
 
+        # ✅ Ensure correct function call from ElementsService
+        e = elements_service.compute_element_centroids(M, s)  # Updated method name
+
         # ✅ Pass required arguments when initializing LS2DInterfaceService
         ls_2Dint_service = LS2DInterfaceService(b, f, mat, angt, DT0)
-
-        # Compute element center distances
-        e = elements_service.compute_element_positions(M, s)
 
         # Compute time delays
         td = delay_service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option="n")
@@ -86,4 +86,3 @@ class MLSArrayModelInterfaceService:
         plt.ylabel("z (mm)")
         plt.title("2D Pressure Field for MLS Array Model")
         plt.show()
-        
