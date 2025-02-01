@@ -16,7 +16,7 @@ class FerrariSolver:
             cr (float): Wave speed ratio (c1/c2).
             DF (float): Depth of the point in medium two.
             DT (float): Height of the point in medium one.
-            DX (float): Separation distance between points.
+            DX (float or np.ndarray): Separation distance between points.
         """
         self.cr = cr
         self.DF = DF
@@ -124,5 +124,8 @@ class FerrariSolver:
             interface = InterfaceFunction(self.cr, self.DF, self.DT, self.DX)
             return interface.calculate_y(x)
 
-        result = root_scalar(interface2_wrapper, bracket=[0, self.DX])
+        # ✅ Convert DX to scalar before passing to root_scalar
+        DX_scalar = np.asscalar(self.DX) if np.ndim(self.DX) > 0 else self.DX
+
+        result = root_scalar(interface2_wrapper, bracket=[0, DX_scalar])
         return result.root
