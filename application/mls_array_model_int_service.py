@@ -51,7 +51,7 @@ class MLSArrayModelInterfaceService:
         # Compute normalized pressure field
         p = np.zeros_like(xx, dtype=np.complex128)
         for mm in range(M):
-            p += Ct[mm] * delay[mm] * ls_2Dint_service.compute_pressure(xx, zz, e[mm])
+            p += Ct[mm] * delay[mm] * ls_2Dint_service.calculate_pressure(xx, zz, e[mm])  # ✅ Corrected function call
 
         return x, z, np.abs(p)
 
