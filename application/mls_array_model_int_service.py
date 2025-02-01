@@ -37,9 +37,11 @@ class MLSArrayModelInterfaceService:
         # Compute time delays
         td = delay_service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option="n")
 
-        # Compute delay exponential and amplitude weights
+        # ✅ Use the correct method from DiscreteWindowsService
+        Ct = window_service.calculate_weights(M, type_)
+
+        # Compute delay exponential
         delay = np.exp(1j * 2 * np.pi * f * td)
-        Ct = window_service.compute_amplitude_weights(M, type_)
 
         # Generate 2D area in second medium for field calculations
         x = np.linspace(-5, 15, 200)

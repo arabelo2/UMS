@@ -18,3 +18,16 @@ class DiscreteWindowsService:
             numpy.ndarray: Array of apodization amplitudes.
         """
         return DiscreteWindows.compute(M, window_type)
+    
+    def calculate_weights(self, M, type_):
+        """
+        Compute amplitude weights using a specified window function.
+
+        Parameters:
+            M (int): Number of elements.
+            type_ (str): Type of window function ('rect', 'hamming', etc.).
+
+        Returns:
+            np.ndarray: Array of amplitude weights for the elements.
+        """
+        return DiscreteWindows.generate_weights(M, type_)
