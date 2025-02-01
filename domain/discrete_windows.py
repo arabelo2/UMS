@@ -40,6 +40,7 @@ class DiscreteWindows:
 
         return amp
 
+    @staticmethod
     def compute_weights(M, type_):
         """
         Compute amplitude weights for an array using a given window function.
@@ -51,7 +52,6 @@ class DiscreteWindows:
         Returns:
             np.ndarray: Array of amplitude weights.
         """
-
         if type_.lower() == "rect":
             return np.ones(M)  # Rectangular window (uniform weighting)
         elif type_.lower() == "hamming":
