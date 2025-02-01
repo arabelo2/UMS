@@ -122,8 +122,8 @@ class FerrariSolver:
         """
         def interface2_wrapper(x):
             interface = InterfaceFunction(self.cr, self.DF, self.DT, self.DX)
-            result = interface.calculate_y(x)
-            return np.asscalar(result) if np.ndim(result) > 0 else result
+            result = interface.calculate_y(x)            
+            return result.item() if np.ndim(result) > 0 else result
 
         # ✅ Convert DX to scalar before passing to root_scalar
         DX_scalar = np.max(self.DX) if np.ndim(self.DX) > 0 else self.DX
