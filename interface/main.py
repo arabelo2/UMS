@@ -20,11 +20,14 @@ def main():
     c1 = 1480  # Wave speed in first medium (m/s)
     c2 = 5900  # Wave speed in second medium (m/s)
 
+    # Enable Ray Path Visualization
+    plt_option = 'y'
+
     # Initialize the service
     service = DelayLaws2DInterfaceService()
 
     # Compute the delay laws
-    td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option='y')
+    td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option)
 
     # Display results
     print("Time Delays (microseconds):")
