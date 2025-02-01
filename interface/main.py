@@ -6,34 +6,38 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import numpy as np
 import matplotlib.pyplot as plt
-from application.rs_2Dv_service import RS2DvService
-from application.fresnel_2D_service import Fresnel2DService
+from application.delay_laws2D_int_service import DelayLaws2DInterfaceService
 
 
 def main():
     # Parameters
-    b = 6  # Half-length of the element (in mm)
-    f = 5  # Frequency (in MHz)
-    c = 1500  # Wave speed in the fluid (in m/sec)
+    M = 16  # Number of elements
+    s = 0.5  # Pitch (mm)
+    angt = 10  # Array angle with interface (degrees)
+    ang20 = 15  # Refracted angle in second medium (degrees)
+    DT0 = 50.8  # Height of array center above interface (mm)
+    DF = 100  # Depth in the second medium (mm); Use np.inf for steering only
+    c1 = 1480  # Wave speed in first medium (m/s)
+    c2 = 5900  # Wave speed in second medium (m/s)
 
-    # Input grid
-    z = 60  # Fixed z-coordinate (in mm)
-    x = np.linspace(-10, 10, 200)  # x-coordinates (in mm)
+    # Initialize the service
+    service = DelayLaws2DInterfaceService()
 
-    # Initialize service
-    service = Fresnel2DService(b, f, c)
+    # Compute the delay laws
+    td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option='y')
 
-    # Compute normalized pressure
-    pressure = service.compute_pressure(x, z)
+    # Display results
+    print("Time Delays (microseconds):")
+    for i, delay in enumerate(td, start=1):
+        print(f"Element {i}: {delay:.4f} µs")
 
-    # Plot the result
+    # Plot the delays
     plt.figure(figsize=(8, 6))
-    plt.plot(x, np.abs(pressure), label="|p|", color="blue")
-    plt.xlabel("x (mm)")
-    plt.ylabel("|p| (Normalized Pressure)")
-    plt.title(f"Normalized Pressure Field at z = {z} mm")  # Dynamically update title
+    plt.stem(range(1, M + 1), td)
+    plt.xlabel("Element Index")
+    plt.ylabel("Time Delay (µs)")
+    plt.title(f"Time Delays for 2D Interface (DF = {DF} mm)")
     plt.grid(True)
-    plt.legend()
     plt.show()
 
 
