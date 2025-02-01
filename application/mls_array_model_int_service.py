@@ -15,26 +15,7 @@ class MLSArrayModelInterfaceService:
     def compute_pressure(self, f, d1, c1, d2, c2, M, d, g, angt, ang20, DF, DT0, type_):
         """
         Compute the normalized pressure field for an ultrasonic phased array.
-
-        Parameters:
-            f (float): Frequency in MHz.
-            d1 (float): Density of first medium (gm/cm^3).
-            c1 (float): Wave speed in first medium (m/s).
-            d2 (float): Density of second medium (gm/cm^3).
-            c2 (float): Wave speed in second medium (m/s).
-            M (int): Number of elements.
-            d (float): Element length (mm).
-            g (float): Gap length (mm).
-            angt (float): Angle of the array.
-            ang20 (float): Steering angle in second medium (degrees).
-            DF (float): Focal depth (mm). Set to `np.inf` for no focusing.
-            DT0 (float): Distance of the array from the interface (mm).
-            type_ (str): Type of amplitude weighting function.
-
-        Returns:
-            np.ndarray: The computed pressure wave field.
         """
-
         # Half-length of element
         b = d / 2
         # Pitch of the array
@@ -47,8 +28,8 @@ class MLSArrayModelInterfaceService:
         delay_service = DelayLaws2DInterfaceService()
         window_service = DiscreteWindowsService()
 
-        # ✅ Ensure correct function call from ElementsService
-        e = elements_service.compute_element_centroids(M, s)  # Updated method name
+        # ✅ Extract centroids from ElementsService
+        _, _, _, e = elements_service.calculate(f, c1, d / (c1 / (1000 * f)), g / d, M)
 
         # ✅ Pass required arguments when initializing LS2DInterfaceService
         ls_2Dint_service = LS2DInterfaceService(b, f, mat, angt, DT0)
