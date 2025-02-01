@@ -48,9 +48,10 @@ class DelayLaws2DInterface:
             else:
                 td = 1000 * (M - m) * s * np.abs(np.sin(np.radians(ang10 - angt))) / c1
 
-            # ✅ Only plot if plt_option is explicitly set to 'y'
+            # ✅ Ensure plot appears if plt_option is "y"
             if plt_option.lower() == "y":
                 DelayLaws2DInterface._plot_rays_steering(M, e, DT, ang10, angt, ang20, DT0)
+                plt.show()  # Force plot to display
 
             return td
 
@@ -68,9 +69,10 @@ class DelayLaws2DInterface:
         t = 1000 * r1 / c1 + 1000 * r2 / c2
         td = np.max(t) - t  # Convert to time delays
 
-        # ✅ Only plot if plt_option is explicitly set to 'y'
+        # ✅ Ensure plot appears if plt_option is "y"
         if plt_option.lower() == "y":
             DelayLaws2DInterface._plot_rays_focusing(M, e, DT, xi, DX0, DF, angt)
+            plt.show()  # Force plot to display
 
         return td
 
