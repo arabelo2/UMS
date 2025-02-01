@@ -18,17 +18,11 @@ def main():
     c1 = 1480  # Wave speed in first medium (m/s)
     c2 = 5900  # Wave speed in second medium (m/s)
 
-    # Ensure plt_option is always declared
-    plt_option = "y"  # Default: No ray plot. Change to 'y' for visualization.
-
-    # Initialize service
-    service = DelayLaws2DInterfaceService()
-
-    # Conditional function call based on plt_option existence
-    if plt_option in ["y", "n"]:
+    # ✅ Check if plt_option exists in globals() and is valid
+    if "plt_option" in globals() and plt_option in ["y", "n"]:
         td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option)
     else:
-        td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2)
+        td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2)  # No plt_option passed
 
     # Display results
     print("Time Delays (microseconds):")
