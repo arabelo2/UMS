@@ -23,11 +23,16 @@ def main():
     DT0 = 25.4  # Distance from interface (mm)
     type_ = "rect"  # Type of amplitude weighting function
 
+    # ✅ Generate 2D area for field calculations (Moved here from service)
+    x = np.linspace(-5, 15, 200)
+    z = np.linspace(1, 20, 200)
+    xx, zz = np.meshgrid(x, z)
+
     # Initialize service
     service = MLSArrayModelInterfaceService()
 
     # Compute the pressure field
-    x, z, p = service.compute_pressure(f, d1, c1, d2, c2, M, d, g, angt, ang20, DF, DT0, type_)
+    p = service.compute_pressure(f, d1, c1, d2, c2, M, d, g, angt, ang20, DF, DT0, type_, xx, zz)
 
     # Plot the result
     service.plot_pressure_field(x, z, p)

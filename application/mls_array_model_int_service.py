@@ -12,9 +12,26 @@ class MLSArrayModelInterfaceService:
     through a fluid/fluid interface.
     """
 
-    def compute_pressure(self, f, d1, c1, d2, c2, M, d, g, angt, ang20, DF, DT0, type_):
+    def compute_pressure(self, f, d1, c1, d2, c2, M, d, g, angt, ang20, DF, DT0, type_, xx, zz):
         """
         Compute the normalized pressure field for an ultrasonic phased array.
+
+        Parameters:
+            f (float): Frequency in MHz.
+            d1, d2 (float): Densities of the media.
+            c1, c2 (float): Wave speeds in the two media.
+            M (int): Number of elements.
+            d (float): Element length.
+            g (float): Gap length.
+            angt (float): Array angle.
+            ang20 (float): Steering angle in second medium.
+            DF (float): Focal depth.
+            DT0 (float): Distance from interface.
+            type_ (str): Amplitude weighting function type.
+            xx, zz (ndarray): 2D grid for x and z coordinates.
+
+        Returns:
+            ndarray: Normalized pressure field.
         """
         # Half-length of element
         b = d / 2
@@ -42,18 +59,13 @@ class MLSArrayModelInterfaceService:
 
         # Compute delay exponential
         delay = np.exp(1j * 2 * np.pi * f * td)
-
-        # Generate 2D area in second medium for field calculations
-        x = np.linspace(-5, 15, 200)
-        z = np.linspace(1, 20, 200)
-        xx, zz = np.meshgrid(x, z)
-
+        
         # Compute normalized pressure field
         p = np.zeros_like(xx, dtype=np.complex128)
         for mm in range(M):
             p += Ct[mm] * delay[mm] * ls_2Dint_service.calculate_pressure(xx, zz, e[mm])  # ✅ Corrected function call
 
-        return x, z, np.abs(p)
+        return np.abs(p)
 
     def plot_pressure_field(self, x, z, p):
         """
