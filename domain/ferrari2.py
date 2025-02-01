@@ -101,16 +101,20 @@ class FerrariSolver:
         Find the valid root within the interval [0, DX].
         """
         tolerance = 1e-6
+        valid_roots = []
+
         for root in roots:
             real_part = np.real(root)
             imaginary_part = np.abs(np.imag(root))
             scaled_root = real_part * self.DT
 
-            if self.DX >= 0 and 0 <= scaled_root <= self.DX and imaginary_part < tolerance:
-                return scaled_root
-            elif self.DX < 0 and self.DX <= scaled_root <= 0 and imaginary_part < tolerance:
-                return scaled_root
-        return None
+            # ✅ Replace array comparisons with NumPy conditions
+            if np.all(self.DX >= 0) and np.all(0 <= scaled_root) and np.all(scaled_root <= self.DX) and imaginary_part < tolerance:
+                valid_roots.append(scaled_root)
+            elif np.all(self.DX < 0) and np.all(self.DX <= scaled_root) and np.all(scaled_root <= 0) and imaginary_part < tolerance:
+                valid_roots.append(scaled_root)
+
+        return valid_roots[0] if valid_roots else None
 
     def _fallback_to_numeric(self):
         """
