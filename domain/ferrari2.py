@@ -115,16 +115,17 @@ class FerrariSolver:
                 valid_roots.append(scaled_root)
 
         return valid_roots[0] if valid_roots else None
-
+    
     def _fallback_to_numeric(self):
         """
         Fallback to numerical solver if Ferrari's method fails.
         """
         def interface2_wrapper(x):
             interface = InterfaceFunction(self.cr, self.DF, self.DT, self.DX)
-            return interface.calculate_y(x)
+            result = interface.calculate_y(x)
+            return np.asscalar(result) if np.ndim(result) > 0 else result
 
-        # ✅ Convert DX to scalar before passing to root_scalar        
+        # ✅ Convert DX to scalar before passing to root_scalar
         DX_scalar = np.max(self.DX) if np.ndim(self.DX) > 0 else self.DX
 
         result = root_scalar(interface2_wrapper, bracket=[0, DX_scalar])
