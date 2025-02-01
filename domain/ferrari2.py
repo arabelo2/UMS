@@ -125,7 +125,7 @@ class FerrariSolver:
             return interface.calculate_y(x)
 
         # ✅ Convert DX to scalar before passing to root_scalar
-        DX_scalar = np.asscalar(self.DX) if np.ndim(self.DX) > 0 else self.DX
+        DX_scalar = self.DX.item() if np.ndim(self.DX) > 0 else self.DX
 
         result = root_scalar(interface2_wrapper, bracket=[0, DX_scalar])
         return result.root
