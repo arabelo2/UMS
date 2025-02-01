@@ -1,5 +1,3 @@
-# interface/main.py
-
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -20,14 +18,14 @@ def main():
     c1 = 1480  # Wave speed in first medium (m/s)
     c2 = 5900  # Wave speed in second medium (m/s)
 
-    # Ensure plt_option is always defined
-    plt_option = globals().get("plt_option", "n")  # Default to 'n' if not set
-
-    # Initialize the service
-    service = DelayLaws2DInterfaceService()
-
-    # Compute the delay laws
-    td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option)
+    # Check if plt_option is defined, and call accordingly
+    if "plt_option" in globals():
+        if plt_option in ["y", "n"]:
+            td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option)
+        else:
+            td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2)
+    else:
+        td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2)
 
     # Display results
     print("Time Delays (microseconds):")
