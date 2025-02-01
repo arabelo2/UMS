@@ -20,8 +20,8 @@ def main():
     c1 = 1480  # Wave speed in first medium (m/s)
     c2 = 5900  # Wave speed in second medium (m/s)
 
-    # Enable Ray Path Visualization
-    plt_option = 'y'
+    # Ensure plt_option is always defined
+    plt_option = globals().get("plt_option", "n")  # Default to 'n' if not set
 
     # Initialize the service
     service = DelayLaws2DInterfaceService()
