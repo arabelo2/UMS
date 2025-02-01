@@ -62,7 +62,8 @@ class FerrariSolver:
         Returns:
             list: Roots of the quartic equation.
         """
-        if beta == 0:
+        # ✅ Use NumPy array-safe comparisons
+        if np.all(beta == 0):  # Checks if all elements in beta are zero
             roots = [
                 -B / (4 * A) + np.sqrt(max(0, (-alpha + np.sqrt(alpha**2 - 4 * gamma)) / 2)),
                 -B / (4 * A) + np.sqrt(max(0, (-alpha - np.sqrt(alpha**2 - 4 * gamma)) / 2)),
@@ -76,11 +77,12 @@ class FerrariSolver:
             U = np.cbrt(Rm)
             y = -5 / 6 * alpha if U == 0 else -5 / 6 * alpha - U + P / (3 * U)
             W = np.sqrt(max(0, alpha + 2 * y))
+
             roots = [
-                -B / (4 * A) + 0.5 * (W + np.sqrt(max(0, -(3 * alpha + 2 * y + 2 * beta / W)))),
-                -B / (4 * A) + 0.5 * (-W + np.sqrt(max(0, -(3 * alpha + 2 * y - 2 * beta / W)))),
-                -B / (4 * A) + 0.5 * (W - np.sqrt(max(0, -(3 * alpha + 2 * y + 2 * beta / W)))),
-                -B / (4 * A) + 0.5 * (-W - np.sqrt(max(0, -(3 * alpha + 2 * y - 2 * beta / W)))),
+                -B / (4 * A) + 0.5 * (W + np.sqrt(max(0, -(3 * alpha + 2 * y + 2 * beta / W)))) if np.all(beta != 0) else -B / (4 * A) + 0.5 * W,
+                -B / (4 * A) + 0.5 * (-W + np.sqrt(max(0, -(3 * alpha + 2 * y - 2 * beta / W)))) if np.all(beta != 0) else -B / (4 * A) - 0.5 * W,
+                -B / (4 * A) + 0.5 * (W - np.sqrt(max(0, -(3 * alpha + 2 * y + 2 * beta / W)))) if np.all(beta != 0) else -B / (4 * A) + 0.5 * W,
+                -B / (4 * A) + 0.5 * (-W - np.sqrt(max(0, -(3 * alpha + 2 * y - 2 * beta / W)))) if np.all(beta != 0) else -B / (4 * A) - 0.5 * W,
             ]
         return roots
 
