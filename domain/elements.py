@@ -1,6 +1,5 @@
 import numpy as np
 
-
 class Elements:
     """
     Calculates the properties of an array transducer, including its total length,
@@ -10,32 +9,32 @@ class Elements:
     @staticmethod
     def calculate(f, c, dl, gd, N):
         """
-        Calculate array properties.
+        Compute the array properties, including aperture size, element size, gap, and centroids.
 
         Parameters:
-            f (float): Frequency (in MHz).
-            c (float): Wave speed (in m/s).
-            dl (float): Element length divided by wavelength (d/λ).
-            gd (float): Gap size divided by element length (g/d).
+            f (float): Frequency in MHz.
+            c (float): Wave speed in the medium (m/s).
+            dl (float): Element length divided by wavelength.
+            gd (float): Gap between elements divided by element length.
             N (int): Number of elements.
 
         Returns:
-            tuple: (A, d, g, xc)
-                - A (float): Total aperture size of the array (in mm).
-                - d (float): Element size (in mm).
-                - g (float): Gap size (in mm).
-                - xc (numpy.ndarray): Centroids of array elements (in mm).
+            tuple: (A, d, g, xc) where:
+                - A (float): Total aperture size.
+                - d (float): Element length.
+                - g (float): Gap size.
+                - xc (np.ndarray): X-coordinates of the element centroids.
         """
-        # Calculate element size (d)
-        d = dl * c / (1000 * f)
 
-        # Calculate gap size (g)
-        g = gd * d
+        # Calculate element length and gap size
+        λ = c / (f * 1e6)  # Convert MHz to Hz
+        d = dl * λ
+        g = gd * d  # Calculate gap size (g)
 
-        # Calculate total aperture size (A)
+        # Compute aperture size
         A = N * d + (N - 1) * g
 
-        # Calculate centroids (xc)
-        xc = np.array([(g + d) * ((2 * nn - 1) / 2 - N / 2) for nn in range(1, N + 1)])
+        # Compute element centroids
+        xc = np.array([(m - (N - 1) / 2) * (d + g) for m in range(N)])
 
         return A, d, g, xc
