@@ -18,12 +18,12 @@ def main():
     c1 = 1480  # Wave speed in first medium (m/s)
     c2 = 5900  # Wave speed in second medium (m/s)
 
-    # Check if plt_option is defined, and call accordingly
-    if "plt_option" in globals():
-        if plt_option in ["y", "n"]:
-            td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option)
-        else:
-            td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2)
+    # Initialize service
+    service = DelayLaws2DInterfaceService()
+
+    # ✅ Simplified function call logic
+    if "plt_option" in globals() and plt_option in ["y", "n"]:
+        td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option)
     else:
         td = service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2)
 
