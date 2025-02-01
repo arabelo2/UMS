@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from application.ferrari_service import FerrariService
+from application.ferrari_service import FerrariService  # Ensure correct import
 
 class DelayLaws2DInterface:
     """
@@ -8,7 +8,7 @@ class DelayLaws2DInterface:
     """
 
     @staticmethod
-    def compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option='n'):
+    def compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option="n"):
         """
         Compute delay laws for steering and focusing through a planar interface.
 
@@ -17,11 +17,11 @@ class DelayLaws2DInterface:
             s (float): Pitch (mm).
             angt (float): Angle of the array with the interface (degrees).
             ang20 (float): Refracted angle in the second medium (degrees).
-            DT0 (float): Height of the center of the array above the interface (mm).
+            DT0 (float): Height of the center of the array above interface (mm).
             DF (float or np.inf): Depth in the second medium (mm).
-            c1 (float): Wave speed in the first medium (m/s).
-            c2 (float): Wave speed in the second medium (m/s).
-            plt_option (str): 'y' for plotting rays, 'n' for no plot.
+            c1 (float): Wave speed in first medium (m/s).
+            c2 (float): Wave speed in second medium (m/s).
+            plt_option (str, optional): 'y' for plotting rays, 'n' for no plot (default: 'n').
 
         Returns:
             np.ndarray: Time delays for each array element.
@@ -48,6 +48,10 @@ class DelayLaws2DInterface:
             else:
                 td = 1000 * (M - m) * s * np.abs(np.sin(np.radians(ang10 - angt))) / c1
 
+            # ✅ Only plot if plt_option is explicitly set to 'y'
+            if plt_option.lower() == "y":
+                DelayLaws2DInterface._plot_rays_steering(M, e, DT, ang10, angt, ang20, DT0)
+
             return td
 
         # Steering and Focusing Case
@@ -64,8 +68,11 @@ class DelayLaws2DInterface:
         t = 1000 * r1 / c1 + 1000 * r2 / c2
         td = np.max(t) - t  # Convert to time delays
 
-        return td
+        # ✅ Only plot if plt_option is explicitly set to 'y'
+        if plt_option.lower() == "y":
+            DelayLaws2DInterface._plot_rays_focusing(M, e, DT, xi, DX0, DF, angt)
 
+        return td
 
     @staticmethod
     def _plot_rays_steering(M, e, DT, ang10, angt, ang20, DT0):
