@@ -65,17 +65,17 @@ class FerrariSolver:
         # ✅ Use NumPy array-safe comparisons
         if np.all(beta == 0):  # Checks if all elements in beta are zero
             roots = [
-                -B / (4 * A) + np.sqrt(max(0, (-alpha + np.sqrt(alpha**2 - 4 * gamma)) / 2)),
-                -B / (4 * A) + np.sqrt(max(0, (-alpha - np.sqrt(alpha**2 - 4 * gamma)) / 2)),
-                -B / (4 * A) - np.sqrt(max(0, (-alpha + np.sqrt(alpha**2 - 4 * gamma)) / 2)),
-                -B / (4 * A) - np.sqrt(max(0, (-alpha - np.sqrt(alpha**2 - 4 * gamma)) / 2)),
+                -B / (4 * A) + np.sqrt(np.maximum(0, (-alpha + np.sqrt(alpha**2 - 4 * gamma)) / 2)),
+                -B / (4 * A) + np.sqrt(np.maximum(0, (-alpha - np.sqrt(alpha**2 - 4 * gamma)) / 2)),
+                -B / (4 * A) - np.sqrt(np.maximum(0, (-alpha + np.sqrt(alpha**2 - 4 * gamma)) / 2)),
+                -B / (4 * A) - np.sqrt(np.maximum(0, (-alpha - np.sqrt(alpha**2 - 4 * gamma)) / 2)),
             ]
         else:
             P = -alpha**2 / 12 - gamma
             Q = -alpha**3 / 108 + alpha * gamma / 3 - beta**2 / 8
             Rm = Q / 2 - np.sqrt(Q**2 / 4 + P**3 / 27)
             U = np.cbrt(Rm)
-            
+
             # ✅ Use NumPy condition to avoid ambiguous truth value error
             U_is_zero = np.isclose(U, 0)
 
@@ -84,14 +84,15 @@ class FerrariSolver:
                 -5 / 6 * alpha, 
                 -5 / 6 * alpha - U + P / (3 * U)
             )
-            
-            W = np.sqrt(max(0, alpha + 2 * y))
+
+            # ✅ Correct array-safe square root operation
+            W = np.sqrt(np.maximum(0, alpha + 2 * y))
 
             roots = [
-                -B / (4 * A) + 0.5 * (W + np.sqrt(max(0, -(3 * alpha + 2 * y + 2 * beta / W)))) if np.all(beta != 0) else -B / (4 * A) + 0.5 * W,
-                -B / (4 * A) + 0.5 * (-W + np.sqrt(max(0, -(3 * alpha + 2 * y - 2 * beta / W)))) if np.all(beta != 0) else -B / (4 * A) - 0.5 * W,
-                -B / (4 * A) + 0.5 * (W - np.sqrt(max(0, -(3 * alpha + 2 * y + 2 * beta / W)))) if np.all(beta != 0) else -B / (4 * A) + 0.5 * W,
-                -B / (4 * A) + 0.5 * (-W - np.sqrt(max(0, -(3 * alpha + 2 * y - 2 * beta / W)))) if np.all(beta != 0) else -B / (4 * A) - 0.5 * W,
+                -B / (4 * A) + 0.5 * (W + np.sqrt(np.maximum(0, -(3 * alpha + 2 * y + 2 * beta / W)))) if np.all(beta != 0) else -B / (4 * A) + 0.5 * W,
+                -B / (4 * A) + 0.5 * (-W + np.sqrt(np.maximum(0, -(3 * alpha + 2 * y - 2 * beta / W)))) if np.all(beta != 0) else -B / (4 * A) - 0.5 * W,
+                -B / (4 * A) + 0.5 * (W - np.sqrt(np.maximum(0, -(3 * alpha + 2 * y + 2 * beta / W)))) if np.all(beta != 0) else -B / (4 * A) + 0.5 * W,
+                -B / (4 * A) + 0.5 * (-W - np.sqrt(np.maximum(0, -(3 * alpha + 2 * y - 2 * beta / W)))) if np.all(beta != 0) else -B / (4 * A) - 0.5 * W,
             ]
         return roots
 
