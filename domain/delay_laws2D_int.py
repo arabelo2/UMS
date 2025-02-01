@@ -11,22 +11,7 @@ class DelayLaws2DInterface:
     def compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option="n"):
         """
         Compute delay laws for steering and focusing through a planar interface.
-
-        Parameters:
-            M (int): Number of elements.
-            s (float): Pitch (mm).
-            angt (float): Angle of the array with the interface (degrees).
-            ang20 (float): Refracted angle in the second medium (degrees).
-            DT0 (float): Height of the center of the array above interface (mm).
-            DF (float or np.inf): Depth in the second medium (mm).
-            c1 (float): Wave speed in first medium (m/s).
-            c2 (float): Wave speed in second medium (m/s).
-            plt_option (str, optional): 'y' for plotting rays, 'n' for no plot (default: 'n').
-
-        Returns:
-            np.ndarray: Time delays for each array element.
         """
-
         cr = c1 / c2  # Wave speed ratio
         Mb = (M - 1) / 2
 
@@ -51,7 +36,7 @@ class DelayLaws2DInterface:
             # ✅ Ensure plot appears if plt_option is "y"
             if plt_option.lower() == "y":
                 DelayLaws2DInterface._plot_rays_steering(M, e, DT, ang10, angt, ang20, DT0)
-                plt.show()  # Force plot to display
+                plt.show()  # 🚀 Ensure plot is displayed properly
 
             return td
 
@@ -72,7 +57,7 @@ class DelayLaws2DInterface:
         # ✅ Ensure plot appears if plt_option is "y"
         if plt_option.lower() == "y":
             DelayLaws2DInterface._plot_rays_focusing(M, e, DT, xi, DX0, DF, angt)
-            plt.show()  # Force plot to display
+            plt.show()  # 🚀 Ensure plot is displayed properly
 
         return td
 
