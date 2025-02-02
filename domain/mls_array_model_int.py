@@ -52,7 +52,8 @@ class MLSArrayModelInt:
         self.Ct = self.window_service.calculate_weights()
 
         # Instantiate LS2DInterfaceService
-        self.ls_service = LS2DInterfaceService(f, d1, c1, d2, c2)
+        mat = [self.d1, self.c1, self.d2, self.c2]
+        self.ls_service = LS2DInterfaceService(self.f, mat, self.angt, self.DT0)
 
     def compute_pressure_field(self, x, z):
         """
