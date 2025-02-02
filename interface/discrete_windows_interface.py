@@ -13,7 +13,7 @@ def main():
 
     # Define parameters
     M = 16  # Number of elements
-    window_type = "Blk"  # Choose: 'cos', 'Han', 'Ham', 'Blk', 'tri', 'rect'
+    window_type = "tri"  # Choose: 'cos', 'Han', 'Ham', 'Blk', 'tri', 'rect'
 
     # Compute Window Weights
     service = DiscreteWindowsService(M, window_type)
