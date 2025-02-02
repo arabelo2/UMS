@@ -7,7 +7,12 @@ class LS2DInterfaceService:
     """
 
     def __init__(self, b, f, mat, angt, Dt0):
-        self.solver = LS2DInterface(b, f, mat, angt, Dt0)
+        self.b = b
+        self.f = f
+        self.mat = mat
+        self.angt = angt
+        self.Dt0 = Dt0        
+        self.solver = LS2DInterface(self.b, self.f, self.mat, self.angt, self.Dt0)
 
     def calculate_pressure(self, x, z, e, N=None):
         """

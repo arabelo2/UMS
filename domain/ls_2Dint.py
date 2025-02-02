@@ -19,11 +19,17 @@ class LS2DInterface:
             angt (float): Angle of the array with respect to the x-axis (in degrees).
             Dt0 (float): Distance of the center of the array from the interface (in mm).
         """
+        
         self.b = b
-        self.f = f
-        self.d1, self.c1, self.d2, self.c2 = mat
+        self.f = f        
         self.angt = angt
         self.Dt0 = Dt0
+        
+        if isinstance(mat, (list, tuple)) and len(mat) == 4:
+            self.d1, self.c1, self.d2, self.c2 = mat
+        else:
+            raise ValueError(f"Expected mat to be a tuple of 4 values, got {mat} instead")
+        
         self.k1b = 2000 * np.pi * b * f / self.c1
         self.k2b = 2000 * np.pi * b * f / self.c2
 

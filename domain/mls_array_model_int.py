@@ -6,7 +6,7 @@ from application.discrete_windows_service import DiscreteWindowsService
 class MLSArrayModelInt:
     """Computes the normalized pressure wave field for a 1D phased array interacting with a fluid/fluid interface."""
 
-    def __init__(self, f, d1, c1, d2, c2, M, d, g, angt, ang20, DF, DT0, window_type):
+    def __init__(self, f, d1, c1, d2, c2, M, d, g, angt, ang20, DF, Dt0, window_type):
         """
         Initialize parameters.
 
@@ -22,7 +22,7 @@ class MLSArrayModelInt:
             angt (float): Array tilt angle (degrees)
             ang20 (float): Steering angle in second medium (degrees)
             DF (float): Focal depth (mm) (∞ for no focusing)
-            DT0 (float): Distance of array from interface (mm)
+            Dt0 (float): Distance of array from interface (mm)
             window_type (str): Type of amplitude weighting function
         """
         self.f = f
@@ -36,24 +36,27 @@ class MLSArrayModelInt:
         self.angt = angt
         self.ang20 = ang20
         self.DF = DF
-        self.DT0 = DT0
+        self.Dt0 = Dt0
         self.window_type = window_type
+        
+        # Compute element half length
+        self.b = self.d/2
 
         # Compute element positions
-        self.s = d + g  # Pitch (element spacing)
-        self.e = np.linspace(-((M - 1) / 2) * self.s, ((M - 1) / 2) * self.s, M)
+        self.s = self.d + self.g  # Pitch (element spacing)
+        self.e = np.linspace(-((self.M - 1) / 2) * self.s, ((self.M - 1) / 2) * self.s, self.M)
 
         # Instantiate DelayLaws2DInterfaceService
         self.td_service = DelayLaws2DInterfaceService()
-        self.td = self.td_service.compute_delays(M, self.s, self.angt, self.ang20, self.DT0, self.DF, self.c1, self.c2)
+        self.td = self.td_service.compute_delays(self.M, self.s, self.angt, self.ang20, self.Dt0, self.DF, self.c1, self.c2)
 
         # Instantiate DiscreteWindowsService
         self.window_service = DiscreteWindowsService(self.M, self.window_type)
         self.Ct = self.window_service.calculate_weights()
 
         # Instantiate LS2DInterfaceService
-        mat = [self.d1, self.c1, self.d2, self.c2]
-        self.ls_service = LS2DInterfaceService(self.f, mat, self.angt, self.DT0, self.DF)
+        mat = (self.d1, self.c1, self.d2, self.c2)        
+        self.ls_service = LS2DInterfaceService(self.b, self.f, list(mat), self.angt, self.Dt0)
 
 
     def compute_pressure_field(self, x, z):
@@ -71,7 +74,7 @@ class MLSArrayModelInt:
         pressure = np.zeros_like(xx, dtype=np.complex128)
 
         for i in range(self.M):
-            element_pressure = self.ls_service.compute_pressure(xx, zz, self.e[i])
+            element_pressure = self.ls_service.calculate_pressure(xx, zz, self.e[i])
             pressure += self.Ct[i] * np.exp(1j * 2 * np.pi * self.f * self.td[i]) * element_pressure
 
         return np.abs(pressure)
