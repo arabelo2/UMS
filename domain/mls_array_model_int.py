@@ -48,8 +48,8 @@ class MLSArrayModelInt:
         self.td = self.td_service.compute_delays(M, self.s, self.angt, self.ang20, self.DT0, self.DF, self.c1, self.c2)
 
         # Instantiate DiscreteWindowsService
-        self.window_service = DiscreteWindowsService()
-        self.Ct = self.window_service.calculate_weights(M, self.window_type)
+        self.window_service = DiscreteWindowsService(self.M, self.window_type)
+        self.Ct = self.window_service.calculate_weights()
 
         # Instantiate LS2DInterfaceService
         self.ls_service = LS2DInterfaceService(f, d1, c1, d2, c2)
