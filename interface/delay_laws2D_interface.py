@@ -12,9 +12,9 @@ def main():
     # Parameters
     M = 16  # Number of elements
     s = 0.5  # Pitch (in mm)
-    Phi = 15  # Steering angle (in degrees)
+    Phi = 0  # Steering angle (in degrees)
     # F = np.inf  # Focal length (set to infinity for steering only) 
-    F = 20  # Focal Length = {F} mm
+    F = 15  # Focal Length = {F} mm
     c = 1480  # Wave speed (in m/s)
 
     # Initialize service
