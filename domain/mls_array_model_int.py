@@ -43,13 +43,13 @@ class MLSArrayModelInt:
         self.s = d + g  # Pitch (element spacing)
         self.e = np.linspace(-((M - 1) / 2) * self.s, ((M - 1) / 2) * self.s, M)
 
-        # Use Delay Laws Service correctly
+        # ✅ Ensure all parameters are passed to DelayLaws2DInterfaceService
         self.td = DelayLaws2DInterfaceService.compute_delays(M, self.s, self.angt, self.ang20, self.DT0, self.DF, self.c1, self.c2)
 
-        # Use Discrete Windows Service correctly
+        # ✅ Ensure Discrete Windows Service is used correctly
         self.Ct = DiscreteWindowsService.calculate_weights(M, self.window_type)
 
-        # Use LS2D Interface Service
+        # ✅ Ensure LS2D Interface Service is used correctly
         self.ls_service = LS2DInterfaceService(f, d1, c1, d2, c2)
 
     def compute_pressure_field(self, x, z):
