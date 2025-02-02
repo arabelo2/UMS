@@ -1,3 +1,4 @@
+import numpy as np
 from application.fresnel_int_service import FresnelIntegralService
 
 class OnAxisFocusedPiston:

@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import unittest
 import numpy as np
 from domain.on_axis_foc2D import OnAxisFocusedPiston
