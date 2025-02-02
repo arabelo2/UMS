@@ -1,33 +1,15 @@
 from domain.discrete_windows import DiscreteWindows
-
+import numpy as np
 
 class DiscreteWindowsService:
-    """
-    Service to manage computations of discrete apodization amplitudes.
-    """
+    """Service layer for computing discrete windowing functions."""
 
-    def get_amplitudes(self, M, window_type):
-        """
-        Get the apodization amplitudes for a given window type.
+    def __init__(self, M: int, window_type: str):
+        self.M = M
+        self.window_type = window_type
+        self.weights = None
 
-        Parameters:
-            M (int): Number of elements.
-            window_type (str): Type of window ('cos', 'Han', 'Ham', 'Blk', 'tri', 'rect').
-
-        Returns:
-            numpy.ndarray: Array of apodization amplitudes.
-        """
-        return DiscreteWindows.compute(M, window_type)
-
-    def calculate_weights(self, M, type_):
-        """
-        Compute amplitude weights using a specified window function.
-
-        Parameters:
-            M (int): Number of elements.
-            type_ (str): Type of window function ('rect', 'hamming', etc.).
-
-        Returns:
-            np.ndarray: Array of amplitude weights for the elements.
-        """
-        return DiscreteWindows.compute_weights(M, type_)
+    def calculate_weights(self) -> np.ndarray:
+        """Compute and return the window weights."""
+        self.weights = DiscreteWindows.generate_weights(self.M, self.window_type)
+        return self.weights

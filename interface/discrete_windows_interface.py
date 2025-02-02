@@ -8,33 +8,29 @@ import numpy as np
 import matplotlib.pyplot as plt
 from application.discrete_windows_service import DiscreteWindowsService
 
-
 def main():
-    # Parameters
+    """Main function to test discrete windowing functions."""
+
+    # Define parameters
     M = 16  # Number of elements
-    window_type = 'Blk'  # Window type
+    window_type = "Blk"  # Choose: 'cos', 'Han', 'Ham', 'Blk', 'tri', 'rect'
 
-    # Initialize service
-    service = DiscreteWindowsService()
+    # Compute Window Weights
+    service = DiscreteWindowsService(M, window_type)
+    weights = service.calculate_weights()
 
-    # Compute apodization amplitudes
-    amplitudes = service.get_amplitudes(M, window_type)
-
-    # Display results
-    print(f"Apodization Amplitudes for {window_type} window:")
-    for i, amp in enumerate(amplitudes, start=1):
-        print(f"Element {i}: {amp:.4f}")
-
-    # Plot the amplitudes
+    # Plot Window Weights
     plt.figure(figsize=(8, 6))
-    plt.stem(range(1, M + 1), amplitudes)  # Removed `use_line_collection`
-    plt.xlabel("Element Index")
-    plt.ylabel("Amplitude")
-    plt.title(f"Apodization Amplitudes for {window_type} Window")
-    plt.grid(True)
-    plt.show()
+    plt.stem(range(1, M + 1), weights, basefmt=" ", use_line_collection=True)
 
+    # Formatting
+    plt.xlabel("Element Index")
+    plt.ylabel("Amplitude Weight")
+    plt.title(f"Discrete Windowing Function: {window_type}")
+    plt.grid(True)
+    
+    # Show the plot
+    plt.show()
 
 if __name__ == "__main__":
     main()
-
