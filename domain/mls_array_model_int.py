@@ -43,13 +43,11 @@ class MLSArrayModelInt:
         self.s = d + g  # Pitch (element spacing)
         self.e = np.linspace(-((M - 1) / 2) * self.s, ((M - 1) / 2) * self.s, M)
 
-        # Use Delay Laws Service
-        self.td_service = DelayLaws2DInterfaceService(M, self.s, self.angt, self.ang20, self.DT0, self.DF, self.c1, self.c2)
-        self.td = self.td_service.compute_delays()
+        # Use Delay Laws Service correctly
+        self.td = DelayLaws2DInterfaceService.compute_delays(M, self.s, self.angt, self.ang20, self.DT0, self.DF, self.c1, self.c2)
 
-        # Use Discrete Windows Service
-        self.window_service = DiscreteWindowsService(M, self.window_type)
-        self.Ct = self.window_service.calculate_weights()
+        # Use Discrete Windows Service correctly
+        self.Ct = DiscreteWindowsService.calculate_weights(M, self.window_type)
 
         # Use LS2D Interface Service
         self.ls_service = LS2DInterfaceService(f, d1, c1, d2, c2)
