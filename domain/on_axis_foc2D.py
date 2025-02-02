@@ -1,24 +1,15 @@
-import numpy as np
-from domain.fresnel_int import FresnelIntegral
+from application.fresnel_int_service import FresnelIntegralService
 
 class OnAxisFocusedPiston:
-    """Computes the on-axis normalized pressure for a focused piston transducer."""
-
     def __init__(self, b, R, f, c):
-        """
-        Initialize the transducer parameters.
-
-        Parameters:
-            b (float): Half-length of the transducer (mm)
-            R (float): Focal length (mm)
-            f (float): Frequency (MHz)
-            c (float): Speed of sound (m/s)
-        """
         self.b = b
         self.R = R
         self.f = f
         self.c = c
         self.kb = (2000 * np.pi * f * b) / c  # Compute wave number
+
+        # Initialize the service
+        self.fresnel_service = FresnelIntegralService()
 
     def compute_pressure(self, z):
         """Compute the on-axis normalized pressure at a given depth `z`."""
@@ -38,9 +29,9 @@ class OnAxisFocusedPiston:
         # Compute denominator
         denom = np.sqrt(u) * (z <= self.R) + np.sqrt(-u) * (z > self.R)
 
-        # Compute Fresnel integral
-        fresnel_near = FresnelIntegral.compute(x) * (z <= self.R)
-        fresnel_far = np.conj(FresnelIntegral.compute(x)) * (z > self.R)
+        # Compute Fresnel integrals using the service
+        fresnel_near = self.fresnel_service.compute_integrals(x) * (z <= self.R)
+        fresnel_far = np.conj(self.fresnel_service.compute_integrals(x)) * (z > self.R)
         Fr = fresnel_near + fresnel_far
 
         # Compute final normalized pressure
