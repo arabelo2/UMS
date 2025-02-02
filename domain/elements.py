@@ -27,7 +27,7 @@ class Elements:
         """
 
         # Calculate element length and gap size
-        λ = c / (f * 1e6)  # Convert MHz to Hz
+        λ = c / (f * 1e3)
         d = dl * λ
         g = gd * d  # Calculate gap size (g)
 
