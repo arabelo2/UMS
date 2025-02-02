@@ -53,7 +53,8 @@ class MLSArrayModelInt:
 
         # Instantiate LS2DInterfaceService
         mat = [self.d1, self.c1, self.d2, self.c2]
-        self.ls_service = LS2DInterfaceService(self.f, mat, self.angt, self.DT0)
+        self.ls_service = LS2DInterfaceService(self.f, mat, self.angt, self.DT0, self.DF)
+
 
     def compute_pressure_field(self, x, z):
         """
