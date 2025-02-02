@@ -1,7 +1,7 @@
 import numpy as np
-from domain.ls_2Dint import LS2DInterface
-from domain.delay_laws2D_int import DelayLaws2DInterface
-from domain.discrete_windows import DiscreteWindows
+from application.ls_2Dint_service import LS2DInterfaceService
+from application.delay_laws2D_int_service import DelayLaws2DInterfaceService
+from application.discrete_windows_service import DiscreteWindowsService
 
 class MLSArrayModelInt:
     """Computes the normalized pressure wave field for a 1D phased array interacting with a fluid/fluid interface."""
@@ -43,16 +43,16 @@ class MLSArrayModelInt:
         self.s = d + g  # Pitch (element spacing)
         self.e = np.linspace(-((M - 1) / 2) * self.s, ((M - 1) / 2) * self.s, M)
 
-        # Compute time delays
-        self.td_solver = DelayLaws2DInterface(M, self.s, self.angt, self.ang20, self.DT0, self.DF, self.c1, self.c2)
-        self.td = self.td_solver.compute_delays()
+        # Use Delay Laws Service
+        self.td_service = DelayLaws2DInterfaceService(M, self.s, self.angt, self.ang20, self.DT0, self.DF, self.c1, self.c2)
+        self.td = self.td_service.compute_delays()
 
-        # Compute amplitude weights using window function
-        self.window_solver = DiscreteWindows()
-        self.Ct = self.window_solver.generate_weights(self.M, self.window_type)
+        # Use Discrete Windows Service
+        self.window_service = DiscreteWindowsService(M, self.window_type)
+        self.Ct = self.window_service.calculate_weights()
 
-        # Initialize LS2D solver
-        self.ls_solver = LS2DInterface(self.f, self.d1, self.c1, self.d2, self.c2)
+        # Use LS2D Interface Service
+        self.ls_service = LS2DInterfaceService(f, d1, c1, d2, c2)
 
     def compute_pressure_field(self, x, z):
         """
@@ -69,7 +69,7 @@ class MLSArrayModelInt:
         pressure = np.zeros_like(xx, dtype=np.complex128)
 
         for i in range(self.M):
-            element_pressure = self.ls_solver.compute_pressure(xx, zz, self.e[i])
+            element_pressure = self.ls_service.compute_pressure(xx, zz, self.e[i])
             pressure += self.Ct[i] * np.exp(1j * 2 * np.pi * self.f * self.td[i]) * element_pressure
 
         return np.abs(pressure)
