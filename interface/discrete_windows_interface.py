@@ -21,7 +21,12 @@ def main():
 
     # Plot Window Weights
     plt.figure(figsize=(8, 6))
-    plt.stem(range(1, M + 1), weights, basefmt=" ", use_line_collection=True)
+    
+    # Compatible with all versions of Matplotlib
+    markerline, stemlines, baseline = plt.stem(range(1, M + 1), weights, basefmt=" ")
+    
+    # Remove unwanted line collection to avoid `use_line_collection=True`
+    plt.setp(stemlines, linewidth=1)
 
     # Formatting
     plt.xlabel("Element Index")
