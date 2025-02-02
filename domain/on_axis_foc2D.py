@@ -2,14 +2,14 @@ import numpy as np
 from application.fresnel_int_service import FresnelIntegralService
 
 class OnAxisFocusedPiston:
+    """Computes the on-axis normalized pressure for a focused piston transducer."""
+
     def __init__(self, b, R, f, c):
         self.b = b
         self.R = R
         self.f = f
         self.c = c
         self.kb = (2000 * np.pi * f * b) / c  # Compute wave number
-
-        # Initialize the service
         self.fresnel_service = FresnelIntegralService()
 
     def compute_pressure(self, z):
@@ -22,13 +22,14 @@ class OnAxisFocusedPiston:
         u = 1 - z / self.R
         u = u + np.finfo(float).eps * (u == 0)  # Prevent singularities
 
-        # Compute argument `x` of the Fresnel integral
-        x_near = np.sqrt((u * self.kb * self.b) / (np.pi * z)) * (z <= self.R)
-        x_far = np.sqrt((-u * self.kb * self.b) / (np.pi * z)) * (z > self.R)
+        # Ensure non-negative values before sqrt()
+        x_near = np.sqrt(np.maximum(0, (u * self.kb * self.b) / (np.pi * z))) * (z <= self.R)
+        x_far = np.sqrt(np.maximum(0, (-u * self.kb * self.b) / (np.pi * z))) * (z > self.R)
+
         x = x_near + x_far
 
-        # Compute denominator
-        denom = np.sqrt(u) * (z <= self.R) + np.sqrt(-u) * (z > self.R)
+        # Ensure denominator does not receive negative values
+        denom = np.sqrt(np.maximum(0, u)) * (z <= self.R) + np.sqrt(np.maximum(0, -u)) * (z > self.R)
 
         # Compute Fresnel integrals using the service
         fresnel_near = self.fresnel_service.compute_integrals(x) * (z <= self.R)
@@ -41,3 +42,4 @@ class OnAxisFocusedPiston:
         p = p_near + p_far
 
         return p
+
