@@ -9,89 +9,72 @@ import numpy as np
 import sys
 from io import StringIO
 import argparse
+import matplotlib.pyplot as plt
 
-# Import functions from the interface module.
-# (Ensure that your interface directory contains an __init__.py file.)
-from interface.rs_2Dv_interface import (
-    safe_float,
-    safe_eval,
-    parse_z,
-    main as interface_main
-)
+# Import helper functions from cli_utils.
+from interface.cli_utils import safe_eval, safe_float, parse_array
+
+# Import the main function from the CLI.
+from interface.rs_2Dv_interface import main as cli_main
+
+# Import the service layer for direct testing.
 from application.rs_2Dv_service import run_rs_2Dv_service
 
-# --- Tests for arithmetic conversion functions --- #
+class TestCliUtils(unittest.TestCase):
+    def test_safe_eval_valid(self):
+        self.assertAlmostEqual(safe_eval("6.35/2"), 6.35/2)
+        self.assertEqual(safe_eval("10 - 2"), 8)
+        self.assertEqual(safe_eval("-3"), -3)
+        self.assertEqual(safe_eval("2**3"), 8)
 
-class TestArithmeticConversion(unittest.TestCase):
-    def test_safe_float_valid_number(self):
-        # Simple numeric strings should work.
-        self.assertEqual(safe_float("3.14"), 3.14)
-    
-    def test_safe_float_arithmetic(self):
-        # Arithmetic expressions should be correctly evaluated.
-        self.assertAlmostEqual(safe_float("6.35/2"), 6.35/2)
-        self.assertAlmostEqual(safe_float("10-2"), 8)
-        self.assertAlmostEqual(safe_float("-3"), -3)
-        self.assertAlmostEqual(safe_float("2**3"), 8)
-    
-    def test_safe_float_invalid(self):
-        # An invalid numeric expression should raise an error.
-        with self.assertRaises(Exception):
-            safe_float("abc")
-    
-    def test_safe_float_invalid_arithmetic(self):
-        # Using an unsupported operator or invalid syntax should raise an error.
-        with self.assertRaises(Exception):
-            safe_float("6.35//2")  # floor division not supported
-        with self.assertRaises(Exception):
-            safe_float("import os")  # not allowed
-
-# --- Tests for the z-coordinate parser --- #
-
-class TestParseZFunction(unittest.TestCase):
-    def test_parse_z_linspace(self):
-        # When exactly three numbers are provided, interpret as linspace parameters.
-        z = parse_z("5,200,500")
-        expected = np.linspace(5, 200, 500)
-        np.testing.assert_allclose(z, expected)
-    
-    def test_parse_z_explicit(self):
-        # When not exactly three numbers, treat as explicit z-values.
-        z = parse_z("5,10,15,20")
-        expected = np.array([5, 10, 15, 20])
-        np.testing.assert_allclose(z, expected)
-    
-    def test_parse_z_quotes_stripping(self):
-        # Extra surrounding quotes should be removed.
-        z = parse_z("'5,10,15,20'")
-        expected = np.array([5, 10, 15, 20])
-        np.testing.assert_allclose(z, expected)
-    
-    def test_parse_z_invalid(self):
-        # An invalid value in the comma-separated list should raise an error.
+    def test_safe_eval_invalid(self):
         with self.assertRaises(argparse.ArgumentTypeError):
-            parse_z("5,10,abc,20")
+            safe_eval("invalid_expr")
+        with self.assertRaises(argparse.ArgumentTypeError):
+            safe_eval("6.35//2")
+        with self.assertRaises(argparse.ArgumentTypeError):
+            safe_eval("import os")
 
-# --- Tests for the overall interface --- #
+    def test_safe_float(self):
+        self.assertEqual(safe_float("3.14"), 3.14)
+        self.assertAlmostEqual(safe_float("6.35/2"), 6.35/2)
+        with self.assertRaises(argparse.ArgumentTypeError):
+            safe_float("abc")
+
+    def test_parse_array_linspace(self):
+        # Exactly three numbers: should use np.linspace.
+        result = parse_array("5,200,500")
+        expected = np.linspace(5, 200, 500)
+        np.testing.assert_allclose(result, expected)
+    
+    def test_parse_array_explicit(self):
+        # More (or fewer) than three numbers: treat as explicit values.
+        result = parse_array("5,10,15,20")
+        expected = np.array([5, 10, 15, 20])
+        np.testing.assert_allclose(result, expected)
+    
+    def test_parse_array_invalid(self):
+        with self.assertRaises(argparse.ArgumentTypeError):
+            parse_array("5,abc,15,20")
 
 class TestInterfaceMain(unittest.TestCase):
     def setUp(self):
-        # Backup the original sys.argv and sys.stdout.
+        # Backup original sys.argv and sys.stdout.
         self.original_argv = sys.argv.copy()
         self.original_stdout = sys.stdout
-
-    def tearDown(self):
-        # Restore original sys.argv and sys.stdout.
-        sys.argv = self.original_argv
-        sys.stdout = self.original_stdout
-
-    def test_interface_main_valid_args(self):
-        # Simulate a valid command-line call.
-        # Patch plt.show() so that it does not block the test.
-        import matplotlib.pyplot as plt
-        original_show = plt.show
+        self.captured_output = StringIO()
+        sys.stdout = self.captured_output
+        # Patch plt.show() to a dummy function so that the tests do not block.
+        self.original_show = plt.show
         plt.show = lambda: None
 
+    def tearDown(self):
+        sys.argv = self.original_argv
+        sys.stdout = self.original_stdout
+        plt.show = self.original_show
+
+    def test_cli_main_valid_1D(self):
+        # Test running the CLI in 1D mode.
         sys.argv = [
             "rs_2Dv_interface.py",
             "--b", "6.35/2",
@@ -99,23 +82,61 @@ class TestInterfaceMain(unittest.TestCase):
             "--c", "1500",
             "--e", "0",
             "--x", "0",
-            "--z", "1,50,500",
-            "--N", "50"
+            "--z", "5,200,500",
+            "--plot-mode", "1D"
         ]
-        captured_output = StringIO()
-        sys.stdout = captured_output
-
+        # We expect the CLI to run without raising SystemExit.
         try:
-            interface_main()
-            output = captured_output.getvalue()
-            # Check that the output includes a line with "Computed normalized pressure"
-            self.assertIn("Computed normalized pressure", output)
-        finally:
-            # Restore plt.show.
-            plt.show = original_show
+            cli_main()
+        except SystemExit as e:
+            self.fail("cli_main() raised SystemExit unexpectedly in 1D mode!")
+        # Optionally, we could check that nothing was printed.
+        output = self.captured_output.getvalue()
+        # For our current CLI, no explicit message is printed on success.
+        self.assertEqual(output, "")
 
-    def test_interface_main_invalid_b(self):
-        # Test that providing an invalid expression for --b causes the parser to error out.
+    def test_cli_main_valid_2D(self):
+        # Test running the CLI in 2D mode.
+        sys.argv = [
+            "rs_2Dv_interface.py",
+            "--b", "6.35/2",
+            "--f", "5",
+            "--c", "1500",
+            "--e", "0",
+            "--x2=-10,10,200",  # Using equals sign to pass negative values properly.
+            "--z2=1,20,200",
+            "--plot-mode", "2D"
+        ]
+        try:
+            cli_main()
+        except SystemExit as e:
+            self.fail("cli_main() raised SystemExit unexpectedly in 2D mode!")
+        output = self.captured_output.getvalue()
+        self.assertEqual(output, "")
+
+    def test_cli_main_valid_both(self):
+        # Test running the CLI in both mode.
+        sys.argv = [
+            "rs_2Dv_interface.py",
+            "--b", "6.35/2",
+            "--f", "5",
+            "--c", "1500",
+            "--e", "0",
+            "--x", "0",
+            "--z", "5,200,500",
+            "--x2=-10,10,200",
+            "--z2=1,20,200",
+            "--plot-mode", "both"
+        ]
+        try:
+            cli_main()
+        except SystemExit as e:
+            self.fail("cli_main() raised SystemExit unexpectedly in both mode!")
+        output = self.captured_output.getvalue()
+        self.assertEqual(output, "")
+
+    def test_cli_main_invalid_b(self):
+        # Test that providing an invalid arithmetic expression for --b causes a SystemExit.
         sys.argv = [
             "rs_2Dv_interface.py",
             "--b", "invalid_expr",
@@ -124,30 +145,42 @@ class TestInterfaceMain(unittest.TestCase):
             "--e", "0",
             "--x", "0"
         ]
-        # Expect SystemExit because parser.error() is called.
         with self.assertRaises(SystemExit):
-            interface_main()
+            cli_main()
 
-    def test_interface_main_invalid_z(self):
-        # Test that providing an invalid --z argument (e.g., containing a non-numeric part) causes an error.
+    def test_cli_main_invalid_x2(self):
+        # Test that providing an invalid array for --x2 causes a SystemExit.
         sys.argv = [
             "rs_2Dv_interface.py",
             "--b", "6.35/2",
             "--f", "5",
             "--c", "1500",
             "--e", "0",
-            "--x", "0",
-            "--z", "1,50,abc",  # "abc" is invalid.
-            "--N", "50"
+            "--x2=abc,10,200",  # Invalid because "abc" is not a number.
+            "--z2=1,20,200",
+            "--plot-mode", "2D"
         ]
         with self.assertRaises(SystemExit):
-            interface_main()
+            cli_main()
 
-# --- Tests for the service layer --- #
+    def test_cli_main_invalid_z2(self):
+        # Test that providing an invalid array for --z2 causes a SystemExit.
+        sys.argv = [
+            "rs_2Dv_interface.py",
+            "--b", "6.35/2",
+            "--f", "5",
+            "--c", "1500",
+            "--e", "0",
+            "--x2=-10,10,200",
+            "--z2=1,xyz,200",  # "xyz" is invalid.
+            "--plot-mode", "2D"
+        ]
+        with self.assertRaises(SystemExit):
+            cli_main()
 
 class TestRS2DvService(unittest.TestCase):
-    def test_service_returns_complex_array(self):
-        # Use explicit parameters to call the service.
+    def test_service_returns_valid_output_1D(self):
+        # Test that the service returns a NumPy array of the correct size for 1D simulation.
         b = 6.35/2
         f = 5
         c = 1500
@@ -156,8 +189,8 @@ class TestRS2DvService(unittest.TestCase):
         z = np.linspace(5, 200, 500)
         p = run_rs_2Dv_service(b, f, c, e, x, z, N=50)
         self.assertTrue(isinstance(p, np.ndarray))
-        # Check that the returned array has the same number of elements as z.
-        self.assertEqual(p.size, z.size)
+        # After squeezing, the array should have size equal to the number of z points.
+        self.assertEqual(np.prod(p.shape), 500)
 
 if __name__ == '__main__':
     unittest.main()

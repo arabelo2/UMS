@@ -8,97 +8,26 @@ import argparse
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-import ast
-import operator as op
 from application.rs_2Dv_service import run_rs_2Dv_service
-
-# Supported operators for safe arithmetic evaluation.
-operators = {
-    ast.Add: op.add,
-    ast.Sub: op.sub,
-    ast.Mult: op.mul,
-    ast.Div: op.truediv,
-    ast.Pow: op.pow,
-    ast.USub: op.neg
-}
-
-def _eval(node):
-    """
-    Recursively evaluate an AST node.
-    Uses ast.Constant for numbers (Python 3.8+) and falls back to raising an error for any unsupported expression.
-    """
-    if isinstance(node, ast.Constant):  # For Python 3.8+ (replaces ast.Num)
-        return node.value
-    elif isinstance(node, ast.BinOp):
-        return operators[type(node.op)](_eval(node.left), _eval(node.right))
-    elif isinstance(node, ast.UnaryOp):
-        return operators[type(node.op)](_eval(node.operand))
-    else:
-        raise TypeError(f"Unsupported expression: {node}")
-
-def safe_eval(expr):
-    """
-    Safely evaluate a simple arithmetic expression using ast.
-    Only numbers and basic arithmetic operators are allowed.
-    """
-    try:
-        return _eval(ast.parse(expr, mode='eval').body)
-    except Exception as e:
-        raise argparse.ArgumentTypeError(f"Invalid arithmetic expression: {expr}") from e
-
-def safe_float(s: str) -> float:
-    """
-    Convert a string to float.
-    If direct conversion fails, attempt to safely evaluate it as an arithmetic expression.
-    """
-    try:
-        return float(s)
-    except ValueError:
-        return safe_eval(s)
-
-def parse_z(z_str: str):
-    """
-    Parse a comma-separated string into a NumPy array.
-    
-    - If exactly three numbers are provided, they are interpreted as
-      [start, stop, num_points] and used to generate z via np.linspace.
-    - Otherwise, the numbers are interpreted as explicit z-values.
-    
-    Extra surrounding quotes (both single and double) are stripped.
-    
-    :param z_str: String containing comma-separated numbers.
-    :return: NumPy array of floats.
-    """
-    # Remove any extra surrounding quotes.
-    z_str = z_str.strip("'\"")
-    try:
-        values = [safe_float(val.strip()) for val in z_str.split(',')]
-    except Exception:
-        raise argparse.ArgumentTypeError(
-            "Invalid format for --z. It should be a comma-separated list of numbers, e.g. '5,200,500' for linspace or '5,10,15,20' for explicit values."
-        )
-    
-    if len(values) == 3:
-        # Interpret as linspace parameters: start, stop, and number of points.
-        start, stop, num = values
-        return np.linspace(start, stop, int(num))
-    else:
-        # Treat as explicit z-values.
-        return np.array(values)
+from interface.cli_utils import safe_eval, safe_float, parse_array
 
 def main():
     parser = argparse.ArgumentParser(
         description="Rayleigh–Sommerfeld 2-D Simulation Interface",
         epilog=(
-            "Example usage with arithmetic expressions:\n"
-            "  python rs_2Dv_interface.py --b 6.35/2 --f 5 --c 1500 --e 0 --x 0 --z '1,50,500' --N 50\n\n"
-            "If --z is not provided, the default is 500 points linearly spaced between 5 and 200 mm.\n"
-            "If exactly three numbers are provided for --z (e.g., '5,200,500'), they are interpreted as start, stop, and number of points.\n"
-            "Otherwise, the provided numbers are taken as explicit z coordinates."
+            "Example usage:\n"
+            "  python interface/rs_2Dv_interface.py --b 6.35/2 --f 5 --c 1500 --e 0 --x 0 --z '5,200,500' \\\n"
+            "    --x2=\"-10,10,200\" --z2=\"1,20,200\" --plot-mode both --N 50\n\n"
+            "By default:\n"
+            "  1D simulation uses x=0 and z=linspace(5,200,500).\n"
+            "  2D simulation uses x=linspace(-10,10,200) and z=linspace(1,20,200).\n"
+            "Note: For negative values in --x2 or --z2, use the equals sign (e.g., --x2=\"-10,10,200\").\n"
+            "The --plot-mode option accepts 'both' (default), '1D', or '2D'."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
+    # 1D simulation parameters.
     parser.add_argument("--b", type=safe_float, default=6.35/2,
                         help="Half-length of the element (mm). Default: 6.35/2 (≈3.175 mm)")
     parser.add_argument("--f", type=safe_float, default=5,
@@ -108,46 +37,95 @@ def main():
     parser.add_argument("--e", type=safe_float, default=0,
                         help="Lateral offset of the element's center (mm). Default: 0")
     parser.add_argument("--x", type=safe_float, default=0,
-                        help="x-coordinate (mm) where pressure is computed. Default: 0")
+                        help="x-coordinate (mm) for 1D simulation. Default: 0")
     parser.add_argument("--z", type=str, default=None,
                         help=(
-                              "z-coordinate(s) (mm) where pressure is computed. "
-                              "Provide a comma-separated list of numbers. If exactly three numbers are provided, they are interpreted as start, stop, and number of points for np.linspace (e.g., '5,200,500'). "
-                              "Otherwise, the numbers are taken as explicit z-values. "
-                              "Default: 500 points linearly spaced between 5 and 200 mm."
-                              ))
+                            "z-coordinate(s) (mm) for 1D simulation. "
+                            "Provide a comma-separated list of numbers. If exactly three numbers are provided, they are interpreted as start, stop, and number of points (e.g., '5,200,500'). "
+                            "Otherwise, they are taken as explicit values. "
+                            "Default: 500 points linearly spaced between 5 and 200 mm."
+                        ))
     parser.add_argument("--N", type=int, default=None,
-                        help="Optional number of segments for numerical integration. Default: computed automatically.")
+                        help="Optional number of segments for numerical integration for 1D simulation. Default: computed automatically.")
+    
+    # 2D simulation parameters.
+    parser.add_argument("--x2", type=str, default=None,
+                        help=(
+                            "x-coordinate(s) (mm) for 2D simulation. "
+                            "Provide a comma-separated list of numbers. If exactly three numbers are provided, they are interpreted as start, stop, and number of points (e.g., '-10,10,200'). "
+                            "Otherwise, they are taken as explicit values. "
+                            "Default: 200 points linearly spaced between -10 and 10. "
+                            "Note: For negative values, use the equals sign, e.g. --x2=\"-10,10,200\"."
+                        ))
+    parser.add_argument("--z2", type=str, default=None,
+                        help=(
+                            "z-coordinate(s) (mm) for 2D simulation. "
+                            "Provide a comma-separated list of numbers. If exactly three numbers are provided, they are interpreted as start, stop, and number of points (e.g., '1,20,200'). "
+                            "Otherwise, they are taken as explicit values. "
+                            "Default: 200 points linearly spaced between 1 and 20. "
+                            "Note: For negative values, use the equals sign if needed."
+                        ))
+    
+    # Option to choose which plot(s) to show.
+    parser.add_argument("--plot-mode", type=str, choices=["both", "1D", "2D"], default="both",
+                        help="Plot mode: 'both' to show both 1D and 2D plots, '1D' to show only the 1D plot, '2D' to show only the 2D plot. Default: both.")
     
     args = parser.parse_args()
-
-    # Process the z-coordinate: if not provided, use the default linspace.
+    
+    # Process 1D simulation z parameter.
     try:
         if args.z is None:
-            z = np.linspace(5, 200, 500)
+            z1 = np.linspace(5, 200, 500)
         else:
-            z = parse_z(args.z)
+            z1 = parse_array(args.z)
     except argparse.ArgumentTypeError as e:
         parser.error(str(e))
     
-    # Call the service layer (which calls the domain code).
-    p = run_rs_2Dv_service(args.b, args.f, args.c, args.e, args.x, z, args.N)
-
-    # Display the computed pressure.
-    if isinstance(p, np.ndarray):
-        print("Computed normalized pressure (magnitude) for each z value:")
-        print(np.abs(p))
-    else:
-        print("Computed normalized pressure (magnitude):")
-        print(abs(p))
+    p1 = None
+    if args.plot_mode in ["both", "1D"]:
+        p1 = run_rs_2Dv_service(args.b, args.f, args.c, args.e, args.x, z1, args.N)
+        # Squeeze the extra dimension if present (we expect p1 to be 1D)
+        if isinstance(p1, np.ndarray) and p1.ndim > 0 and p1.shape[0] == 1:
+            p1 = np.squeeze(p1, axis=0)
     
-    # Generate the plot: plot(z, abs(p))
-    plt.figure(figsize=(8, 5))
-    plt.plot(z, np.abs(p), 'b-', lw=2)
-    plt.xlabel("z (mm)")
-    plt.ylabel("Normalized Pressure Magnitude")
-    plt.title("Rayleigh–Sommerfeld 2-D Simulation")
-    plt.grid(True)
+    p2 = None
+    if args.plot_mode in ["both", "2D"]:
+        if args.x2 is None:
+            x2 = np.linspace(-10, 10, 200)
+        else:
+            try:
+                x2 = parse_array(args.x2)
+            except argparse.ArgumentTypeError as e:
+                parser.error(str(e))
+        if args.z2 is None:
+            z2 = np.linspace(1, 20, 200)
+        else:
+            try:
+                z2 = parse_array(args.z2)
+            except argparse.ArgumentTypeError as e:
+                parser.error(str(e))
+        xx, zz = np.meshgrid(x2, z2)
+        p2 = run_rs_2Dv_service(args.b, args.f, args.c, args.e, xx, zz, args.N)
+    
+    # Plotting 1D simulation.
+    if args.plot_mode in ["both", "1D"]:
+        plt.figure(figsize=(8, 5))
+        plt.plot(z1, np.abs(p1), 'b-', lw=2)
+        plt.xlabel("z (mm)")
+        plt.ylabel("Normalized Pressure Magnitude")
+        plt.title("1D Rayleigh–Sommerfeld Simulation")
+        plt.grid(True)
+    
+    # Plotting 2D simulation.
+    if args.plot_mode in ["both", "2D"]:
+        plt.figure(figsize=(8, 6))
+        plt.imshow(np.abs(p2), cmap="jet", extent=[x2[0], x2[-1], z2[0], z2[-1]],
+                   aspect="equal", origin="lower")
+        plt.xlabel("x (mm)")
+        plt.ylabel("z (mm)")
+        plt.title("2D Rayleigh–Sommerfeld Simulation")
+        plt.colorbar(label="Pressure Magnitude")
+    
     plt.show()
 
 if __name__ == '__main__':
