@@ -107,7 +107,7 @@ class LS2DInterface:
             denominator = r1 + (self.c2 / self.c1) * r2 * (np.cos(ang1)**2) / (np.cos(ang2)**2)
             
             # Compute the segment contribution elementwise.
-            seg_contrib = Tp * dir_factor * phase / np.sqrt(denominator)
+            seg_contrib = np.where(denominator > 0, Tp * dir_factor * phase / np.sqrt(denominator), 0.0 + 0.0j)
             
             # Accumulate contribution elementwise.
             p = p + seg_contrib

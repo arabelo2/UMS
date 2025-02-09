@@ -25,8 +25,8 @@ def main():
     window_type = "rect"  # Type of amplitude weighting function
 
     # Define field grid
-    x = np.linspace(-5, 15, 200)
-    z = np.linspace(1, 20, 200)
+    x = np.linspace(-30, 30, 200)
+    z = np.linspace(1, 120, 400)
 
     # Compute Pressure Field
     service = MLSArrayModelIntService(f, d1, c1, d2, c2, M, d, g, angt, ang20, DF, DT0, window_type)

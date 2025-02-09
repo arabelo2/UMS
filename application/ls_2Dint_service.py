@@ -1,30 +1,26 @@
-from domain.ls_2Dint import LS2DInterface
+# application/ls_2Dint_service.py
 
+"""
+Module: ls_2Dint_service.py
+Layer: Application
+
+Provides a service that wraps the LS2DInterface domain class.
+"""
+
+from domain.ls_2Dint import LS2DInterface
 
 class LS2DInterfaceService:
     """
-    Service for managing LS2DInterface computations.
+    Service for computing the normalized pressure using LS2DInterface.
     """
+    def __init__(self, b, f, mat, e, angt, Dt0, x, z, Nopt=None):
+        self._ls2d = LS2DInterface(b, f, mat, e, angt, Dt0, x, z, Nopt)
 
-    def __init__(self, b, f, mat, angt, Dt0):
-        self.b = b
-        self.f = f
-        self.mat = mat
-        self.angt = angt
-        self.Dt0 = Dt0        
-        self.solver = LS2DInterface(self.b, self.f, self.mat, self.angt, self.Dt0)
-
-    def calculate_pressure(self, x, z, e, N=None):
+    def calculate(self):
         """
-        Compute the normalized pressure for given parameters.
-
-        Parameters:
-            x (float): x-coordinate.
-            z (float): z-coordinate.
-            e (float): Offset.
-            N (int, optional): Number of segments.
+        Compute the normalized pressure.
 
         Returns:
-            complex: Computed pressure.
+            p (complex): The normalized pressure.
         """
-        return self.solver.compute_pressure(x, z, e, N)
+        return self._ls2d.compute()

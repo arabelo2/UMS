@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from application.ferrari_service import FerrariService  # Ensure correct import
+from application.ferrari2_service import Ferrari2Service  # Ensure correct import
 
 class DelayLaws2DInterface:
     """
@@ -46,7 +46,7 @@ class DelayLaws2DInterface:
         r2 = np.zeros(M)
 
         for mm in range(M):
-            ferrari_service = FerrariService(cr, DF, DT[mm], DX[mm])
+            ferrari_service = Ferrari2Service(cr, DF, DT[mm], DX[mm])
             xi[mm] = ferrari_service.calculate_intersection()
             r1[mm] = np.sqrt(xi[mm]**2 + (DT0 + e[mm] * np.sin(np.radians(angt)))**2)
             r2[mm] = np.sqrt((xi[mm] + e[mm] * np.cos(np.radians(angt)) - DX0)**2 + DF**2)
@@ -54,7 +54,7 @@ class DelayLaws2DInterface:
         t = 1000 * r1 / c1 + 1000 * r2 / c2
         td = np.max(t) - t  # Convert to time delays
 
-        # ✅ Ensure plot appears if plt_option is "y"
+        # Ensure plot appears if plt_option is "y"
         if plt_option.lower() == "y":
             DelayLaws2DInterface._plot_rays_focusing(M, e, DT, xi, DX0, DF, angt)
             plt.show()  # 🚀 Ensure plot is displayed properly
