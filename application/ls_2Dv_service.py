@@ -1,24 +1,19 @@
+# application/ls_2Dv_service.py
+
 from domain.ls_2Dv import LS2Dv
 
-class LS2DvService:
+def run_ls_2Dv_service(b: float, f: float, c: float, e: float, x, z, N: int = None):
     """
-    Service to calculate normalized pressure using LS2Dv.
+    Service function to run the LS2Dv simulation.
+    
+    :param b: Half-length of the element (mm).
+    :param f: Frequency (MHz).
+    :param c: Wave speed (m/s).
+    :param e: Lateral offset (mm).
+    :param x: x-coordinate(s) (mm) for pressure evaluation.
+    :param z: z-coordinate(s) (mm) for pressure evaluation.
+    :param N: Optional number of segments; if not provided, computed automatically.
+    :return: Computed normalized pressure (complex or NumPy array).
     """
-
-    def calculate(self, b, f, c, e, x, z, Nopt=None):
-        """
-        Compute the normalized pressure for the given parameters.
-
-        Parameters:
-            b (float): Half-length of the element (in mm).
-            f (float): Frequency (in MHz).
-            c (float): Wave speed in the fluid (in m/s).
-            e (float): Offset of the center of the element along the x-axis (in mm).
-            x (float or numpy.ndarray): x-coordinate(s) (in mm).
-            z (float or numpy.ndarray): z-coordinate(s) (in mm).
-            Nopt (int, optional): Number of segments. Defaults to 10 segments per wavelength.
-
-        Returns:
-            numpy.ndarray: Normalized pressure at the specified coordinates.
-        """
-        return LS2Dv.calculate(b, f, c, e, x, z, Nopt)
+    simulator = LS2Dv(b, f, c, e)
+    return simulator.compute_pressure(x, z, N)

@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import ast
 import operator as op
 import argparse
-import numpy as np  # Make sure NumPy is imported globally
+import numpy as np
 
 # Supported operators for safe arithmetic evaluation.
 operators = {

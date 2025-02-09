@@ -1,50 +1,71 @@
+# domain/ls_2Dv.py
+
+import math
 import numpy as np
 
-
 class LS2Dv:
-    @staticmethod
-    def calculate(b, f, c, e, x, z, N=None):
+    def __init__(self, b: float, f: float, c: float, e: float):
         """
-        Calculate the normalized pressure.
-
-        Parameters:
-            b (float): Half-length of the source (in mm).
-            f (float): Frequency (in MHz).
-            c (float): Wave speed in the fluid (in m/s).
-            e (float): Offset of the center of the element along the x-axis (in mm).
-            x (float or numpy.ndarray): x-coordinate(s) (in mm).
-            z (numpy.ndarray): z-coordinate(s) (in mm).
-            N (int, optional): Number of segments. Defaults to 1 segment per wavelength.
-
-        Returns:
-            numpy.ndarray: Normalized pressure at the specified coordinates.
+        Initialize the LS2Dv simulation for a two-dimensional source.
+        
+        :param b: Half-length of the element (mm). The element length is 2*b.
+        :param f: Frequency (MHz).
+        :param c: Wave speed (m/s).
+        :param e: Lateral offset of the element's center (mm).
         """
-        # Compute wave number
-        kb = 2000 * np.pi * b * f / c
+        self.b = b
+        self.f = f
+        self.c = c
+        self.e = e
+        # Compute wave number: kb = 2000 * pi * b * f / c
+        self.kb = 2000 * math.pi * self.b * self.f / self.c
 
-        # Determine number of segments if not specified
+    def compute_pressure(self, x, z, N: int = None):
+        """
+        Compute the normalized pressure at location(s) (x, z) in the fluid.
+        This function uses an asymptotic approximation for the Hankel function for large wave numbers.
+        
+        If N (the number of segments) is not provided, it is computed automatically using:
+            N = round(2000 * f * b / c)
+        which corresponds to using one segment per wavelength.
+        
+        :param x: x-coordinate(s) (mm) where pressure is evaluated.
+        :param z: z-coordinate(s) (mm) where pressure is evaluated.
+                  Can be scalar or an array (e.g. from meshgrid for 2D simulation).
+        :param N: Optional number of segments for numerical integration.
+                  If provided, that value is used; otherwise, it is computed automatically.
+        :return: Normalized pressure (complex number or NumPy array).
+        """
         if N is None:
-            N = max(1, round(2000 * f * b / c))
-
-        # Normalize positions
-        xb = x / b
-        zb = z / b
-        eb = e / b
-
-        # Compute normalized centroid locations for the segments
-        xc = np.array([-1 + 2 * (jj - 0.5) / N for jj in range(1, N + 1)])
-
-        # Initialize pressure as a zero array with the same shape as z
-        p = np.zeros_like(z, dtype=np.complex128)
-
-        # Sum over all segments
-        for xc_k in xc:
-            ang = np.arctan((xb - xc_k - eb) / zb)
-            ang += np.finfo(float).eps * (ang == 0)  # Prevent division by zero
-            dir_factor = np.sinc(kb * np.sin(ang) / np.pi / N)
-            rb = np.sqrt((xb - xc_k - eb)**2 + zb**2)
-            phase = np.exp(1j * kb * rb)
-            p += dir_factor * phase / np.sqrt(rb)
-
-        # Include external factor
-        return p * (np.sqrt(2 * kb / (1j * np.pi))) / N
+            N = round(2000 * self.f * self.b / self.c)
+            if N < 1:
+                N = 1
+        
+        # Normalize coordinates
+        xb = np.atleast_1d(x) / self.b
+        zb = np.atleast_1d(z) / self.b
+        eb = self.e / self.b
+        
+        # Add a new axis so that the integration (over segments) broadcasts properly.
+        xb = xb[np.newaxis, ...]
+        zb = zb[np.newaxis, ...]
+        
+        # Compute normalized centroid positions for the segments.
+        j = np.arange(1, N + 1)
+        xc = -1 + 2*(j - 0.5)/N  # shape (N,)
+        xc = xc.reshape((N, 1, 1))
+        
+        p = 0
+        eps = np.finfo(float).eps
+        for kk in range(N):
+            # Calculate angle for the directivity factor
+            ang = np.arctan((xb - xc[kk] - eb) / zb)
+            # Add a tiny epsilon to avoid division by zero when ang is zero
+            ang = ang + eps * (ang == 0)
+            denom = self.kb * np.sin(ang) / N
+            dir_factor = np.sin(denom) / denom
+            rb = np.sqrt((xb - xc[kk] - eb)**2 + zb**2)
+            p = p + dir_factor * np.exp(1j * self.kb * rb) / np.sqrt(rb)
+        # Include external factor.
+        p = p * (np.sqrt(2 * self.kb / (1j * np.pi))) / N
+        return p
