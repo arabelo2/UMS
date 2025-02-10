@@ -1,70 +1,62 @@
 # domain/pts_2Dintf.py
 
 import numpy as np
-import math
-from application.ferrari2_service import Ferrari2Service
-from application.init_xi_service import InitXiService
+from domain.ferrari2 import ferrari2
 
-class Pts2DIntf:
+def pts_2Dintf(e, xc, angt, Dt0, c1, c2, x, z):
     """
-    Domain class for computing the intersection points (xi) along a plane interface.
+    Compute the intersection distance xi (in mm) along the interface where the ray from
+    the center of a segment (with offset xc) to the observation point (x,z) in the second medium
+    intersects the interface.
     
     Parameters:
-      e    : offset of the element from the array center (mm)
-      xn   : offset of the segment from the element center (mm)
-      angt : angle (in degrees) that the array makes with the x-axis
-      Dt0  : distance of the array center above the interface (mm)
-      c1   : wave speed in medium 1 (m/s)
-      c2   : wave speed in medium 2 (m/s)
-      x, z : coordinates (mm) of the target point in medium 2
-    """
-    def __init__(self, e: float, xn: float, angt: float, Dt0: float,
-                 c1: float, c2: float, x, z):
-        self.e = e
-        self.xn = xn
-        self.angt = angt
-        self.Dt0 = Dt0
-        self.c1 = c1
-        self.c2 = c2
-        self.x = x
-        self.z = z
-
-    def compute(self):
-        """
-        Compute the intersection points xi.
-        
-        Returns:
-          xi : a NumPy array (with shape determined by broadcasting x and z)
-               containing the intersection points (in mm).
+        e    : float
+               Offset of the element center from the array center (mm).
+        xc   : float
+               Offset of the segment from the element center (mm).
+        angt : float
+               Angle of the array relative to the x-axis (degrees).
+        Dt0  : float
+               Distance from the array center to the interface (mm).
+        c1   : float
+               Wave speed in medium one (m/s).
+        c2   : float
+               Wave speed in medium two (m/s).
+        x    : float
+               x-coordinate of the observation point in medium two (mm).
+        z    : float
+               z-coordinate of the observation point in medium two (mm).
+    
+    Returns:
+        xi   : float
+               The intersection point along the interface (in mm).
                
-        Note:
-          The output is squeezed to remove any singleton dimensions so that if one of the inputs
-          is a vector, xi is returned as a 1-D array.
-        """
-        # Calculate wave speed ratio.
-        cr = self.c1 / self.c2
-
-        # Get the broadcast shape and initialize xi using the InitXiService.
-        xi, P, Q = InitXiService(self.x, self.z).compute()
-
-        # Force x and z to have the same shape as xi using np.broadcast_to.
-        x_b = np.broadcast_to(np.array(self.x), (P, Q))
-        z_b = np.broadcast_to(np.array(self.z), (P, Q))
-        
-        # Compute the effective vertical distance (common for all points).
-        Dtn = self.Dt0 + (self.e + self.xn) * math.sin(math.radians(self.angt))
-        
-        # Iterate over all indices in the (P, Q) shape.
-        for index, x_val in np.ndenumerate(x_b):
-            # For each point, use the corresponding z value.
-            current_z = z_b[index]
-            # Compute the horizontal distance.
-            Dxn = x_val - (self.e + self.xn) * math.cos(math.radians(self.angt))
-            # Create a Ferrari2Service instance.
-            # Mapping: DF = current_z, DT = Dtn, DX = Dxn.
-            ferrari_service = Ferrari2Service(cr, current_z, Dtn, Dxn)
-            xi_val = ferrari_service.solve()
-            xi[index] = xi_val
-        
-        # Squeeze the result to remove singleton dimensions (e.g., (1, 3) becomes (3,))
-        return np.squeeze(xi)
+    Procedure:
+        1. Compute Dtn, the effective vertical distance from the array center to the interface:
+             Dtn = Dt0 + (e + xc) * sin(angt in radians)
+        2. Compute Dxn, the effective horizontal distance from the segment to the observation point:
+             Dxn = x - (e + xc) * cos(angt in radians)
+        3. Set:
+             cr = c1 / c2,
+             DF = z,
+             DT = Dtn,
+             DX = Dxn.
+        4. Call ferrari2(cr, DF, DT, DX) to obtain xi.
+    """
+    # Convert angle to radians
+    angt_rad = np.deg2rad(angt)
+    
+    # Compute effective vertical and horizontal distances.
+    Dtn = Dt0 + (e + xc) * np.sin(angt_rad)
+    Dxn = x - (e + xc) * np.cos(angt_rad)
+    
+    # Wave speed ratio.
+    cr = c1 / c2
+    
+    # Set parameters for ferrari2.
+    DF = z    # Depth in medium two (assumed positive)
+    DT = Dtn  # Effective height in medium one.
+    DX = Dxn  # Horizontal distance along the interface.
+    
+    xi = ferrari2(cr, DF, DT, DX)
+    return xi

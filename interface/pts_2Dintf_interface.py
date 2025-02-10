@@ -4,49 +4,37 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+#!/usr/bin/env python3
 import argparse
+import sys
 import numpy as np
-from application.pts_2Dintf_service import Pts2DIntfService
-
-def parse_list(s: str):
-    """Parse a comma‐separated string of numbers into a list of floats."""
-    return [float(item) for item in s.split(',')]
+import matplotlib.pyplot as plt
+from application.pts_2Dintf_service import run_pts_2Dintf_service
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Compute the intersection points xi on a plane interface for 2D array elements."
+        description="pts_2Dintf Simulation Interface",
+        epilog=(
+            "Example usage:\n"
+            "  python pts_2Dintf_interface.py --e 0 --xc 1.5 --angt 45 --Dt0 100 --c1 1480 --c2 5900 --x 50 --z 80\n"
+            "This computes the intersection point (xi) in mm for the given parameters."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("e", type=float, nargs="?", default=0.0,
-                        help="Element offset from array center (mm) (default: 0.0)")
-    parser.add_argument("xn", type=float, nargs="?", default=0.0,
-                        help="Segment offset from element center (mm) (default: 0.0)")
-    parser.add_argument("angt", type=float, nargs="?", default=0.0,
-                        help="Array angle with respect to x-axis (degrees) (default: 0.0)")
-    parser.add_argument("Dt0", type=float, nargs="?", default=10.0,
-                        help="Distance from array center to interface (mm) (default: 10.0)")
-    parser.add_argument("c1", type=float, nargs="?", default=1500.0,
-                        help="Wave speed in medium 1 (m/s) (default: 1500.0)")
-    parser.add_argument("c2", type=float, nargs="?", default=1500.0,
-                        help="Wave speed in medium 2 (m/s) (default: 1500.0)")
-    parser.add_argument("x", type=str, nargs="?", default="0",
-                        help="x coordinate(s) (mm), comma separated if more than one (default: '0')")
-    parser.add_argument("z", type=str, nargs="?", default="10",
-                        help="z coordinate(s) (mm), comma separated if more than one (default: '10')")
-    args = parser.parse_args()
-
-    # Parse the x and z arguments.
-    x_list = parse_list(args.x)
-    z_list = parse_list(args.z)
     
-    # If only one value is provided, treat it as scalar; otherwise, use list.
-    x_val = x_list[0] if len(x_list) == 1 else x_list
-    z_val = z_list[0] if len(z_list) == 1 else z_list
+    parser.add_argument("--e", type=float, default=0, help="Element offset from array center (mm).")
+    parser.add_argument("--xc", type=float, default=1.0, help="Segment offset from element center (mm).")
+    parser.add_argument("--angt", type=float, default=45, help="Angle of the array (degrees).")
+    parser.add_argument("--Dt0", type=float, default=100, help="Distance from the array center to the interface (mm).")
+    parser.add_argument("--c1", type=float, default=1480, help="Wave speed in medium one (m/s).")
+    parser.add_argument("--c2", type=float, default=5900, help="Wave speed in medium two (m/s).")
+    parser.add_argument("--x", type=float, default=50, help="x-coordinate of the observation point (mm).")
+    parser.add_argument("--z", type=float, default=80, help="z-coordinate of the observation point (mm).")
+    
+    args = parser.parse_args()
+    
+    xi = run_pts_2Dintf_service(args.e, args.xc, args.angt, args.Dt0, args.c1, args.c2, args.x, args.z)
+    print(f"Computed intersection point xi: {xi:.6f} mm")
 
-    service = Pts2DIntfService(args.e, args.xn, args.angt, args.Dt0,
-                                args.c1, args.c2, x_val, z_val)
-    xi = service.compute()
-    print("Intersection points xi:")
-    print(xi)
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

@@ -1,148 +1,117 @@
 # domain/ferrari2.py
 
-import cmath
-import warnings
-warnings.filterwarnings("ignore", category=RuntimeWarning)
-
 import numpy as np
-np.seterr(divide='ignore')  # This line tells NumPy to ignore divide-by-zero warnings.
+from scipy.optimize import root_scalar
+from domain.interface2 import interface2
 
-import math
-from math import sqrt
-
-class Ferrari2:
+def ferrari2_scalar(cr, DF, DT, DX):
     """
-    Domain class to solve for the intersection point, xi, along an interface
-    using Ferrari's method for the quartic obtained by writing Snell's law.
+    Solve for the intersection point, xi (in mm), using Ferrari's method for scalar inputs.
     
-    Given:
-        cr  : c1/c2, the ratio of wave speeds
-        DF  : Depth of the point in medium two (must be positive)
-        DT  : Height of the point in medium one (must be positive)
-        DX  : Separation distance between the two points (can be positive or negative)
+    Parameters:
+        cr  : float
+              Ratio c1/c2 (wave speed in medium one divided by wave speed in medium two).
+        DF  : float
+              Depth in medium two (DF, in mm). Must be positive.
+        DT  : float
+              Height in medium one (DT, in mm). Must be positive.
+        DX  : float
+              Separation distance along the interface (in mm); can be positive or negative.
     
-    The solution xi is defined as: xi = x * DT, where x is the root
-    computed from the quartic. If Ferrari's method fails to yield an acceptable
-    root, a numerical root finder is used as fallback.
+    Returns:
+        xi  : float
+              The computed intersection point (in mm). If a valid candidate is found via Ferrari’s method,
+              xi is computed as (candidate root)*DT. Otherwise, the fallback root finder returns xi directly.
     """
-    TOL = 1e-8
+    tol = 1e-6
 
-    def __init__(self, cr: float, DF: float, DT: float, DX: float):
-        self.cr = cr
-        self.DF = DF
-        self.DT = DT
-        self.DX = DX
-
-    def solve(self) -> float:
-        """
-        Solve for the intersection point xi.
-        
-        Returns:
-            float: The intersection point xi.
-        """
-        # Special case: if media are identical, use explicit formula.
-        if abs(self.cr - 1) < self.TOL:
-            return self.DX * self.DT / (self.DF + self.DT)
-
-        cri = 1 / self.cr  # c2/c1
-        DT = self.DT
-        DF = self.DF
-        DX = self.DX
-
-        # Define coefficients of quartic: A*x^4 + B*x^3 + C*x^2 + D*x + E = 0
-        A = 1 - cri**2
-        B = (2 * cri**2 * DX - 2 * DX) / DT
-        C = (DX**2 + DT**2 - cri**2 * (DX**2 + DF**2)) / (DT**2)
-        D = -2 * DX / DT          # simplified from -2*DX*DT^2/(DT^3)
-        E = DX**2 / (DT**2)       # simplified from DX^2*DT^2/(DT^4)
-
-        # Begin Ferrari's method
-        alpha = -3 * B**2 / (8 * A**2) + C / A
-        beta  = B**3 / (8 * A**3) - B * C / (2 * A**2) + D / A
-        gamma = -3 * B**4 / (256 * A**4) + C * B**2 / (16 * A**3) - B * D / (4 * A**2) + E / A
-
-        roots = []
-        if abs(beta) < self.TOL:
-            # The quartic is bi-quadratic; solve directly.
-            discriminant = alpha**2 - 4 * gamma
-            # Protect against small negative due to rounding.
-            if discriminant < 0:
-                discriminant = 0
-            sqrt_disc = cmath.sqrt(discriminant)
-            # Two candidate square-root expressions.
-            try:
-                term1 = cmath.sqrt((-alpha + sqrt_disc) / 2)
-            except ValueError:
-                term1 = 0
-            try:
-                term2 = cmath.sqrt((-alpha - sqrt_disc) / 2)
-            except ValueError:
-                term2 = 0
-            x1 = -B/(4*A) + term1
-            x2 = -B/(4*A) - term1
-            x3 = -B/(4*A) + term2
-            x4 = -B/(4*A) - term2
-            roots = [x1, x2, x3, x4]
+    # If the media are nearly identical, use the explicit solution.
+    if abs(cr - 1) < tol:
+        return DX * DT / (DF + DT)
+    
+    cri = 1 / cr  # cri = c2/c1
+    
+    # Define coefficients of the quartic: A*x^4 + B*x^3 + C*x^2 + D*x + E = 0
+    A = 1 - cri**2
+    B = (2 * cri**2 * DX - 2 * DX) / DT
+    C = (DX**2 + DT**2 - cri**2 * (DX**2 + DF**2)) / (DT**2)
+    D = -2 * DX * DT**2 / (DT**3)  # simplifies to -2*DX/DT
+    E = DX**2 * DT**2 / (DT**4)     # simplifies to DX**2/(DT**2)
+    
+    # Begin Ferrari's solution.
+    alpha = -3 * B**2 / (8 * A**2) + C / A
+    beta  = B**3 / (8 * A**3) - B * C / (2 * A**2) + D / A
+    gamma = -3 * B**4 / (256 * A**4) + C * B**2 / (16 * A**3) - B * D / (4 * A**2) + E / A
+    
+    x_candidates = np.zeros(4, dtype=complex)
+    
+    # Compare scalar beta with tol.
+    if abs(beta) < tol:
+        # Quartic reduces to a bi-quadratic.
+        sqrt_term = np.sqrt(alpha**2 - 4 * gamma + 0j)
+        x_candidates[0] = -B/(4*A) + np.sqrt((-alpha + sqrt_term)/2 + 0j)
+        x_candidates[1] = -B/(4*A) + np.sqrt((-alpha - sqrt_term)/2 + 0j)
+        x_candidates[2] = -B/(4*A) - np.sqrt((-alpha + sqrt_term)/2 + 0j)
+        x_candidates[3] = -B/(4*A) - np.sqrt((-alpha - sqrt_term)/2 + 0j)
+    else:
+        P = -alpha**2/12 - gamma
+        Q = -alpha**3/108 + alpha*gamma/3 - beta**2/8
+        disc = Q**2/4 + P**3/27
+        Rm = Q/2 - np.sqrt(disc + 0j)
+        # Use np.power to compute cube root, which supports complex numbers.
+        U = np.power(Rm, 1/3.0)
+        if abs(U) < tol:
+            y_val = -5/6 * alpha - U
         else:
-            P = -alpha**2/12 - gamma
-            Q = -alpha**3/108 + alpha * gamma / 3 - beta**2/8
-            inner = Q**2/4 + P**3/27
-            sqrt_inner = cmath.sqrt(inner) if inner >= 0 else 0
-            Rm = Q/2 - sqrt_inner
-            # Compute the real cube root, preserving sign.
-            U = math.copysign(abs(Rm)**(1/3), Rm) if abs(Rm) > self.TOL else 0
-            if abs(U) < self.TOL:
-                y = -5/6 * alpha - U
-            else:
-                y = -5/6 * alpha - U + P/(3*U)
-            temp = alpha + 2*y
-            W = cmath.sqrt(temp) if temp >= 0 else 0
-
-            def safe_sqrt(val):
-                return cmath.sqrt(val)
-
-            common = 3*alpha + 2*y
-            try:
-                r1 = -B/(4*A) + 0.5*(W + safe_sqrt(-common - 2*beta/W))
-                r2 = -B/(4*A) + 0.5*(-W + safe_sqrt(-common + 2*beta/W))
-                r3 = -B/(4*A) + 0.5*(W - safe_sqrt(-common - 2*beta/W))
-                r4 = -B/(4*A) + 0.5*(-W - safe_sqrt(-common + 2*beta/W))
-                roots = [r1, r2, r3, r4]
-            except Exception:
-                roots = []
-
-        # Multiply candidate x by DT to get xi.
-        candidate = None
-        for x in roots:
-            # In MATLAB, they check the “imaginary part” (scaled by DT).
-            # Here, our computations used cmath.sqrt so x is a float.
-            xr = x
-            axi = 0  # no imaginary part expected
-            xt = xr * DT
-            if DX >= 0:
-                if 0 <= xt <= DX and axi < self.TOL:
-                    candidate = xt
-                    break
-            else:
-                if DX <= xt <= 0 and axi < self.TOL:
-                    candidate = xt
-                    break
-
-        if candidate is not None:
-            return candidate
+            y_val = -5/6 * alpha - U + P/(3*U)
+        W = np.sqrt(alpha + 2*y_val + 0j)
+        x_candidates[0] = -B/(4*A) + 0.5 * ( W + np.sqrt( -(3*alpha + 2*y_val + 2*beta/W) + 0j))
+        x_candidates[1] = -B/(4*A) + 0.5 * (-W + np.sqrt( -(3*alpha + 2*y_val - 2*beta/W) + 0j))
+        x_candidates[2] = -B/(4*A) + 0.5 * ( W - np.sqrt( -(3*alpha + 2*y_val + 2*beta/W) + 0j))
+        x_candidates[3] = -B/(4*A) + 0.5 * (-W - np.sqrt( -(3*alpha + 2*y_val - 2*beta/W) + 0j))
+    
+    flag = False
+    xi = None
+    # Candidate branch: each candidate x is unscaled; compute xi = x * DT.
+    for candidate in x_candidates:
+        xr = np.real(candidate)
+        axi = DT * abs(np.imag(candidate))
+        xt = xr * DT
+        if DX >= 0:
+            if (xt >= 0 and xt <= DX) and (axi < tol):
+                xi = xr * DT
+                flag = True
+                break
         else:
-            from application.interface2_service import Interface2Service
-            from domain.interface2 import Interface2Parameters
-            params = Interface2Parameters(cr=self.cr, df=self.DF, dp=self.DT, dpf=self.DX)
-            service = Interface2Service(params)
-            
-            # Define the function whose root we seek.
-            def f(x):
-                return service.compute(x)
-            
-            # Choose the interval [0, DX] (or [DX, 0] if DX is negative)
-            a, b = (0, DX) if DX >= 0 else (DX, 0)
-            # Use Brent’s method from SciPy.
-            from scipy.optimize import brentq
-            root = brentq(f, a, b, xtol=self.TOL)
-            return root * DT
+            if (xt <= 0 and xt >= DX) and (axi < tol):
+                xi = xr * DT
+                flag = True
+                break
+    
+    if not flag:
+        # Fallback: solve for xi directly using interface2.
+        def f_interface2(x_val):
+            from domain.interface2 import interface2
+            # x_val is in mm, since interface2 expects the final intersection point.
+            return interface2(x_val, cr, DF, DT, DX)
+        if DX >= 0:
+            a, b_val = 0, DX
+        else:
+            a, b_val = DX, 0
+        sol = root_scalar(f_interface2, bracket=[a, b_val], method='brentq', xtol=tol)
+        if sol.converged:
+            xi = sol.root
+        else:
+            raise RuntimeError("Fallback root finding did not converge in ferrari2.")
+    return xi
+
+def ferrari2(cr, DF, DT, DX):
+    """
+    Vectorized wrapper for ferrari2_scalar.
+    If DF is not a scalar, apply ferrari2_scalar element-wise.
+    """
+    if np.isscalar(DF):
+        return ferrari2_scalar(cr, DF, DT, DX)
+    else:
+        vectorized_func = np.vectorize(ferrari2_scalar)
+        return vectorized_func(cr, DF, DT, DX)

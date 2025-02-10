@@ -1,48 +1,34 @@
 # domain/interface2.py
 
-from dataclasses import dataclass
-import cmath
+import numpy as np
 
-@dataclass(frozen=True)
-class Interface2Parameters:
+def interface2(x, cr, df, dp, dpf):
     """
-    Holds the parameters for the interface function:
-    - cr: c1/c2 ratio (wave speed ratio between medium one and medium two)
-    - df: depth of the point in medium two (DF)
-    - dp: height of the point in medium one (DT)
-    - dpf: separation distance between the two points (DX)
+    Compute the value of the function y that is zero when Snell's law is satisfied.
+    
+    Parameters:
+        x   : float or numpy array
+              Candidate location(s) along the interface (in mm).
+        cr  : float
+              Ratio c1/c2, where c1 is the wave speed in medium one and c2 is in medium two.
+        df  : float
+              Depth of the point in medium two (DF, in mm).
+        dp  : float
+              Height of the point in medium one (DT, in mm).
+        dpf : float
+              Separation distance between the points in medium one and two (DX, in mm).
+    
+    Returns:
+        y   : float or numpy array
+              The computed function value; when y = 0, Snell's law is satisfied.
+              
+    The function computes:
+        y = x / sqrt(x^2 + dp^2) - cr * (dpf - x) / sqrt((dpf - x)^2 + df^2)
     """
-    cr: float
-    df: float
-    dp: float
-    dpf: float
-
-class Interface2:
-    """
-    Domain class to evaluate the interface function defined by:
-
-      y = x/sqrt(x^2 + dp^2) - cr*(dpf - x)/sqrt((dpf - x)^2 + df^2)
-      
-    where x is the location along the interface and the other parameters are provided.
-    """
-    def __init__(self, parameters: Interface2Parameters):
-        self._parameters = parameters
-
-    def evaluate(self, x: float) -> float:
-        """
-        Evaluate the function at a given x.
-        
-        Parameters:
-            x (float): The location along the interface.
-            
-        Returns:
-            float: The computed value.
-        """
-        dp = self._parameters.dp
-        df = self._parameters.df
-        cr = self._parameters.cr
-        dpf = self._parameters.dpf
-
-        term1 = x / cmath.sqrt(x ** 2 + dp ** 2)
-        term2 = (dpf - x) / cmath.sqrt((dpf - x) ** 2 + df ** 2)
-        return term1 - cr * term2
+    # Convert x to a NumPy array to support element-wise operations
+    x = np.array(x, dtype=float)
+    
+    term1 = x / np.sqrt(x**2 + dp**2)
+    term2 = cr * (dpf - x) / np.sqrt((dpf - x)**2 + df**2)
+    y = term1 - term2
+    return y
