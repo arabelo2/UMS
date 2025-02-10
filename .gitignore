@@ -13,3 +13,6 @@ Thumbs.db
 
 # Logs and temporary files
 *.log
+
+# Text files
+*.txt
