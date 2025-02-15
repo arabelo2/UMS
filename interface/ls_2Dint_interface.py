@@ -47,7 +47,7 @@ def main():
         epilog=(
             "Example usage:\n"
             "  python interface/ls_2Dint_interface.py --b 3 --f 5 --c 1480 --mat \"1,1480,7.9,5900\" --e 0 \\\n"
-            "       --angt 10.217 --Dt0 50.8 --x2=\"0,25,20\" --z2=\"1,25,200\" --Nopt 20 \n\n"
+            "       --angt 10.217 --Dt0 50.8 --x2=\"0,25,200\" --z2=\"1,25,200\" --Nopt 20 \n\n"
             "Defaults:\n"
             "  For 1D simulation: x is taken as a fixed value and z as a vector.\n"
             "    If --x and --z are omitted, x defaults to 0 and z to linspace(1,100,200).\n"
@@ -210,14 +210,26 @@ def main():
     # Save the pressure matrix to a file.
     try:
         with open(args.outfile, "w") as f:
-            if p1 is not None:
+            # Determine the dimensionality of the pressure matrix.
+            if np.isscalar(p1) or (isinstance(p1, np.ndarray) and p1.ndim == 0):
+                f.write("%0.16f%+0.16fj\n" % (p1.real, p1.imag))
+            elif isinstance(p1, np.ndarray) and p1.ndim == 1:
+                formatted_row = "\t".join("%0.16f%+0.16fj" % (val.real, val.imag) for val in p1)
+                f.write(formatted_row + "\n")
+            elif isinstance(p1, np.ndarray) and p1.ndim >= 2:
                 for row in p1:
                     formatted_row = "\t".join("%0.16f%+0.16fj" % (val.real, val.imag) for val in row)
                     f.write(formatted_row + "\n")
             elif p2 is not None:
-                for row in p2:
-                    formatted_row = "\t".join("%0.16f%+0.16fj" % (val.real, val.imag) for val in row)
+                if np.isscalar(p2) or (isinstance(p2, np.ndarray) and p2.ndim == 0):
+                    f.write("%0.16f%+0.16fj\n" % (p2.real, p2.imag))
+                elif isinstance(p2, np.ndarray) and p2.ndim == 1:
+                    formatted_row = "\t".join("%0.16f%+0.16fj" % (val.real, val.imag) for val in p2)
                     f.write(formatted_row + "\n")
+                else:
+                    for row in p2:
+                        formatted_row = "\t".join("%0.16f%+0.16fj" % (val.real, val.imag) for val in row)
+                        f.write(formatted_row + "\n")
         print(f"Pressure matrix saved in {args.outfile}")
     except Exception as e:
         print("Error saving the output file:", e)
