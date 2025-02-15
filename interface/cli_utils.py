@@ -16,6 +16,7 @@ operators = {
     ast.Mult: op.mul,
     ast.Div: op.truediv,
     ast.Pow: op.pow,
+    ast.BitXor: op.pow,  # Treat '^' as exponentiation (MATLAB style)
     ast.USub: op.neg
 }
 
@@ -37,6 +38,10 @@ def safe_eval(expr):
     """
     Safely evaluate a simple arithmetic expression using ast.
     Only numbers and basic arithmetic operators are allowed.
+    
+    Example usage:
+      safe_eval("6.35/2") -> 3.175
+      safe_eval("10+5")   -> 15
     """
     try:
         return _eval(ast.parse(expr, mode='eval').body)
@@ -47,6 +52,11 @@ def safe_float(s: str) -> float:
     """
     Convert a string to float.
     If direct conversion fails, attempt to safely evaluate it as an arithmetic expression.
+    
+    Examples:
+      safe_float("3.14")     -> 3.14
+      safe_float("6.35/2")   -> 3.175
+      safe_float("invalid")  -> raises argparse.ArgumentTypeError
     """
     try:
         return float(s)
@@ -59,16 +69,27 @@ def parse_array(arr_str: str):
     
     - If exactly three numbers are provided, they are interpreted as
       [start, stop, num_points] and used to generate an array via np.linspace.
-    - Otherwise, the numbers are treated as explicit values.
+      For example, "5,80,200" -> np.linspace(5,80,200).
+    - Otherwise, the numbers are treated as explicit values,
+      e.g. "5,10,15,20" -> np.array([5,10,15,20]).
+    - Negative values for start or stop are supported by enclosing the argument in quotes,
+      e.g., --x="-10,10,200".
     
-    Extra surrounding quotes are stripped.
+    Extra surrounding quotes are stripped if present.
+    
+    Raises:
+      argparse.ArgumentTypeError if the string cannot be parsed into valid numbers.
+    
+    Returns:
+      A NumPy array of floats.
     """
     arr_str = arr_str.strip("'\"")
     try:
         values = [safe_float(val.strip()) for val in arr_str.split(',')]
     except Exception:
         raise argparse.ArgumentTypeError(
-            "Invalid format. Should be a comma-separated list of numbers, e.g. '5,200,500' for linspace or '5,10,15,20' for explicit values."
+            "Invalid format. Should be a comma-separated list of numbers, e.g. '5,200,500' for linspace "
+            "or '5,10,15,20' for explicit values. For negative values, use quotes, e.g. --x=\"-10,10,200\"."
         )
     if len(values) == 3:
         start, stop, num = values

@@ -1,56 +1,57 @@
+# domain/fresnel_2D.py
+
 import numpy as np
-from domain.fresnel_int import FresnelIntegral
+import math
+from domain.fresnel_int import fresnel_int
 
-
-class Fresnel2D:
+def fresnel_2D(b, f, c, x, z):
     """
-    Computes the normalized pressure field at a point (x, z) for a 1-D element
-    radiating into a fluid using Fresnel integrals.
+    Compute the normalized pressure field at a point or points (x, z) (in mm)
+    for a 1-D element of length 2*b (in mm) radiating into a fluid with
+    wave speed c (m/s) at frequency f (MHz). This function uses fresnel_int
+    to evaluate the Fresnel integral.
+
+    Parameters:
+      b : float
+          Half-length of the element (mm).
+      f : float
+          Frequency (MHz).
+      c : float
+          Wave speed in the fluid (m/s).
+      x : float or numpy array
+          x-coordinate(s) (mm).
+      z : float or numpy array
+          z-coordinate(s) (mm). Typically a scalar, but can be an array.
+
+    Returns:
+      p : complex or numpy array of complex numbers
+          The normalized pressure.
+
+    Procedure:
+      1. Compute wave number: kb = 2000 * pi * f * b / c
+      2. Normalize x and z by b: xb = x / b, zb = z / b
+      3. Compute argument for the Fresnel integral:
+            arg = sqrt(kb / (pi * zb))   (with a small epsilon if zb=0)
+      4. Evaluate Fresnel integrals for (xb+1)*arg and (xb-1)*arg
+      5. Combine results:
+            factor = sqrt(1/(2i))
+            p = factor * exp(i*kb*zb) * [fresnel_int(arg*(xb+1)) - fresnel_int(arg*(xb-1))]
     """
+    kb = 2000 * math.pi * f * b / c
+    
+    # Convert x, z to numpy arrays for vectorized operations.
+    xb = np.array(x, dtype=float) / b
+    zb = np.array(z, dtype=float) / b
 
-    def __init__(self, b, f, c):
-        """
-        Initialize the Fresnel2D object.
+    # Avoid division by zero if zb=0.
+    epsilon = 1e-12
+    zb = np.where(zb == 0, epsilon, zb)
 
-        Parameters:
-            b (float): Half-length of the element (in mm).
-            f (float): Frequency (in MHz).
-            c (float): Wave speed in the fluid (in m/sec).
-        """
-        self.b = b
-        self.f = f
-        self.c = c
-        self.kb = 2000 * np.pi * f * b / c  # Wave number
+    arg = np.sqrt(kb / (math.pi * zb))
 
-    def compute_pressure(self, x, z):
-        """
-        Compute the normalized pressure field at a given point (x, z).
+    I1 = fresnel_int(arg * (xb + 1))
+    I2 = fresnel_int(arg * (xb - 1))
 
-        Parameters:
-            x (float or numpy.ndarray): x-coordinate(s) (in mm).
-            z (float or numpy.ndarray): z-coordinate(s) (in mm).
-
-        Returns:
-            numpy.ndarray: Normalized pressure at the given point(s).
-        """
-        # Normalize coordinates
-        xb = x / self.b
-        zb = z / self.b
-
-        # Argument for the Fresnel integral
-        arg = np.sqrt(self.kb / (np.pi * zb))
-
-        # Handle 2D grids
-        arg_xb1 = (arg * (xb + 1)).flatten()
-        arg_xb2 = (arg * (xb - 1)).flatten()
-
-        # Compute Fresnel integrals and reshape to original grid shape
-        fresnel_xb1 = FresnelIntegral.compute(arg_xb1).reshape(x.shape)
-        fresnel_xb2 = FresnelIntegral.compute(arg_xb2).reshape(x.shape)
-
-        # Compute normalized pressure
-        fresnel_term = fresnel_xb1 - fresnel_xb2
-        pressure = np.sqrt(1 / (2j)) * np.exp(1j * self.kb * zb) * fresnel_term
-
-        return pressure
-
+    factor = np.sqrt(1 / (2j))
+    p = factor * np.exp(1j * kb * zb) * (I1 - I2)
+    return p
