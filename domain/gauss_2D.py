@@ -1,3 +1,5 @@
+# domain/gauss_2D.py
+
 import numpy as np
 from domain.gauss_c15 import gauss_c15
 
