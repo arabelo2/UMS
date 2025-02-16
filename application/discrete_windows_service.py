@@ -1,15 +1,16 @@
-from domain.discrete_windows import DiscreteWindows
-import numpy as np
+# application/discrete_windows_service.py
 
-class DiscreteWindowsService:
-    """Service layer for computing discrete windowing functions."""
+from domain.discrete_windows import discrete_windows
 
-    def __init__(self, M: int, window_type: str):
-        self.M = M
-        self.window_type = window_type
-        self.weights = None
-
-    def calculate_weights(self) -> np.ndarray:
-        """Compute and return the window weights."""
-        self.weights = DiscreteWindows.generate_weights(self.M, self.window_type)
-        return self.weights
+def run_discrete_windows_service(M, wtype):
+    """
+    Service function to generate discrete window amplitudes for M elements.
+    
+    Parameters:
+      M (int)       : number of elements (>=1)
+      wtype (str)   : one of 'cos', 'Han', 'Ham', 'Blk', 'tri', or 'rect'
+    
+    Returns:
+      amp (np.ndarray): The discrete amplitudes for the chosen window type.
+    """
+    return discrete_windows(M, wtype)

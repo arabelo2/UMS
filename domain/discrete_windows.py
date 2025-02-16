@@ -1,36 +1,65 @@
+# domain/discrete_windows.py
+
 import numpy as np
 
-class DiscreteWindows:
-    """Computes discrete apodization amplitudes for an array of M elements."""
+def discrete_windows(M: int, wtype: str) -> np.ndarray:
+    """
+    Return the discrete apodization amplitudes for M elements of the given window type.
+    
+    The available types are:
+      'cos' -> Cosine window
+      'Han' -> Hanning window
+      'Ham' -> Hamming window
+      'Blk' -> Blackman window
+      'tri' -> Triangular window
+      'rect'-> Rectangular window (no apodization)
+    
+    Parameters:
+      M (int)     : Number of discrete elements (must be >= 1).
+      wtype (str) : The window type string.
+    
+    Returns:
+      np.ndarray of shape (M,) with amplitude values.
+    
+    Raises:
+      ValueError: if M < 1
+      ValueError: if wtype is not one of the recognized types.
+    
+    Notes:
+    - This function replicates the behavior of the MATLAB function discrete_windows.m.
+    - We can reference the approach from Cormen for clarity: each array is generated
+      in O(M) time, which is already optimal for constructing an output of size M.
+    """
+    if M < 1:
+        raise ValueError("Number of elements M must be >= 1.")
 
-    @staticmethod
-    def generate_weights(M: int, window_type: str) -> np.ndarray:
-        """
-        Generate apodization weights for M elements based on the selected window type.
+    # element indices (MATLAB code uses m=1:M)
+    m = np.arange(1, M+1)
 
-        Parameters:
-            M (int): Number of elements in the array.
-            window_type (str): Type of windowing function ('cos', 'Han', 'Ham', 'Blk', 'tri', 'rect').
+    # We'll create an amplitude array in a pythonic style:
+    if wtype == 'cos':
+        # amp = sin(pi*(m-1)/(M-1))
+        amp = np.sin(np.pi * (m - 1) / (M - 1))
+    elif wtype == 'Han':
+        # amp =(sin(pi*(m-1)/(M-1)))^2
+        amp = np.sin(np.pi * (m - 1) / (M - 1))**2
+    elif wtype == 'Ham':
+        # amp= 0.54 -0.46*cos(2*pi*(m-1)/(M-1))
+        amp = 0.54 - 0.46 * np.cos(2*np.pi*(m - 1)/(M - 1))
+    elif wtype == 'Blk':
+        # amp=0.42 -0.5*cos(2*pi*(m-1)/(M-1)) + ...
+        #       0.08*cos(4*pi*(m-1)/(M-1))
+        amp = (0.42
+               - 0.5  * np.cos(2*np.pi*(m - 1)/(M - 1))
+               + 0.08 * np.cos(4*np.pi*(m - 1)/(M - 1)))
+    elif wtype == 'tri':
+        # amp =1 - abs(2*(m-1)/(M-1) -1)
+        amp = 1.0 - np.abs(2*(m - 1)/(M - 1) - 1)
+    elif wtype == 'rect':
+        # amp = ones(1,M)
+        amp = np.ones(M)
+    else:
+        # If type is invalid
+        raise ValueError("Invalid window type. Choices are 'cos', 'Han', 'Ham', 'Blk', 'tri', 'rect'")
 
-        Returns:
-            np.ndarray: Apodization weights for M elements.
-        """
-        if M <= 1:
-            raise ValueError("M must be greater than 1 for windowing to be meaningful.")
-
-        m = np.arange(M)  # Element indices from 0 to M-1
-        factor = np.pi * m / (M - 1)  # Common factor used in multiple window types
-
-        window_types = {
-            "cos": np.sin(factor),
-            "Han": np.sin(factor) ** 2,
-            "Ham": 0.54 - 0.46 * np.cos(2 * factor),
-            "Blk": 0.42 - 0.5 * np.cos(2 * factor) + 0.08 * np.cos(4 * factor),
-            "tri": 1 - np.abs(2 * m / (M - 1) - 1),
-            "rect": np.ones(M),
-        }
-
-        if window_type not in window_types:
-            raise ValueError("Invalid window type. Choose from 'cos', 'Han', 'Ham', 'Blk', 'tri', 'rect'.")
-
-        return window_types[window_type]
+    return amp

@@ -1,41 +1,81 @@
+#!/usr/bin/env python3
 # interface/discrete_windows_interface.py
+
+"""
+Module: discrete_windows_interface.py
+Layer: Interface
+
+Provides a CLI to compute discrete apodization amplitudes for M elements
+of a chosen window type: 'cos', 'Han', 'Ham', 'Blk', 'tri', 'rect'.
+
+Default values:
+  M=16
+  type='Blk'
+  plot='Y'
+
+Example usage:
+  1) python interface/discrete_windows_interface.py --M 16 --type Han --plot Y
+  2) python interface/discrete_windows_interface.py --M 10 --type rect --plot N
+  3) python interface/discrete_windows_interface.py               (all defaults)
+"""
 
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-from application.discrete_windows_service import DiscreteWindowsService
+
+from application.discrete_windows_service import run_discrete_windows_service
+from interface.cli_utils import safe_float
 
 def main():
-    """Main function to test discrete windowing functions."""
+    parser = argparse.ArgumentParser(
+        description="Generate discrete window amplitudes for M elements of a chosen window type.",
+        epilog=(
+            "Example usage:\n"
+            "  1) python interface/discrete_windows_interface.py --M 16 --type Han --plot Y\n"
+            "  2) python interface/discrete_windows_interface.py --M 10 --type rect --plot N\n"
+            "  3) python interface/discrete_windows_interface.py               (all defaults)\n"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
 
-    # Define parameters
-    M = 16  # Number of elements
-    window_type = "tri"  # Choose: 'cos', 'Han', 'Ham', 'Blk', 'tri', 'rect'
+    parser.add_argument("--M", type=int, default=16,
+                        help="Number of elements (>=1). Default=16.")
+    parser.add_argument("--type", type=str, default="Blk",
+                        help="Window type: 'cos', 'Han', 'Ham', 'Blk', 'tri', or 'rect'. Default='Blk'")
+    parser.add_argument("--outfile", type=str, default="discrete_windows_output.txt",
+                        help="Output file to save the amplitudes. Default=discrete_windows_output.txt")
+    parser.add_argument("--plot", type=str, choices=["Y","N","y","n"], default="Y",
+                        help="If 'Y', display a stem plot of the amplitudes. Default='Y'")
 
-    # Compute Window Weights
-    service = DiscreteWindowsService(M, window_type)
-    weights = service.calculate_weights()
+    args = parser.parse_args()
 
-    # Plot Window Weights
-    plt.figure(figsize=(8, 6))
-    
-    # Compatible with all versions of Matplotlib
-    markerline, stemlines, baseline = plt.stem(range(1, M + 1), weights, basefmt=" ")
-    
-    # Remove unwanted line collection to avoid `use_line_collection=True`
-    plt.setp(stemlines, linewidth=1)
+    try:
+        amp = run_discrete_windows_service(args.M, args.type)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
-    # Formatting
-    plt.xlabel("Element Index")
-    plt.ylabel("Amplitude Weight")
-    plt.title(f"Discrete Windowing Function: {window_type}")
-    plt.grid(True)
-    
-    # Show the plot
-    plt.show()
+    # Save results to file
+    with open(args.outfile, "w") as f:
+        for i, val in enumerate(amp, start=1):
+            f.write(f"Element {i}: {val:.6f}\n")
+    print(f"Window amplitudes saved to {args.outfile}")
+
+    # Optional plot
+    if args.plot.upper() == "Y":
+        plt.figure(figsize=(8,5))
+        x_coords = np.arange(1, len(amp)+1)
+        plt.stem(x_coords, amp, linefmt='b-', markerfmt='bo', basefmt='r-')
+        plt.xlabel("Element index")
+        plt.ylabel("Amplitude")
+        plt.title(f"Discrete Window: {args.type} (M={args.M})")
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
 
 if __name__ == "__main__":
     main()
