@@ -1,45 +1,91 @@
+# domain/on_axis_foc2D.py
+
 import numpy as np
-from application.fresnel_int_service import FresnelIntegralService
+import math
+from domain.fresnel_int import fresnel_int
 
-class OnAxisFocusedPiston:
-    """Computes the on-axis normalized pressure for a focused piston transducer."""
+def on_axis_foc2D(b, R, f, c, z):
+    """
+    Compute the on-axis normalized pressure for a 1-D focused piston element 
+    of length 2*b (mm) and focal length R (mm) using the paraxial approximation.
+    
+    The frequency is f (in MHz), b is the transducer half-length (in mm), c is the 
+    wave speed (m/s), and z is the on-axis distance (in mm). The propagation phase term 
+    exp(ikz) is removed from the calculation.
+    
+    Parameters:
+        b : float
+            Transducer half-length (mm).
+        R : float
+            Focal length (mm).
+        f : float
+            Frequency (MHz).
+        c : float
+            Wave speed of the surrounding fluid (m/s).
+        z : float or numpy array
+            On-axis distance (mm). Can be a scalar or an array.
+    
+    Returns:
+        p : complex or numpy array of complex numbers
+            The normalized on-axis pressure.
+    
+    Procedure:
+      1. Ensure no division by zero for z by adding a small epsilon if z==0.
+      2. Define the transducer wave number:
+             kb = 2000*pi*f*b/c
+      3. Compute u = (1 - z/R) and add a small epsilon where u is zero.
+      4. Compute the argument for the Fresnel integral and the denominator:
+             For elements where z <= R:
+                 x_val = sqrt((u*kb*b)/(pi*z))
+                 denom_val = sqrt(u)
+                 Fr = fresnel_int(x_val)
+             For elements where z > R:
+                 x_val = sqrt((-u*kb*b)/(pi*z))
+                 denom_val = sqrt(-u)
+                 Fr = conj(fresnel_int(x_val))
+      5. Compute the normalized pressure:
+             p = sqrt(2/(1j)) * sqrt((b/R)*kb/pi)   for |u| <= 0.005 (analytical branch)
+               + sqrt(2/(1j)) * (Fr/denom_val)        for |u| > 0.005 (numerical branch)
+         (Note: The MATLAB code uses element-wise multiplication of these branches.)
+    
+    All operations are vectorized so that z can be a scalar or an array.
+    """
+    # Ensure z is a numpy array for element-wise operations.
+    z = np.array(z, dtype=float)
+    eps_val = np.finfo(float).eps
 
-    def __init__(self, b, R, f, c):
-        self.b = b
-        self.R = R
-        self.f = f
-        self.c = c
-        self.kb = (2000 * np.pi * f * b) / c  # Compute wave number
-        self.fresnel_service = FresnelIntegralService()
+    # Avoid division by zero: if z==0, add a small epsilon.
+    z = z + eps_val * (z == 0)
 
-    def compute_pressure(self, z):
-        """Compute the on-axis normalized pressure at a given depth `z`."""
+    # Compute the transducer wave number.
+    kb = 2000 * math.pi * f * b / c
 
-        z = np.atleast_1d(z)  # Ensure z is an array
-        z = z + np.finfo(float).eps * (z == 0)  # Avoid division by zero
-        
-        # Compute `u` parameter for near/far field
-        u = 1 - z / self.R
-        u = u + np.finfo(float).eps * (u == 0)  # Prevent singularities
+    # Compute u = (1 - z/R) and ensure u is not zero.
+    u = 1 - z / R
+    u = u + eps_val * (u == 0)
 
-        # Ensure non-negative values before sqrt()
-        x_near = np.sqrt(np.maximum(0, (u * self.kb * self.b) / (np.pi * z))) * (z <= self.R)
-        x_far = np.sqrt(np.maximum(0, (-u * self.kb * self.b) / (np.pi * z))) * (z > self.R)
-
-        x = x_near + x_far
-
-        # Ensure denominator does not receive negative values
-        denom = np.sqrt(np.maximum(0, u)) * (z <= self.R) + np.sqrt(np.maximum(0, -u)) * (z > self.R)
-
-        # Compute Fresnel integrals using the service
-        fresnel_near = self.fresnel_service.compute_integrals(x) * (z <= self.R)
-        fresnel_far = np.conj(self.fresnel_service.compute_integrals(x)) * (z > self.R)
-        Fr = fresnel_near + fresnel_far
-
-        # Compute final normalized pressure
-        p_near = np.sqrt(2 / 1j) * np.sqrt((self.b / self.R) * self.kb / np.pi) * (np.abs(u) <= 0.005)
-        p_far = np.sqrt(2 / 1j) * Fr / denom * (np.abs(u) > 0.005)
-        p = p_near + p_far
-
-        return p
-
+    # Compute the argument for the Fresnel integral.
+    # For z <= R, use positive u; for z > R, use negative u.
+    # We use element-wise conditions.
+    x_val = np.where(z <= R,
+                     np.sqrt((u * kb * b) / (np.pi * z)),
+                     np.sqrt((-u * kb * b) / (np.pi * z)))
+    
+    # Denom is computed similarly.
+    denom_val = np.where(z <= R,
+                         np.sqrt(u),
+                         np.sqrt(-u))
+    
+    # Compute the Fresnel integral: for z<=R use fresnel_int(x_val), for z>R use its conjugate.
+    Fr = np.where(z <= R,
+                  fresnel_int(x_val),
+                  np.conjugate(fresnel_int(x_val)))
+    
+    # Compute the scaling factor sqrt(2/(1j))
+    scaling = np.sqrt(2 / (1j))
+    analytic_value = scaling * np.sqrt((b / R) * kb / math.pi)
+    
+    # Choose branch based on |u|: if |u| <= 0.005 use analytic, else numerical.
+    p = np.where(np.abs(u) <= 0.005, analytic_value, scaling * (Fr / denom_val))
+    
+    return p
