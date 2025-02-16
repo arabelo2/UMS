@@ -1,40 +1,39 @@
+# domain/elements.py
+
 import numpy as np
 
-class Elements:
-    """
-    Calculates the properties of an array transducer, including its total length,
-    element size, gap size, and element centroids.
-    """
+class ElementsCalculator:
+    def __init__(self, frequency_mhz, wave_speed_m_s, diameter_ratio, gap_ratio, num_elements):
+        self.frequency_mhz = frequency_mhz
+        self.wave_speed_m_s = wave_speed_m_s
+        self.diameter_ratio = diameter_ratio
+        self.gap_ratio = gap_ratio
+        self.num_elements = num_elements
 
-    @staticmethod
-    def calculate(f, c, dl, gd, N):
-        """
-        Compute the array properties, including aperture size, element size, gap, and centroids.
+    def calculate(self):
+        # Validate parameters
+        if self.frequency_mhz <= 0:
+            raise ValueError("Frequency must be greater than zero.")
+        if self.wave_speed_m_s <= 0:
+            raise ValueError("Wave speed must be greater than zero.")
+        if self.diameter_ratio <= 0:
+            raise ValueError("Diameter ratio must be positive.")
+        if self.gap_ratio < 0:
+            raise ValueError("Gap ratio cannot be negative.")
+        if self.num_elements <= 0:
+            raise ValueError("Number of elements must be positive.")
 
-        Parameters:
-            f (float): Frequency in MHz.
-            c (float): Wave speed in the medium (m/s).
-            dl (float): Element length divided by wavelength.
-            gd (float): Gap between elements divided by element length.
-            N (int): Number of elements.
+        # Calculate element diameter
+        d = self.diameter_ratio * self.wave_speed_m_s / (1000 * self.frequency_mhz)
 
-        Returns:
-            tuple: (A, d, g, xc) where:
-                - A (float): Total aperture size.
-                - d (float): Element length.
-                - g (float): Gap size.
-                - xc (np.ndarray): X-coordinates of the element centroids.
-        """
+        # Calculate gap size
+        g = self.gap_ratio * d
 
-        # Calculate element length and gap size
-        λ = c / (f * 1e3)
-        d = dl * λ
-        g = gd * d  # Calculate gap size (g)
+        # Calculate total aperture size
+        A = self.num_elements * d + (self.num_elements - 1) * g
 
-        # Compute aperture size
-        A = N * d + (N - 1) * g
-
-        # Compute element centroids
-        xc = np.array([(m - (N - 1) / 2) * (d + g) for m in range(N)])
+        # Calculate centroids of the array elements
+        Mb = (self.num_elements - 1) / 2
+        xc = np.array([(g + d) * ((2 * nn - 1) / 2 - self.num_elements / 2) for nn in range(1, self.num_elements + 1)])
 
         return A, d, g, xc

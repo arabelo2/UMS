@@ -1,4 +1,4 @@
-# domain/np_gauss_2D.py
+# domain/NPGauss_2D.py
 
 import numpy as np
 import math
