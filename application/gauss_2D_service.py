@@ -1,23 +1,17 @@
-from domain.gauss_2D import Gauss2D
+from domain.gauss_2D import gauss_2D
 
-
-class Gauss2DService:
+def run_gauss_2D_service(b, f, c, x, z):
     """
-    Service for managing Gauss2D computations.
+    Service function for Gauss_2D calculation.
+
+    Parameters:
+        b: float - Half-length of the element (mm)
+        f: float - Frequency (MHz)
+        c: float - Wave speed in the fluid (m/s)
+        x: float or array-like - x-coordinate(s) (mm)
+        z: float or array-like - z-coordinate(s) (mm)
+
+    Returns:
+        p: complex or array-like - The computed normalized pressure.
     """
-
-    def __init__(self, b, f, c):
-        self.solver = Gauss2D(b, f, c)
-
-    def compute_pressure(self, x, z):
-        """
-        Compute the normalized pressure at a point or grid.
-
-        Parameters:
-            x (float or numpy.ndarray): x-coordinate(s) (in mm).
-            z (float or numpy.ndarray): z-coordinate(s) (in mm).
-
-        Returns:
-            numpy.ndarray: Normalized pressure at the given point(s).
-        """
-        return self.solver.compute_pressure(x, z)
+    return gauss_2D(b, f, c, x, z)

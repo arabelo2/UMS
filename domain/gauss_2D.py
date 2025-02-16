@@ -1,50 +1,37 @@
 import numpy as np
-from domain.gauss_c15 import GaussC15
+from domain.gauss_c15 import gauss_c15
 
-
-class Gauss2D:
+def gauss_2D(b, f, c, x, z):
     """
-    Computes the normalized pressure at a point (x, z) in a fluid for a 1-D element
-    using a paraxial multi-Gaussian beam model with 15 Gaussian coefficients.
+    Calculate the normalized pressure field for a 1-D element using a multi-Gaussian beam model.
+
+    Parameters:
+        b: float - Half-length of the element (mm)
+        f: float - Frequency (MHz)
+        c: float - Wave speed in the fluid (m/s)
+        x: np.ndarray or float - x-coordinate(s) (mm)
+        z: np.ndarray or float - z-coordinate(s) (mm)
+
+    Returns:
+        np.ndarray - The computed normalized pressure field
     """
+    # Retrieve coefficients
+    A, B = gauss_c15()
 
-    def __init__(self, b, f, c):
-        """
-        Initialize the Gauss2D object.
+    # Calculate wave number
+    kb = 2000 * np.pi * f * b / c
 
-        Parameters:
-            b (float): Half-length of the element (in mm).
-            f (float): Frequency (in MHz).
-            c (float): Wave speed in the fluid (in m/sec).
-        """
-        self.b = b
-        self.f = f
-        self.c = c
-        self.kb = 2000 * np.pi * f * b / c  # Wave number
-        self.coefficients_a, self.coefficients_b = GaussC15.get_coefficients()
+    # Normalize coordinates
+    xb = x / b
+    zb = z / b
 
-    def compute_pressure(self, x, z):
-        """
-        Compute the normalized pressure at a point (x, z).
+    # Initialize pressure field
+    p = np.zeros_like(xb, dtype=complex)
 
-        Parameters:
-            x (float or numpy.ndarray): x-coordinate(s) (in mm).
-            z (float or numpy.ndarray): z-coordinate(s) (in mm).
+    # Superimpose 15 Gaussian beams
+    for nn in range(15):
+        qb = zb - 1j * 1000 * np.pi * f * b / (B[nn] * c)
+        qb0 = -1j * 1000 * np.pi * f * b / (B[nn] * c)
+        p += np.sqrt(qb0 / qb) * A[nn] * np.exp(1j * kb * xb**2 / (2 * qb))
 
-        Returns:
-            numpy.ndarray: Normalized pressure at the given point(s).
-        """
-        # Normalize coordinates
-        xb = x / self.b
-        zb = z / self.b
-
-        # Initialize pressure
-        p = np.zeros_like(xb, dtype=np.complex128)
-
-        # Compute pressure using 15 Gaussian beams
-        for a, b in zip(self.coefficients_a, self.coefficients_b):
-            qb = zb - 1j * 1000 * np.pi * self.f * self.b / (b * self.c)
-            qb0 = -1j * 1000 * np.pi * self.f * self.b / (b * self.c)
-            p += np.sqrt(qb0 / qb) * a * np.exp(1j * self.kb * xb**2 / (2 * qb))
-
-        return p
+    return p
