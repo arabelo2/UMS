@@ -1,23 +1,19 @@
-from domain.delay_laws2D import DelayLaws2D
+# application/delay_laws2D_service.py
 
+from domain.delay_laws2D import delay_laws2D
 
-class DelayLaws2DService:
+def run_delay_laws2D_service(M, s, Phi, F, c):
     """
-    Service for managing DelayLaws2D computations.
+    Service function to compute delay laws for a 1-D array.
+
+    Parameters:
+        M (int)    : Number of elements in the array (should be odd).
+        s (float)  : Pitch in mm.
+        Phi (float): Steering angle in degrees.
+        F (float)  : Focal distance in mm. np.inf => steering only.
+        c (float)  : Wave speed (m/s).
+
+    Returns:
+        td (np.ndarray): Time delays (microseconds) for each element.
     """
-
-    def compute_delays(self, M, s, Phi, F, c):
-        """
-        Compute time delays for the array transducer.
-
-        Parameters:
-            M (int): Number of elements in the array.
-            s (float): Pitch (distance between elements) in mm.
-            Phi (float): Beam steering angle in degrees.
-            F (float): Focal length in mm (use np.inf for steering only).
-            c (float): Wave speed in m/s.
-
-        Returns:
-            numpy.ndarray: Array of time delays (in microseconds).
-        """
-        return DelayLaws2D.compute_delays(M, s, Phi, F, c)
+    return delay_laws2D(M, s, Phi, F, c)
