@@ -1,54 +1,49 @@
+#!/usr/bin/env python3
+
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import numpy as np
 import matplotlib.pyplot as plt
-from domain.ferrari2 import FerrariSolver
 
-coefficients = [1, -4, 6, -4, 1]  # Corresponds to (x - 1)^4 = 0
-solver = FerrariSolver(coefficients)
-roots = solver.solve()
-print("Test 1 - Expected: [1, 1, 1, 1], Computed:", roots)
+# Import the elements calculator from the domain module.
+from domain.elements import ElementsCalculator
+# Import the modeling service from the application module.
+from application.mls_array_modeling_service import run_mls_array_modeling_service
 
+def main():
+    # Input parameters (same as your MATLAB script)
+    f     = 5         # frequency (MHz)
+    c     = 1480      # wave speed (m/s)
+    M     = 32        # number of elements
+    dl    = 0.5       # element length (d) divided by wavelength
+    gd    = 0.1       # gap (g) divided by element length
+    Phi   = 20.0      # steering angle (degrees)
+    F     = np.inf    # focal length (mm), np.inf for steering-only
+    wtype = 'rect'    # type of amplitude weighting function
 
-coefficients = [1, 0, 2, 0, 1]
-solver = FerrariSolver(coefficients)
-roots = solver.solve()
-print("Test 2 - Expected: [±i, ±i], Computed:", roots)
+    # Generate 2-D mesh grid for field calculations (in mm)
+    z = np.linspace(1, 100 * dl, 500)
+    x = np.linspace(-50 * dl, 50 * dl, 500)
+    xx, zz = np.meshgrid(x, z)
 
-coefficients = [1, -2, 5, -2, 2]
-solver = FerrariSolver(coefficients)
-roots = solver.solve()
-print("Test 3 - Computed Roots:", roots)
+    # Use the modeling service to compute the pressure field.
+    # run_mls_array_modeling_service() handles:
+    #   - Computing the array parameters using ElementsCalculator
+    #   - Computing the delay laws, amplitude weights, and individual element fields.
+    p, A, d, g, e = run_mls_array_modeling_service(f, c, M, dl, gd, Phi, F, wtype, xx, zz)
 
+    # Plot the normalized pressure magnitude field.
+    plt.figure(figsize=(8, 6))
+    plt.imshow(np.abs(p), extent=[x[0], x[-1], z[0], z[-1]], origin='lower', aspect='auto')
+    plt.xlabel('x (mm)')
+    plt.ylabel('z (mm)')
+    plt.title('MLS Array Modeling Pressure Field')
+    plt.colorbar(label='Normalized Pressure Magnitude')
+    plt.tight_layout()
+    plt.show()
 
-coefficients = [0, 1, -3, 3, -1]  # Becomes x^3 - 3x^2 + 3x - 1 = 0
-solver = FerrariSolver(coefficients)
-roots = solver.solve()
-print("Test 4 - Expected: [1, 1, 1], Computed:", roots)
-
-coefficients = [0, 0, 1, -4, 3]  # Becomes x^2 - 4x + 3 = 0
-solver = FerrariSolver(coefficients)
-roots = solver.solve()
-print("Test 5 - Expected: [3, 1], Computed:", roots)
-
-
-coefficients = [1, -1000, 100000, -1000000, 10000000]
-solver = FerrariSolver(coefficients)
-roots = solver.solve()
-print("Test 6 - Large Coefficients, Computed Roots:", roots)
-
-
-import numpy as np
-
-for _ in range(5):  # Run 5 random tests
-    coefficients = np.random.randint(-10, 10, size=5)
-    solver = FerrariSolver(coefficients)
-    my_roots = solver.solve()
-    numpy_roots = np.roots(coefficients)
-    
-    print(f"Test 7 - Coefficients: {coefficients}")
-    print("  FerrariSolver Roots:", my_roots)
-    print("  NumPy Roots:", numpy_roots)
+if __name__ == '__main__':
+    main()
 

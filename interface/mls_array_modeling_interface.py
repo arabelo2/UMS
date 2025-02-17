@@ -1,69 +1,72 @@
-# interface/mls_array_modeling.py
+# interface/mls_array_modeling_interface.py
 
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-from application.elements_service import ElementsService
-from application.delay_laws2D_service import DelayLaws2DService
-from application.discrete_windows_service import DiscreteWindowsService
-from application.ls_2Dv_service import LS2DvService
-
+from domain.elements import ElementsCalculator
+from application.mls_array_modeling_service import run_mls_array_modeling_service
+from interface.cli_utils import safe_float, parse_array
 
 def main():
-    # Input parameters
-    f = 5.0  # Frequency (MHz)
-    c = 1480.0  # Wave speed (m/s)
-    M = 32  # Number of elements
-    dl = 0.5  # Element length divided by wavelength (d/λ)
-    gd = 0.1  # Gap size divided by element length (g/d)
-    Phi = 20.0  # Steering angle (degrees)
-    F = np.inf  # Focal length (mm); F = inf for no focusing
-    window_type = 'rect'  # Type of amplitude weighting function
+    parser = argparse.ArgumentParser(
+        description="Simulate the MLS Array Modeling process.",
+        epilog=(
+            "Example usage:\n"
+            "  python interface/mls_array_modeling_interface.py --f 5 --c 1480 --M 32 --dl 0.5 --gd 0.1 --Phi 20 --F inf --wtype rect --plot Y\n"
+            "Default parameters provided simulate the MLS Array Modeling."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
 
-    # Calculate array size, element size, gap size, and centroids
-    elements_service = ElementsService()
-    A, d, g, e = elements_service.calculate(f, c, dl, gd, M)
-    b = d / 2  # Half-length of the source
-    s = d + g  # Pitch (element size + gap)
+    parser.add_argument("--f", type=safe_float, default=5, help="Frequency in MHz. Default: 5")
+    parser.add_argument("--c", type=safe_float, default=1480, help="Wave speed in m/s. Default: 1480")
+    parser.add_argument("--M", type=int, default=32, help="Number of elements. Default: 32")
+    parser.add_argument("--dl", type=safe_float, default=0.5, help="Element length divided by wavelength. Default: 0.5")
+    parser.add_argument("--gd", type=safe_float, default=0.1, help="Gap size divided by element length. Default: 0.1")
+    parser.add_argument("--Phi", type=safe_float, default=20, help="Steering angle in degrees. Default: 20")
+    parser.add_argument("--F", type=safe_float, default=float('inf'), help="Focal length in mm. Default: inf")
+    parser.add_argument("--wtype", type=str, default="rect", choices=["cos", "Han", "Ham", "Blk", "tri", "rect"],
+                        help="Window type. Default: rect")
+    parser.add_argument("--plot", type=str, choices=["Y", "N"], default="Y", help="Show plot? Y/N. Default: Y")
 
-    # Generate 2D area for field calculations
-    z = np.linspace(1, 100 * dl, 500)  # z-coordinates (mm)
-    x = np.linspace(-50 * dl, 50 * dl, 500)  # x-coordinates (mm)
+    args = parser.parse_args()
+
+    # Generate 2D mesh grid
+    z = np.linspace(1, 100 * args.dl, 500)
+    x = np.linspace(-50 * args.dl, 50 * args.dl, 500)
     xx, zz = np.meshgrid(x, z)
 
-    # Generate time delays and amplitude weights
-    delay_service = DelayLaws2DService()
-    td = delay_service.compute_delays(M, s, Phi, F, c)
-    delay = np.exp(1j * 2 * np.pi * f * td)
-    
-    # Pass M and window_type when initializing the service
-    window_service = DiscreteWindowsService(M, window_type)
-    Ct = window_service.calculate_weights()
+    # Calculate elements directly using the domain layer
+    elements_calc = ElementsCalculator(args.f, args.c, args.dl, args.gd, args.M)
+    A, d, g, e = elements_calc.calculate()
 
-    # Generate normalized pressure wave field
-    pressure = np.zeros_like(xx, dtype=np.complex128)
-    ls_2Dv_service = LS2DvService()
-    for mm in range(M):
-        pressure += Ct[mm] * delay[mm] * ls_2Dv_service.calculate(b, f, c, e[mm], xx, zz)
-
-    # Generate wave field image
-    plt.figure(figsize=(8, 6))
-    plt.imshow(
-        np.abs(pressure),
-        extent=[x.min(), x.max(), z.min(), z.max()],
-        origin="lower",
-        aspect="auto",
-        cmap="jet"
+    # Run the modeling process using the application layer
+    p, A, d, g, e = run_mls_array_modeling_service(
+        args.f, args.c, args.M, args.dl, args.gd, args.Phi, args.F, args.wtype, xx, zz
     )
-    plt.colorbar(label="Normalized Pressure")
-    plt.xlabel("x (mm)")
-    plt.ylabel("z (mm)")
-    plt.title("Pressure Wave Field")
-    plt.show()
 
+    # Save the results to a file
+    outfile = "mls_array_modeling_output.txt"
+    with open(outfile, "w") as f:
+        for i in range(p.shape[0]):
+            for j in range(p.shape[1]):
+                f.write(f"{p[i, j].real:.6f}+{p[i, j].imag:.6f}j\n")
+    print(f"Results saved to {outfile}")
+
+    # Plot the results if requested
+    if args.plot.upper() == "Y":
+        plt.figure(figsize=(10, 6))
+        plt.imshow(np.abs(p), cmap="jet", extent=[x[0], x[-1], z[0], z[-1]], origin='lower', aspect='equal')
+        plt.colorbar(label='Normalized Pressure Magnitude')
+        plt.xlabel("x (mm)")
+        plt.ylabel("z (mm)")
+        plt.title("MLS Array Modeling Pressure Field")
+        plt.tight_layout()
+        plt.show()
 
 if __name__ == "__main__":
     main()

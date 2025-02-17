@@ -1,5 +1,6 @@
 # application/ls_2Dv_service.py
 
+import numpy as np
 from domain.ls_2Dv import LS2Dv
 
 def run_ls_2Dv_service(b: float, f: float, c: float, e: float, x, z, N: int = None):
@@ -16,4 +17,5 @@ def run_ls_2Dv_service(b: float, f: float, c: float, e: float, x, z, N: int = No
     :return: Computed normalized pressure (complex or NumPy array).
     """
     simulator = LS2Dv(b, f, c, e)
-    return simulator.compute_pressure(x, z, N)
+    result = simulator.compute_pressure(x, z, N)
+    return np.squeeze(result)  # Remove any singleton dimensions
