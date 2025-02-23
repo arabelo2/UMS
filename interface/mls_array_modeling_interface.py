@@ -60,7 +60,7 @@ def main():
     # Plot the results if requested
     if args.plot.upper() == "Y":
         plt.figure(figsize=(10, 6))
-        plt.imshow(np.abs(p), cmap="jet", extent=[x[0], x[-1], z[0], z[-1]], origin='lower', aspect='equal')
+        plt.imshow(np.abs(p), cmap="jet", extent=[x.min(), x.max(), z.max(), z.min()], aspect='auto')
         plt.colorbar(label='Normalized Pressure Magnitude')
         plt.xlabel("x (mm)")
         plt.ylabel("z (mm)")
