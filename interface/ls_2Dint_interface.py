@@ -1,10 +1,10 @@
+#!/usr/bin/env python3
 # interface/ls_2Dint_interface.py
 
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-#!/usr/bin/env python3
 """
 Module: ls_2Dint_interface.py
 Layer: Interface
@@ -194,9 +194,8 @@ def main():
         plt.grid(True)
     
     if args.plot_mode in ["both", "2D"] and p2 is not None:
-        plt.figure(figsize=(8, 6))
-        plt.imshow(np.abs(p2), cmap="jet", extent=[x2[0], x2[-1], z2[0], z2[-1]],
-                   aspect="equal", origin="lower")
+        plt.figure(figsize=(10, 6))
+        plt.imshow(np.abs(p2), cmap="jet", extent=[x2.min(), x2.max(), z2.max(), z2.min()], aspect="auto")
         plt.xlabel("x (mm)")
         plt.ylabel("z (mm)")
         plt.title("2D LS Simulation")
