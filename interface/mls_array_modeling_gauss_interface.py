@@ -17,28 +17,27 @@ def main():
         epilog=(
             "Example usage:\n"
             "  python interface/mls_array_modeling_gauss_interface.py "
-            "--frequency 5 --wavespeed 1480 --elements 32 --dl 0.5 --gd 0.1 "
-            "--phi 20 --focal inf --window rect\n"
+            "--f 5 --c 1480 --M 32 --dl 0.5 --gd 0.1 --Phi 20 --F inf --wtype rect --plot Y\n"
             "Defaults simulate the Gaussian MLS Array Modeling."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    parser.add_argument("--frequency", type=safe_float, default=5.0,
+    parser.add_argument("--f", type=safe_float, default=5.0,
                         help="Frequency in MHz. Default: 5.0")
-    parser.add_argument("--wavespeed", type=safe_float, default=1480.0,
+    parser.add_argument("--c", type=safe_float, default=1480.0,
                         help="Wave speed in m/sec. Default: 1480")
-    parser.add_argument("--elements", type=int, default=32,
+    parser.add_argument("--M", type=int, default=32,
                         help="Number of elements. Default: 32")
     parser.add_argument("--dl", type=safe_float, default=0.5,
                         help="Normalized element length (d / wavelength). Default: 0.5")
     parser.add_argument("--gd", type=safe_float, default=0.1,
                         help="Normalized gap between elements (g / d). Default: 0.1")
-    parser.add_argument("--phi", type=safe_float, default=20.0,
+    parser.add_argument("--Phi", type=safe_float, default=20.0,
                         help="Steering angle in degrees. Default: 20")
-    parser.add_argument("--focal", type=safe_float, default=float('inf'),
+    parser.add_argument("--F", type=safe_float, default=float('inf'),
                         help="Focal length in mm (use 'inf' for no focusing). Default: inf")
-    parser.add_argument("--window", type=str, default="rect",
+    parser.add_argument("--wtype", type=str, default="rect",
                         choices=["cos", "Han", "Ham", "Blk", "tri", "rect"],
                         help="Amplitude weighting function type. Default: rect")
     parser.add_argument("--plot", type=str, choices=["Y", "N"], default="Y",
@@ -46,10 +45,9 @@ def main():
     
     args = parser.parse_args()
 
-    # Call the Gaussian MLS array modeling service
+    # Call the Gaussian MLS array modeling service with the updated parameters
     result = run_mls_array_modeling_gauss(
-        args.frequency, args.wavespeed, args.elements,
-        args.dl, args.gd, args.phi, args.focal, args.window
+        args.f, args.c, args.M, args.dl, args.gd, args.Phi, args.F, args.wtype
     )
     
     p = result['p']
@@ -67,10 +65,10 @@ def main():
 
     # Plot the pressure field if requested
     if args.plot.upper() == "Y":
-        plt.figure(figsize=(8, 6))
+        plt.figure(figsize=(10, 6))
         plt.imshow(np.abs(p), cmap="jet",
                    extent=[x.min(), x.max(), z.max(), z.min()],
-                   aspect='equal')
+                   aspect='auto')
         plt.xlabel("x (mm)")
         plt.ylabel("z (mm)")
         plt.title("Normalized Pressure Field (Gaussian MLS Array Modeling)")
