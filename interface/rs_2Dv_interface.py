@@ -118,9 +118,10 @@ def main():
     
     # Plotting 2D simulation.
     if args.plot_mode in ["both", "2D"]:
-        plt.figure(figsize=(8, 6))
-        plt.imshow(np.abs(p2), cmap="jet", extent=[x2[0], x2[-1], z2[0], z2[-1]],
-                   aspect="equal", origin="lower")
+        plt.figure(figsize=(10, 6))
+        plt.imshow(np.abs(p2), cmap="jet",
+                   extent=[x2.min(), x2.max(), z2.max(), z2.min()],
+                   aspect='auto')
         plt.xlabel("x (mm)")
         plt.ylabel("z (mm)")
         plt.title("2D Rayleigh–Sommerfeld Simulation")
