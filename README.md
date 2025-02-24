@@ -1,4 +1,4 @@
-# UMS
+# UMS  
 Ultrasonic Measurements Simulator
 
 "These programs are based on the methodologies presented in the book by Schmerr (2014)."
@@ -9,7 +9,7 @@ SCHMERR, L. W. Fundamentals of Ultrasonic Phased Arrays. Cham: Springer Internat
 
 ### **Overview of Programs**
 
-The programs follow **Clean Architecture**, **Object-Oriented Programming (OOP) principles**, and **best coding practices**. They were broken down into **domain, application, and interface layers**, ensuring modularity, maintainability, and scalability.
+The programs follow **Clean Architecture**, **Object-Oriented Programming (OOP) principles**, and **best coding practices**. They are broken down into **domain, application, and interface layers**, ensuring modularity, maintainability, and scalability.
 
 ---
 
@@ -79,7 +79,7 @@ Computes the **non-paraxial Gaussian beam pressure field** using **Wen & Breazea
 
 ## **5. Delay Laws 2D**
 ### **Purpose:**
-Computes **time delays** for an **M-element transducer array**, supporting **steering-only and steering + focusing** cases.
+Computes **time delays** for an **M-element transducer array** using a combination of steering and focusing laws.
 
 ### **Implementation in Python:**
 - **Domain:** `delay_laws2D.py` - Implements mathematical logic for computing **time delays**.
@@ -115,37 +115,56 @@ Computes **array element size, gap size, total array length, and centroid locati
 
 ### **Implementation in Python:**
 - **Domain:** `elements.py` - Implements an **OOP-based calculator** for transducer array elements.
-- **Application:** (No separate layer needed, called directly from domain).
-- **Interface:** (Handled via higher-level modules like `mls_array_modeling.py`).
+- **Application:** (No separate layer needed, called directly from the domain).
+- **Interface:** (Handled via higher-level modules like `mls_array_model_int.py`).
 
 ### **Key Features:**
 ✅ **Validated input parameters** (frequency, wave speed, element count).  
 ✅ Uses **OOP encapsulation** for modularity.  
-✅ Generates **centroid locations dynamically** for any array size.
+✅ Dynamically generates **centroid locations** for any array size.
 
 ---
 
-## **8. MLS Array Modeling**
+## **8. MLS Array Modeling at Fluid/Fluid Interface**
 ### **Purpose:**
-Simulates **Multi-Line Source (MLS) array beamforming**, integrating **elements, delay laws, windowing, and wave propagation**.
+Simulates the normalized pressure wave field for an array of 1-D elements radiating waves through a fluid/fluid interface.  
+This module allows for both steering and focusing in the second medium using the ls_2Dint approach.
 
 ### **Implementation in Python:**
-- **Domain:** `mls_array_modeling.py` - Implements **MLS modeling logic** using OOP principles.
-- **Application:** `mls_array_modeling_service.py` - Manages function calls and result processing.
-- **Interface:** `mls_array_modeling_interface.py` - CLI tool for simulation and visualization.
-
-### **Key Features:**
-✅ Uses **delay laws, discrete windows, and wave propagation models**.  
-✅ Efficient **NumPy-based computation** for large arrays.  
-✅ Generates **heatmaps** of beamforming results using **Matplotlib**.
+- **Domain:** `mls_array_model_int.py`  
+  - Implements the `MLSArrayModelInt` class using OOP principles.
+  - Computes element centroids and generates a default 2D grid (x: linspace(-25,25,255), z: linspace(1,52,255)) unless custom coordinates are provided.
+  - Integrates delay law and windowing services to compute the pressure field.
+- **Application:** `mls_array_model_int_service.py`  
+  - Provides the `MLSArrayModelIntService` class and the helper function `run_mls_array_model_int_service()` for easy invocation.
+- **Interface:** `mls_array_model_int_interface.py`  
+  - A command-line interface (CLI) that accepts parameters such as --f, --d1, --c1, --d2, --c2, --M, --d, --g, --angt, --ang20, --DF, --DT0, --wtype, and --plot.
+  - Includes optional --x and --z parameters to allow users to specify custom coordinate grids (with guidance to enclose values in double quotes, e.g., --x "-5,15,200").
+  - Saves the computed pressure field to a text file and plots the result.
+- **Key Features:**
+  ✅ Fully OOP-based design with modular separation (Domain, Application, Interface).  
+  ✅ Supports default and custom grid inputs.  
+  ✅ Integrates with delay laws and discrete window services for robust computation.
 
 ---
 
-## **Overall Achievements**
-✅ **Implemented Clean Architecture (Domain, Application, Interface layers)**  
-✅ **Applied OOP principles for modular and reusable code**  
-✅ **Optimized computational efficiency with NumPy and SciPy**  
-✅ **Handled edge cases (e.g., division by zero, invalid input values)**  
-✅ **Automated testing for robustness and reliability** 
+## **9. Delay Laws 2D for Interface**
+### **Purpose:**
+Computes time delays for steering and focusing an array of 1-D elements through a planar interface between two media.  
+This module supports both steering-only (DF = inf) and steering-and-focusing (finite DF) scenarios.
+
+### **Implementation in Python:**
+- **Domain:** `delay_laws2D_int.py`  
+  - Implements the `DelayLaws2DInt` class that encapsulates the computation of delay laws using geometrical relationships and Ferrari’s method.
+  - All plotting is removed from the domain layer to maintain separation of concerns.
+- **Application:** `delay_laws2D_int_service.py`  
+  - Provides the `DelayLaws2DIntService` class and the function `run_delay_laws2D_int_service()` for standardized access.
+- **Interface:** `delay_laws2D_int_interface.py`  
+  - A CLI tool that accepts parameters such as --M, --s, --angt, --ang20, --DT0, --DF, --c1, --c2, and --plt.
+  - Optionally plots the computed delay curves.
+- **Key Features:**
+  ✅ Supports both steering-only and focusing cases with robust error handling.
+  ✅ Validates input parameters (e.g., ensuring M > 0).
+  ✅ Provides clear and separate handling of computation (domain) and visualization (interface).
 
 ---
