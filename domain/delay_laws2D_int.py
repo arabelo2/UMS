@@ -10,6 +10,7 @@ class DelayLaws2DInt:
     through a planar interface between two media in two dimensions.
     """
     def __init__(self, M, s, angt, ang20, DT0, DF, c1, c2, plt_option='n'):
+
         """
         Initialize delay law parameters.
         
@@ -22,8 +23,6 @@ class DelayLaws2DInt:
             DF        (float): Depth in the second medium (mm); use inf for steering-only.
             c1        (float): Wave speed in the first medium (m/s).
             c2        (float): Wave speed in the second medium (m/s).
-            plt_option(str)  : 'y' to indicate that plotting is desired, 'n' otherwise.
-                              (Note: Plotting should be handled in the interface layer.)
         """
         self.M = M
         self.s = s
@@ -36,8 +35,12 @@ class DelayLaws2DInt:
         self.plt_option = plt_option
 
     def compute_delays(self):
+        """
+        Compute the time delays required for beam steering and focusing.
         
-        # Validate input: M must be greater than zero.
+        Returns:
+            numpy.ndarray: Computed time delays (in microseconds).
+        """
         if self.M <= 0:
             raise ValueError("Number of elements M must be greater than zero.")
         M = self.M
