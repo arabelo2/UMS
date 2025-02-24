@@ -1,26 +1,15 @@
-from domain.delay_laws2D_int import DelayLaws2DInterface
+# application/delay_laws2D_int_service.py
 
-class DelayLaws2DInterfaceService:
-    """
-    Service to compute delay laws for 2D interfaces.
-    """
+from domain.delay_laws2D_int import DelayLaws2DInt
 
+class DelayLaws2DIntService:
+    """
+    Service to compute delay laws for an array at a fluid/fluid interface.
+    """
     def compute_delays(self, M, s, angt, ang20, DT0, DF, c1, c2, plt_option='n'):
-        """
-        Compute time delays for an array in a 2D medium.
+        delay_obj = DelayLaws2DInt(M, s, angt, ang20, DT0, DF, c1, c2, plt_option)
+        return delay_obj.compute_delays()
 
-        Parameters:
-            M (int): Number of elements.
-            s (float): Pitch (mm).
-            angt (float): Angle of the array with the interface (degrees).
-            ang20 (float): Refracted angle in the second medium (degrees).
-            DT0 (float): Height of the center of the array above interface (mm).
-            DF (float): Depth in the second medium (mm).
-            c1 (float): Wave speed in first medium (m/s).
-            c2 (float): Wave speed in second medium (m/s).
-            plt_option (str, optional): 'y' for plotting rays, 'n' for no plot (default: 'n').
-
-        Returns:
-            np.ndarray: Time delays for each array element.
-        """
-        return DelayLaws2DInterface.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option)
+def run_delay_laws2D_int_service(M, s, angt, ang20, DT0, DF, c1, c2, plt_option='n'):
+    service = DelayLaws2DIntService()
+    return service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option)

@@ -52,12 +52,18 @@ def safe_float(s: str) -> float:
     """
     Convert a string to float.
     If direct conversion fails, attempt to safely evaluate it as an arithmetic expression.
+    Special handling: 'inf' or 'infinite' (case-insensitive) are converted to float('inf').
     
     Examples:
-      safe_float("3.14")     -> 3.14
-      safe_float("6.35/2")   -> 3.175
-      safe_float("invalid")  -> raises argparse.ArgumentTypeError
+      safe_float("3.14")      -> 3.14
+      safe_float("6.35/2")    -> 3.175
+      safe_float("inf")       -> float('inf')
+      safe_float("infinite")  -> float('inf')
+      safe_float("invalid")   -> raises argparse.ArgumentTypeError
     """
+    s_lower = s.lower().strip()
+    if s_lower in ['inf', 'infinite']:
+        return float('inf')
     try:
         return float(s)
     except ValueError:

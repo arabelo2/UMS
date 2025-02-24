@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # tests/test_cli_utils.py
 
 import sys
@@ -33,6 +34,13 @@ class TestCliUtils(unittest.TestCase):
         """Test safe_float with valid inputs."""
         self.assertAlmostEqual(safe_float("3.14"), 3.14)
         self.assertAlmostEqual(safe_float("6.35/2"), 3.175)
+
+    def test_safe_float_infinite(self):
+        """Test safe_float handles infinite inputs."""
+        self.assertEqual(safe_float("inf"), float('inf'))
+        self.assertEqual(safe_float("infinite"), float('inf'))
+        self.assertEqual(safe_float("INF"), float('inf'))
+        self.assertEqual(safe_float("INFINITE"), float('inf'))
 
     def test_safe_float_invalid(self):
         """Test safe_float with invalid inputs."""

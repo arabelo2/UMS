@@ -9,7 +9,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from interface.cli_utils import safe_float, parse_array
-from application.ml s_array_model_int_service import run_mls_array_model_int_service  # Ensure module name is correct
+from application.mls_array_model_int_service import run_mls_array_model_int_service
 
 def main():
     parser = argparse.ArgumentParser(
@@ -17,8 +17,10 @@ def main():
         epilog=(
             "Example usage:\n"
             "  python interface/mls_array_model_int_interface.py --f 5 --d1 1.0 --c1 1480 --d2 7.9 --c2 5900 "
-            "--M 32 --d 0.25 --g 0.05 --angt 0 --ang20 30 --DF 8 --DT0 25.4 --wtype rect --plot Y\n"
-            "Defaults simulate the MLS Array Modeling at the interface."
+            "--M 32 --d 0.25 --g 0.05 --angt 0 --ang20 30 --DF 8 --DT0 25.4 --wtype rect --plot y "
+            "--x \"-5,15,200\" --z \"1,20,200\"\n\n"
+            "If --x and --z are not provided (or provided as an empty string), the domain defaults "
+            "(linspace(-5,15,200) for x and linspace(1,20,200) for z) are used."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -30,22 +32,50 @@ def main():
     parser.add_argument("--M", type=int, default=32, help="Number of elements. Default: 32")
     parser.add_argument("--d", type=safe_float, default=0.25, help="Element length (mm). Default: 0.25")
     parser.add_argument("--g", type=safe_float, default=0.05, help="Gap length (mm). Default: 0.05")
-    parser.add_argument("--angt", type=safe_float, default=0, help="Angle of array (degrees). Default: 0")
+    parser.add_argument("--angt", type=safe_float, default=0, help="Array angle (degrees). Default: 0")
     parser.add_argument("--ang20", type=safe_float, default=30, help="Steering angle in second medium (degrees). Default: 30")
     parser.add_argument("--DF", type=safe_float, default=8, help="Focal depth in second medium (mm). Default: 8")
     parser.add_argument("--DT0", type=safe_float, default=25.4, help="Distance from array to interface (mm). Default: 25.4")
     parser.add_argument("--wtype", type=str, default="rect", choices=["cos", "Han", "Ham", "Blk", "tri", "rect"],
                         help="Amplitude weighting function type. Default: rect")
-    parser.add_argument("--plot", type=str, choices=["Y", "N"], default="Y", help="Plot the result? Y/N. Default: Y")
-    
+    parser.add_argument("--plot", type=lambda s: s.lower(), choices=["y", "n"], default="y",
+                        help="Plot the pressure field? y/n. Default: y")
+    parser.add_argument("--x", type=str, nargs='?', default=None,
+                        help=("Optional x-coordinates for field calculations as a comma-separated list. "
+                              "If exactly three numbers are provided, they are interpreted as start, stop, and number of points. "
+                              "Pass the value using an equal sign with no space (e.g., --x=\"-5,15,200\") to avoid misinterpretation. "
+                              "Default: use domain defaults (linspace(-5,15,200))."))
+    parser.add_argument("--z", type=str, nargs='?', default=None,
+                        help=("Optional z-coordinates for field calculations as a comma-separated list. "
+                              "If exactly three numbers are provided, they are interpreted as start, stop, and number of points. "
+                              "Pass the value using an equal sign with no space (e.g., --z=\"1,20,200\") to avoid misinterpretation. "
+                              "Default: use domain defaults (linspace(1,20,200))."))
+
     args = parser.parse_args()
+
+    # Process x: if not provided or empty, set x_vals to None so the domain uses its default.
+    if args.x is None or args.x.strip() == "":
+        x_vals = None
+    else:
+        try:
+            x_vals = parse_array(args.x)
+        except Exception as e:
+            parser.error(str(e))
+    
+    # Process z similarly.
+    if args.z is None or args.z.strip() == "":
+        z_vals = None
+    else:
+        try:
+            z_vals = parse_array(args.z)
+        except Exception as e:
+            parser.error(str(e))
     
     result = run_mls_array_model_int_service(
          args.f, args.d1, args.c1, args.d2, args.c2,
          args.M, args.d, args.g, args.angt, args.ang20,
-         args.DF, args.DT0, args.wtype
+         args.DF, args.DT0, args.wtype, x_vals, z_vals
     )
-    
     p = result['p']
     x = result['x']
     z = result['z']
@@ -57,7 +87,7 @@ def main():
                  f.write(f"{p[i, j].real:.6f}+{p[i, j].imag:.6f}j\n")
     print(f"Results saved to {outfile}")
     
-    if args.plot.upper() == "Y":
+    if args.plot == "y":
          plt.figure(figsize=(10, 6))
          plt.imshow(np.abs(p), cmap="jet", extent=[x.min(), x.max(), z.max(), z.min()], aspect='auto')
          plt.xlabel("x (mm)")
