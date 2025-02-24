@@ -41,7 +41,6 @@ class DelayLaws2DInt:
         if self.M <= 0:
             raise ValueError("Number of elements M must be greater than zero.")
         M = self.M
-        
         s = self.s
         angt = self.angt
         ang20 = self.ang20
@@ -49,8 +48,21 @@ class DelayLaws2DInt:
         DF = self.DF
         c1 = self.c1
         c2 = self.c2
-
         cr = c1 / c2
+        # Validate interface parameters:
+        # For a physically consistent interface, the value cr * sin(ang20) must be <= 1.
+        # If this value exceeds 1, it suggests that the provided properties may be out of order;
+        # typically, for a fluid/solid interface, the first medium (d1, c1) should represent a fluid 
+        # (with lower density and sound speed) and the second medium (d2, c2) a solid (with higher values).
+        ratio = cr * np.sin(np.radians(ang20))
+        if ratio > 1:
+            raise ValueError(
+                f"Invalid input: (c1/c2) * sin(ang20) = {ratio:.3f} > 1. "
+                "This indicates that the input parameters are physically inconsistent. "
+                "For a proper interface simulation, ensure that the first medium (d1, c1) represents a fluid "
+                "(typically lower density and sound speed) and the second medium (d2, c2) a solid "
+                "(typically higher density and sound speed), or adjust the steering angle (ang20) accordingly."
+            )
         Mb = (M - 1) / 2.0
         m = np.arange(1, M + 1)  # m = 1, 2, ..., M
         # Compute element centroids
