@@ -59,7 +59,11 @@ class DelayLaws2DInt:
         # Compute incident central ray angle in medium 1 (in degrees)
         ang10 = np.degrees(np.arcsin((c1/c2) * np.sin(np.radians(ang20))))
         # Compute DX0: distance along interface from array center to focal point
-        DX0 = DF * np.tan(np.radians(ang20)) + DT0 * np.tan(np.radians(ang10))
+        # When DF is infinite and ang20 is 0, set DX0 to DT0 * tan(ang10) to avoid inf*0 issues.
+        if np.isinf(DF):
+            DX0 = DT0 * np.tan(np.radians(ang10))
+        else:
+            DX0 = DF * np.tan(np.radians(ang20)) + DT0 * np.tan(np.radians(ang10))
         # Heights of elements above the interface in medium 1
         DT_arr = DT0 + e * np.sin(np.radians(angt))
         # Distances along the interface from elements to the focal point
