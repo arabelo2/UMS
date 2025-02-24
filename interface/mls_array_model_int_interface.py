@@ -18,7 +18,7 @@ def main():
             "Example usage:\n"
             "  python interface/mls_array_model_int_interface.py --f 5 --d1 1.0 --c1 1480 --d2 7.9 --c2 5900 "
             "--M 32 --d 0.25 --g 0.05 --angt 0 --ang20 30 --DF 8 --DT0 25.4 --wtype rect --plot y "
-            "--x \"-5,15,200\" --z \"1,20,200\"\n\n"
+            "--x=\"-5,15,200\" --z=\"1,20,200\"\n\n"
             "If --x and --z are not provided (or provided as an empty string), the domain defaults "
             "(linspace(-5,15,200) for x and linspace(1,20,200) for z) are used."
         ),

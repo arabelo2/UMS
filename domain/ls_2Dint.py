@@ -104,7 +104,8 @@ def ls_2Dint(b, f, c, e, mat, angt, Dt0, x, z, Nopt=None):
         r1 = np.sqrt(xi_seg**2 + Dtn**2) / b
         r2 = np.sqrt((Dxn - xi_seg)**2 + z**2) / b
         # Compute angles in a vectorized, safe way.
-        ang1 = np.where(r1 == 0, 0, np.arcsin(xi_seg / (b * r1)))
+        with np.errstate(divide='ignore', invalid='ignore'):
+               ang1 = np.where(r1 == 0, 0, np.arcsin(xi_seg / (b * r1)))
         ang2 = np.where(r2 == 0, 0, np.arcsin((Dxn - xi_seg) / (b * r2)))
         ang = angt_rad - ang1
         # Avoid division by zero in the directivity calculation.
