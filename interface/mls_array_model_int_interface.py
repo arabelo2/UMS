@@ -92,7 +92,14 @@ def main():
          plt.imshow(np.abs(p), cmap="jet", extent=[x.min(), x.max(), z.max(), z.min()], aspect='auto')
          plt.xlabel("x (mm)")
          plt.ylabel("z (mm)")
-         plt.title("MLS Array Modeling Pressure Field at Fluid/Fluid Interface")
+         # Determine medium type based on density thresholds (e.g., threshold = 2.0)
+         medium1 = "Fluid" if args.d1 < 2.0 else "Solid"
+         medium2 = "Fluid" if args.d2 < 2.0 else "Solid"
+         if args.d1 == args.d2 and args.c1 == args.c2:
+             plot_title = f"MLS Array Modeling Pressure Field for {medium1}"
+         else:
+             plot_title = f"MLS Array Modeling Pressure Field at {medium1}/{medium2} Interface"
+         plt.title(plot_title)
          plt.colorbar(label="Pressure Magnitude")
          plt.tight_layout()
          plt.show()
