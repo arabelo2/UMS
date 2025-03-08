@@ -9,22 +9,30 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from interface.cli_utils import safe_float
-from application.delay_laws2D_int_service import run_delay_laws2D_int_service
+from application.delay_laws2D_int_service import (
+    run_delay_laws2D_int_service,
+    run_delay_laws2D_int_service_with_rays
+)
 
 def main():
     parser = argparse.ArgumentParser(
         description="Compute delay laws for an array at a fluid/fluid interface using ls_2Dint.",
         epilog=(
-            "Example usage:\n"
-            "  1. Standard usage:\n"
-            "     python interface/delay_laws2D_int_interface.py --M 32 --s 1.0 --angt 0 --ang20 30 "
-            "--DT0 25.4 --DF inf --c1 1480 --c2 5900 --plt y --plot-type line\n"
-            "     (Use DF=inf for steering-only, or a finite DF for steering and focusing.)\n"
-            "     To use a stem plot instead of a line plot, add: --plot-type stem\n\n"
-            "  2. Second example (matching MATLAB parameters):\n"
-            "     python interface/delay_laws2D_int_interface.py --M 16 --s 0.5 --angt 5 --ang20 60 "
-            "--DT0 10 --DF 10 --c1 1480 --c2 5900 --plt y --plot-type stem\n"
-            "     (This example closely follows the MATLAB delay_laws2D_int usage.)"
+            "Example usage:\n\n"
+            "1. Steering-only case (DF=inf) with line plot:\n"
+            "   python interface/delay_laws2D_int_interface.py --M 32 --s 1.0 --angt 0 --ang20 30 \\\n"
+            "       --DT0 25.4 --DF inf --c1 1480 --c2 5900 --plt y --plot-type line\n\n"
+            "2. Steering-only case (DF=inf) with stem plot:\n"
+            "   python interface/delay_laws2D_int_interface.py --M 32 --s 1.0 --angt 0 --ang20 30 \\\n"
+            "       --DT0 25.4 --DF inf --c1 1480 --c2 5900 --plt y --plot-type stem\n\n"
+            "3. Steering and focusing case with ray geometry plot (line plot):\n"
+            "   python interface/delay_laws2D_int_interface.py --M 16 --s 0.5 --angt 5 --ang20 60 \\\n"
+            "       --DT0 10 --DF 10 --c1 1480 --c2 5900 --plt y --plot-type line\n\n"
+            "4. Steering and focusing case with ray geometry plot (stem plot):\n"
+            "   python interface/delay_laws2D_int_interface.py --M 16 --s 0.5 --angt 5 --ang20 60 \\\n"
+            "       --DT0 10 --DF 10 --c1 1480 --c2 5900 --plt y --plot-type stem\n\n"
+            "Note: When plotting is enabled (--plt y), the program will display both the delay plot and\n"
+            "      the ray geometry plot in separate figures."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -42,14 +50,14 @@ def main():
 
     args = parser.parse_args()
 
-    # Compute delays using the service layer.
+    # Compute delays using the existing service (for backward compatibility)
     delays = run_delay_laws2D_int_service(args.M, args.s, args.angt, args.ang20, args.DT0, args.DF, args.c1, args.c2, args.plt)
     
     print("Computed delays (in microseconds):")
     print(delays)
     
-    # Optionally, plot the delays vs element index.
     if args.plt.lower() == 'y':
+        # Plot delay vs element index
         element_indices = np.arange(1, args.M + 1)
         plt.figure(figsize=(8, 5))
 
@@ -68,6 +76,22 @@ def main():
         plt.grid(True)
         if any(line.get_label() != "_nolegend_" for line in plt.gca().get_lines()):
             plt.legend()
+        plt.tight_layout()
+        plt.show()
+        
+        # Now, plot the ray geometry using the new service method
+        delays2, (xp, yp) = run_delay_laws2D_int_service_with_rays(args.M, args.s, args.angt, args.ang20, args.DT0, args.DF, args.c1, args.c2, args.plt)
+        plt.figure(figsize=(8, 5))
+        for i in range(args.M):
+            plt.plot(xp[:, i], yp[:, i], 'b-')
+        plt.xlabel("X (mm)")
+        plt.ylabel("Y (mm)")
+        if np.isinf(args.DF):
+            ray_title = "Ray Geometry - Steering-only case"
+        else:
+            ray_title = "Ray Geometry - Steering and focusing case"
+        plt.title(ray_title)
+        plt.grid(True)
         plt.tight_layout()
         plt.show()
 

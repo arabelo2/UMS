@@ -10,20 +10,6 @@ class DelayLaws2DInt:
     through a planar interface between two media in two dimensions.
     """
     def __init__(self, M, s, angt, ang20, DT0, DF, c1, c2, plt_option='n'):
-
-        """
-        Initialize delay law parameters.
-        
-        Parameters:
-            M         (int)  : Number of elements.
-            s         (float): Array pitch (mm).
-            angt      (float): Array angle with the interface (degrees).
-            ang20     (float): Refracted angle in the second medium (degrees).
-            DT0       (float): Height of the center of the array above the interface (mm).
-            DF        (float): Depth in the second medium (mm); use inf for steering-only.
-            c1        (float): Wave speed in the first medium (m/s).
-            c2        (float): Wave speed in the second medium (m/s).
-        """
         self.M = M
         self.s = s
         self.angt = angt
@@ -35,11 +21,60 @@ class DelayLaws2DInt:
         self.plt_option = plt_option
 
     def compute_delays(self):
-        """
-        Compute the time delays required for beam steering and focusing.
+        if self.M <= 0:
+            raise ValueError("Number of elements M must be greater than zero.")
+        M = self.M
+        s = self.s
+        angt = self.angt
+        ang20 = self.ang20
+        DT0 = self.DT0
+        DF = self.DF
+        c1 = self.c1
+        c2 = self.c2
+
+        cr = c1 / c2
+        ratio = cr * np.sin(np.radians(ang20))
+        if ratio > 1:
+            raise ValueError(
+                f"Invalid input: (c1/c2) * sin(ang20) = {ratio:.3f} > 1. "
+                "Please adjust the input parameters."
+            )
+
+        Mb = (M - 1) / 2.0
+        m = np.arange(1, M + 1)
+        e = (m - 1 - Mb) * s
+        DT_arr = DT0 + e * np.sin(np.radians(angt))
+        ang10 = np.degrees(np.arcsin((c1 / c2) * np.sin(np.radians(ang20))))
         
+        if np.isinf(DF):
+            if (ang10 - angt) > 0:
+                td = 1000 * (m - 1) * s * np.sin(np.radians(ang10 - angt)) / c1
+            else:
+                td = 1000 * (M - m) * s * abs(np.sin(np.radians(ang10 - angt))) / c1
+            td = np.array(td)
+            return td
+        else:
+            DX0 = DF * np.tan(np.radians(ang20)) + DT0 * np.tan(np.radians(ang10))
+            DX = DX0 - e * np.cos(np.radians(angt))
+            xi = np.zeros(M)
+            r1 = np.zeros(M)
+            r2 = np.zeros(M)
+            for mm in range(M):
+                xi[mm] = ferrari2(cr, DF, DT_arr[mm], DX[mm])
+                r1[mm] = np.sqrt(xi[mm]**2 + (DT0 + e[mm] * np.sin(np.radians(angt)))**2)
+                r2[mm] = np.sqrt((xi[mm] + e[mm] * np.cos(np.radians(angt)) - DX0)**2 + DF**2)
+            t = 1000 * r1 / c1 + 1000 * r2 / c2
+            td = np.max(t) - t
+            return td
+
+    def compute_delays_and_rays(self):
+        """
+        Compute the delays and the ray geometry for plotting.
         Returns:
-            numpy.ndarray: Computed time delays (in microseconds).
+            td (numpy.ndarray): The computed delays.
+            (xp, yp) (tuple): Two arrays (each shape (3, M)) containing the x and y
+                              coordinates for three key points per element:
+                              [element center, interface intersection, focal point].
         """
         if self.M <= 0:
             raise ValueError("Number of elements M must be greater than zero.")
@@ -51,50 +86,52 @@ class DelayLaws2DInt:
         DF = self.DF
         c1 = self.c1
         c2 = self.c2
+
         cr = c1 / c2
-        # Validate interface parameters:
-        # For a physically consistent interface, the value cr * sin(ang20) must be <= 1.
-        # If this value exceeds 1, it suggests that the provided properties may be out of order;
-        # typically, for a fluid/solid interface, the first medium (d1, c1) should represent a fluid 
-        # (with lower density and sound speed) and the second medium (d2, c2) a solid (with higher values).
         ratio = cr * np.sin(np.radians(ang20))
         if ratio > 1:
             raise ValueError(
                 f"Invalid input: (c1/c2) * sin(ang20) = {ratio:.3f} > 1. "
-                "This indicates that the input parameters are physically inconsistent. "
-                "For a proper interface simulation, ensure that the first medium (d1, c1) represents a fluid "
-                "(typically lower density and sound speed) and the second medium (d2, c2) a solid "
-                "(typically higher density and sound speed), or adjust the steering angle (ang20) accordingly."
+                "Please adjust the input parameters."
             )
+        
         Mb = (M - 1) / 2.0
-        m = np.arange(1, M + 1)  # m = 1, 2, ..., M
-        # Compute element centroids
+        m = np.arange(1, M + 1)
         e = (m - 1 - Mb) * s
-
-        # Compute incident central ray angle in medium 1 (in degrees)
-        ang10 = np.degrees(np.arcsin((c1/c2) * np.sin(np.radians(ang20))))
-        # Compute DX0: distance along interface from array center to focal point
-        # When DF is infinite and ang20 is 0, set DX0 to DT0 * tan(ang10) to avoid inf*0 issues.
-        if np.isinf(DF):
-            DX0 = DT0 * np.tan(np.radians(ang10))
-        else:
-            DX0 = DF * np.tan(np.radians(ang20)) + DT0 * np.tan(np.radians(ang10))
-        # Heights of elements above the interface in medium 1
         DT_arr = DT0 + e * np.sin(np.radians(angt))
-        # Distances along the interface from elements to the focal point
-        DX = DX0 - e * np.cos(np.radians(angt))
+        ang10 = np.degrees(np.arcsin((c1 / c2) * np.sin(np.radians(ang20))))
+        
+        # Prepare arrays for ray geometry (3 key points per element)
+        xp = np.zeros((3, M))
+        yp = np.zeros((3, M))
         
         if np.isinf(DF):
-            # Steering-only case: use linear law
+            # Steering-only case
             if (ang10 - angt) > 0:
                 td = 1000 * (m - 1) * s * np.sin(np.radians(ang10 - angt)) / c1
             else:
                 td = 1000 * (M - m) * s * abs(np.sin(np.radians(ang10 - angt))) / c1
             td = np.array(td)
-            return td
-        
+            # Compute ray geometry using the MATLAB steering-only logic
+            for nn in range(M):
+                # Starting point: element centroid in medium 1
+                xp[0, nn] = e[nn] * np.cos(np.radians(angt))
+                yp[0, nn] = DT_arr[nn]
+                # Intersection with the interface
+                xp[1, nn] = e[nn] * np.cos(np.radians(ang10 - angt)) / np.cos(np.radians(ang10)) + DT0 * np.tan(np.radians(ang10))
+                yp[1, nn] = 0
+                dm = e[nn] * np.cos(np.radians(ang10 - angt)) / np.cos(np.radians(ang10))
+                if ang20 > 0:
+                    dM = e[-1] * np.cos(np.radians(ang10 - angt)) / np.cos(np.radians(ang10))
+                else:
+                    dM = e[0] * np.cos(np.radians(ang10 - angt)) / np.cos(np.radians(ang10))
+                xp[2, nn] = xp[1, nn] + (dM - dm) * (np.sin(np.radians(ang20)) ** 2)
+                yp[2, nn] = -(dM - dm) * np.sin(np.radians(ang20)) * np.cos(np.radians(ang20))
+            return td, (xp, yp)
         else:
             # Steering and focusing case.
+            DX0 = DF * np.tan(np.radians(ang20)) + DT0 * np.tan(np.radians(ang10))
+            DX = DX0 - e * np.cos(np.radians(angt))
             xi = np.zeros(M)
             r1 = np.zeros(M)
             r2 = np.zeros(M)
@@ -104,4 +141,21 @@ class DelayLaws2DInt:
                 r2[mm] = np.sqrt((xi[mm] + e[mm] * np.cos(np.radians(angt)) - DX0)**2 + DF**2)
             t = 1000 * r1 / c1 + 1000 * r2 / c2
             td = np.max(t) - t
-            return td
+            # Compute ray geometry for focusing case:
+            for i in range(M):
+                # Point 1: Element centroid in medium 1
+                x_element = e[i] * np.cos(np.radians(angt))
+                y_element = DT_arr[i]
+                # Point 2: Intersection at the interface
+                x_interface = x_element + xi[i]
+                y_interface = 0
+                # Point 3: Focal point in medium 2
+                x_focus = DX0
+                y_focus = -DF
+                xp[0, i] = x_element
+                yp[0, i] = y_element
+                xp[1, i] = x_interface
+                yp[1, i] = y_interface
+                xp[2, i] = x_focus
+                yp[2, i] = y_focus
+            return td, (xp, yp)

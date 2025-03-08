@@ -6,7 +6,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import numpy as np
 import pytest
-from application.delay_laws2D_int_service import run_delay_laws2D_int_service
+from application.delay_laws2D_int_service import (
+    run_delay_laws2D_int_service,
+    run_delay_laws2D_int_service_with_rays
+)
 
 def test_steering_only_case():
     """
@@ -128,6 +131,56 @@ def test_plot_type_support():
         delays = run_delay_laws2D_int_service(M, s, angt, ang20, DT0, DF, c1, c2, 'y')
         assert delays.shape == (M,)
         assert np.all(delays >= 0)
+
+def test_delays_and_rays_steering_only():
+    """
+    Test that in the steering-only case using the new service method,
+    the function returns a tuple (delays, (xp, yp)) where:
+      - delays has shape (M,)
+      - xp and yp have shape (3, M) representing the three key points per element.
+      - The delays match those from the basic service.
+    """
+    M = 32
+    s = 1.0
+    angt = 0
+    ang20 = 30
+    DT0 = 25.4
+    DF = float('inf')
+    c1 = 1480
+    c2 = 5900
+    delays_basic = run_delay_laws2D_int_service(M, s, angt, ang20, DT0, DF, c1, c2, 'n')
+    delays, (xp, yp) = run_delay_laws2D_int_service_with_rays(M, s, angt, ang20, DT0, DF, c1, c2, 'n')
+    assert delays.shape == (M,)
+    np.testing.assert_allclose(delays, delays_basic, rtol=1e-6)
+    assert xp.shape == (3, M)
+    assert yp.shape == (3, M)
+
+def test_delays_and_rays_focusing():
+    """
+    Test that in the focusing case using the new service method,
+    the function returns a tuple (delays, (xp, yp)) where:
+      - delays has shape (M,) and are non-negative.
+      - xp and yp have shape (3, M) representing the three key points per element.
+      - The focal point (third point) is consistent across all elements.
+    """
+    M = 16
+    s = 0.5
+    angt = 5
+    ang20 = 60
+    DT0 = 10
+    DF = 10
+    c1 = 1480
+    c2 = 5900
+    delays, (xp, yp) = run_delay_laws2D_int_service_with_rays(M, s, angt, ang20, DT0, DF, c1, c2, 'y')
+    assert delays.shape == (M,)
+    assert np.all(delays >= 0)
+    assert xp.shape == (3, M)
+    assert yp.shape == (3, M)
+    # In the focusing case, the third point (focal point) should be identical for all elements.
+    focal_x = xp[2, 0]
+    focal_y = yp[2, 0]
+    np.testing.assert_allclose(xp[2, :], focal_x, rtol=1e-6)
+    np.testing.assert_allclose(yp[2, :], focal_y, rtol=1e-6)
 
 if __name__ == "__main__":
     pytest.main()

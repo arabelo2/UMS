@@ -9,7 +9,15 @@ class DelayLaws2DIntService:
     def compute_delays(self, M, s, angt, ang20, DT0, DF, c1, c2, plt_option='n'):
         delay_obj = DelayLaws2DInt(M, s, angt, ang20, DT0, DF, c1, c2, plt_option)
         return delay_obj.compute_delays()
+    
+    def compute_delays_and_rays(self, M, s, angt, ang20, DT0, DF, c1, c2, plt_option='n'):
+        delay_obj = DelayLaws2DInt(M, s, angt, ang20, DT0, DF, c1, c2, plt_option)
+        return delay_obj.compute_delays_and_rays()
 
 def run_delay_laws2D_int_service(M, s, angt, ang20, DT0, DF, c1, c2, plt_option='n'):
     service = DelayLaws2DIntService()
     return service.compute_delays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option)
+
+def run_delay_laws2D_int_service_with_rays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option='n'):
+    service = DelayLaws2DIntService()
+    return service.compute_delays_and_rays(M, s, angt, ang20, DT0, DF, c1, c2, plt_option)
