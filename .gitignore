@@ -17,3 +17,6 @@ Thumbs.db
 # Text files
 *.txt
 pressure_output.txt
+
+# Images files
+*.png
