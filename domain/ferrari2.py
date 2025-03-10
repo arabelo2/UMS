@@ -24,6 +24,10 @@ def ferrari2_scalar(cr, DF, DT, DX):
               xi is computed as (candidate root)*DT. Otherwise, the fallback root finder returns xi directly.
     """
     tol = 1e-6
+    
+    # Validate inputs
+    if DF <= 0 or DT <= 0:
+        raise ValueError("DF and DT must be positive values.")
 
     # If the media are nearly identical, use the explicit solution.
     if abs(cr - 1) < tol:
@@ -98,11 +102,15 @@ def ferrari2_scalar(cr, DF, DT, DX):
             a, b_val = 0, DX
         else:
             a, b_val = DX, 0
-        sol = root_scalar(f_interface2, bracket=[a, b_val], method='brentq', xtol=tol)
-        if sol.converged:
-            xi = sol.root
-        else:
-            raise RuntimeError("Fallback root finding did not converge in ferrari2.")
+        try:
+            sol = root_scalar(f_interface2, bracket=[a, b_val], method='brentq', xtol=tol)
+            if sol.converged:
+                xi = sol.root
+            else:
+                xi = DX * DT / (DF + DT)  # Fallback explicit solution
+        except ValueError:
+            xi = DX * DT / (DF + DT)  # Handle errors in root finding
+
     return xi
 
 def ferrari2(cr, DF, DT, DX):

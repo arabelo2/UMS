@@ -29,6 +29,9 @@ def interface2(x, cr, df, dp, dpf):
     x = np.array(x, dtype=float)
     
     term1 = x / np.sqrt(x**2 + dp**2)
-    term2 = cr * (dpf - x) / np.sqrt((dpf - x)**2 + df**2)
+    denom = np.sqrt((dpf - x)**2 + df**2)
+    denom = np.where(denom == 0, 1e-9, denom)  # Avoid division by zero
+    term2 = cr * (dpf - x) / denom
+
     y = term1 - term2
     return y

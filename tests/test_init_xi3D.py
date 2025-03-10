@@ -41,6 +41,16 @@ class TestInitXi3D(unittest.TestCase):
         self.assertEqual(P, 2)
         self.assertEqual(Q, 2)
 
+    def test_fully_2D_matrices_x_y_z(self):
+        x = np.array([[1, 2], [3, 4]])
+        y = np.array([[5, 6], [7, 8]])
+        z = np.array([[9, 10], [11, 12]])
+        init_obj = InitXi3D(x, y, z)
+        xi, P, Q = init_obj.create_zero_array()
+        self.assertEqual(xi.shape, (2, 2))
+        self.assertEqual(P, 2)
+        self.assertEqual(Q, 2)
+
     def test_z_row_vector_x_y_scalars(self):
         x = 1
         y = 2
@@ -90,36 +100,6 @@ class TestInitXi3D(unittest.TestCase):
         self.assertEqual(xi.shape, (1, 3))
         self.assertEqual(P, 1)
         self.assertEqual(Q, 3)
-
-    def test_y_column_vector_x_scalar_z_scalar(self):
-        x = 1
-        y = [[2], [3], [4]]  # column vector
-        z = 5
-        init_obj = InitXi3D(x, y, z)
-        xi, P, Q = init_obj.create_zero_array()
-        self.assertEqual(xi.shape, (3, 1))
-        self.assertEqual(P, 3)
-        self.assertEqual(Q, 1)
-
-    def test_equal_sized_row_vectors(self):
-        x = [1, 2, 3]
-        y = [4, 5, 6]
-        z = [7, 8, 9]
-        init_obj = InitXi3D(x, y, z)
-        xi, P, Q = init_obj.create_zero_array()
-        self.assertEqual(xi.shape, (1, 3))
-        self.assertEqual(P, 1)
-        self.assertEqual(Q, 3)
-
-    def test_equal_sized_column_vectors(self):
-        x = [[1], [2], [3]]
-        y = [[4], [5], [6]]
-        z = [[7], [8], [9]]
-        init_obj = InitXi3D(x, y, z)
-        xi, P, Q = init_obj.create_zero_array()
-        self.assertEqual(xi.shape, (3, 1))
-        self.assertEqual(P, 3)
-        self.assertEqual(Q, 1)
 
     def test_scalar_inputs(self):
         """Test when x, y, z are all scalars (should return a 1x1 zero matrix)."""

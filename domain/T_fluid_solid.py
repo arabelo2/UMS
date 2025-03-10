@@ -26,8 +26,8 @@ class FluidSolidTransmission:
         if any(param <= 0 for param in [d1, cp1, d2, cp2, cs2]):
             raise ValueError("Densities and wave speeds must be positive values.")
         
-        if not (0 <= theta1 <= 90):
-            raise ValueError("Incident angle must be between 0 and 90 degrees.")
+        if np.any((theta1 < 0) | (theta1 > 90)):
+            raise ValueError("Theta1 values must be between 0 and 90 degrees.")
         
         # Convert angle to radians
         iang = np.radians(theta1)

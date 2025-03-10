@@ -1,7 +1,5 @@
 # domain/init_xi3D.py
 
-# domain/init_xi3D.py
-
 import numpy as np
 
 class InitXi3D:
@@ -60,8 +58,11 @@ class InitXi3D:
         nrz, ncz = self.z.shape
 
         # Check for supported combinations
+        # New case: Full 2D matrices (2,2)
+        if nrx == nry == nrz and ncx == ncy == ncz:
+            P, Q = nrx, ncx
         # Case 1: x and z are matrices (same size), y is scalar
-        if nrx == nrz and ncx == ncz and nry == 1 and ncy == 1:
+        elif nrx == nrz and ncx == ncz and nry == 1 and ncy == 1:
             P, Q = nrx, ncx
         # Case 2: x and y are matrices (same size), z is scalar
         elif nrx == nry and ncx == ncy and nrz == 1 and ncz == 1:
@@ -93,6 +94,9 @@ class InitXi3D:
         # Case 11: x, y, z are column vectors (same size)
         elif ncx == 1 and ncy == 1 and ncz == 1 and nrx == nry and nrx == nrz:
             P, Q = nrx, 1
+        # Case 12: x and z are row vectors, y is scalar (different column sizes)
+        elif nrx == 1 and nrz == 1 and nry == 1 and ncy == 1:
+            P, Q = 1, max(ncx, ncz)  # Use the larger of ncx or ncz
         else:
             # If no valid case matches, raise an error.
             raise ValueError(f"Unsupported (x, y, z) combination: shapes {self.x.shape}, {self.y.shape}, {self.z.shape}")

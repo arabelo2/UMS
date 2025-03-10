@@ -33,18 +33,15 @@ class Pts3DIntf:
 
     def compute_intersection(self, x, y, z):
         """
-        Compute the intersection distance xi where the ray from a segment of the array element
-        intersects the interface.
-
-        Parameters:
-            x : scalar, list, or numpy array - x-coordinates of the observation point (mm).
-            y : scalar, list, or numpy array - y-coordinates of the observation point (mm).
-            z : scalar, list, or numpy array - z-coordinates of the observation point (mm).
-
-        Returns:
-            xi : numpy array - The intersection distances along the interface (mm).
+        Compute the intersection distance xi.
         """
-        # Initialize the output matrix using InitXi3D
+
+        # Convert inputs to NumPy arrays
+        x = np.atleast_2d(x)  # Ensures a minimum of 2D
+        y = np.atleast_2d(y)
+        z = np.atleast_2d(z)
+
+        # Initialize intersection matrix
         init_xi = InitXi3D(x, y, z)
         xi, P, Q = init_xi.compute()
 
@@ -54,12 +51,13 @@ class Pts3DIntf:
         Dy = y - (self.ey + self.yn)                             # Lateral distance
         Db = np.sqrt(Dx**2 + Dy**2)                              # Total in-plane distance
 
-        # Iterate through the matrix dimensions to compute xi values
+        # Ensure `z` is positive
+        z = np.where(z <= 0, 1e-6, z)  # Avoid zero depth issues
+
+        # Iterate through the matrix dimensions
         for pp in range(P):
             for qq in range(Q):
-                if np.isscalar(Db):
-                    xi[pp, qq] = ferrari2(self.cr, z, De, Db)
-                else:
-                    xi[pp, qq] = ferrari2(self.cr, z[pp, qq], De, Db[pp, qq])
+                xi[pp, qq] = ferrari2(self.cr, z[pp, qq], De, Db[pp, qq])
 
-        return xi
+        # Fix shape issues: remove unnecessary dimensions
+        return xi.squeeze()
