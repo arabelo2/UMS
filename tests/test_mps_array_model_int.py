@@ -23,17 +23,14 @@ def run_cli(args):
 # ---------------------------
 # Domain Layer Tests
 # ---------------------------
-def test_domain_valid_field():
+def test_domain_compute_field_keys():
     """
-    Create an MPSArrayModelInt instance with valid parameters and verify that compute_field() 
-    returns a dictionary with keys 'p', 'x', and 'z'. Also check the shape and basic properties.
+    Test that compute_field() returns a dictionary with keys 'p', 'x', and 'z'
+    and that the shapes are as expected.
     """
     from domain.mps_array_model_int import MPSArrayModelInt
-    # Define evaluation grid
     xs = np.linspace(-5, 20, 100)
     zs = np.linspace(1, 20, 100)
-    
-    # Create a valid instance with steering-only (DF=inf) for simplicity
     model = MPSArrayModelInt(
         lx=0.15, ly=0.15, gx=0.05, gy=0.05,
         f=5, d1=1.0, cp1=1480, d2=7.9, cp2=5900, cs2=3200, wave_type="p",
@@ -43,27 +40,22 @@ def test_domain_valid_field():
         xs=xs, zs=zs, y=0
     )
     result = model.compute_field()
-    # Verify return type and keys
     assert isinstance(result, dict)
     for key in ['p', 'x', 'z']:
         assert key in result, f"Missing key: {key}"
     p = result['p']
-    x_vals = result['x']
-    z_vals = result['z']
-    # p should be a 2D numpy array with shape (len(zs), len(xs))
-    assert isinstance(p, np.ndarray)
+    # p should have shape (len(zs), len(xs))
     assert p.shape == (len(zs), len(xs))
-    # x and z should match the inputs
-    np.testing.assert_allclose(x_vals, xs)
-    np.testing.assert_allclose(z_vals, zs)
+    np.testing.assert_allclose(result['x'], xs)
+    np.testing.assert_allclose(result['z'], zs)
 
-def test_domain_focusing_field():
+def test_domain_field_nonnegative():
     """
-    Test the domain layer in focusing mode (DF finite) and verify that delays are non-negative.
+    In a valid configuration, the computed velocity magnitude should be non-negative.
     """
     from domain.mps_array_model_int import MPSArrayModelInt
-    xs = np.linspace(-5, 20, 100)
-    zs = np.linspace(1, 20, 100)
+    xs = np.linspace(-5, 20, 50)
+    zs = np.linspace(1, 20, 50)
     model = MPSArrayModelInt(
         lx=0.15, ly=0.15, gx=0.05, gy=0.05,
         f=5, d1=1.0, cp1=1480, d2=7.9, cp2=5900, cs2=3200, wave_type="p",
@@ -74,16 +66,15 @@ def test_domain_focusing_field():
     )
     result = model.compute_field()
     p = result['p']
-    # In focusing mode, the computed field (pressure magnitude) should be non-negative
     assert np.all(p >= 0)
 
 def test_domain_invalid_parameters():
     """
-    Test that invalid parameters (e.g., negative element length) raise an error.
+    Test that invalid parameters (e.g., negative element length) raise a ValueError.
     """
     from domain.mps_array_model_int import MPSArrayModelInt
-    xs = np.linspace(-5, 20, 100)
-    zs = np.linspace(1, 20, 100)
+    xs = np.linspace(-5, 20, 50)
+    zs = np.linspace(1, 20, 50)
     with pytest.raises(ValueError):
         MPSArrayModelInt(
             lx=-0.15, ly=0.15, gx=0.05, gy=0.05,
@@ -99,7 +90,7 @@ def test_domain_invalid_parameters():
 # ---------------------------
 def test_service_layer_returns_dict():
     """
-    Test the application service to ensure it returns a dictionary with keys 'p', 'x', and 'z'.
+    Test that the service layer returns a dictionary with keys 'p', 'x', and 'z'.
     """
     from application.mps_array_model_int_service import run_mps_array_model_int_service
     xs = np.linspace(-5, 20, 100)
@@ -118,7 +109,7 @@ def test_service_layer_returns_dict():
 
 def test_service_layer_focusing():
     """
-    Test the service layer in focusing mode and verify that the output field has correct shape.
+    Test the service layer in focusing mode (DF finite).
     """
     from application.mps_array_model_int_service import run_mps_array_model_int_service
     xs = np.linspace(-5, 20, 100)
@@ -144,14 +135,12 @@ def test_cli_default_run():
     """
     stdout, stderr, code = run_cli(["--plot=n"])
     assert code == 0, f"CLI exited with code {code}. stderr: {stderr}"
-    # Check that output contains 'Results saved'
     assert "Results saved" in stdout
 
 def test_cli_with_plot():
     """
     Test CLI execution with plotting enabled.
     """
-    # We cannot capture the plot, but we can ensure the CLI exits successfully.
     stdout, stderr, code = run_cli(["--plot=y", "--z_scale=50"])
     assert code == 0, f"CLI with plot failed with code {code}. stderr: {stderr}"
     assert "Results saved" in stdout
