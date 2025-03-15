@@ -118,6 +118,12 @@ def main():
          args.ampx_type, args.ampy_type,
          x_vals, z_vals, args.y
     )
+    
+    # Verify that the result is a dictionary with expected keys
+    if not isinstance(result, dict) or 'p' not in result or 'x' not in result or 'z' not in result:
+        print("Error: Service did not return expected result dictionary with keys 'p', 'x', 'z'.")
+        sys.exit(1)
+    
     p = result['p']
     x = result['x']
     z = result['z']
@@ -134,7 +140,6 @@ def main():
          plt.imshow(np.abs(p), cmap="jet", extent=[x.min(), x.max(), z.max(), z.min()], aspect='auto')
          plt.xlabel("x (mm)")
          plt.ylabel("z (mm)")
-         # Determine medium type based on density thresholds (e.g., threshold = 2.0)
          medium1 = "Fluid" if args.d1 < 2.0 else "Solid"
          medium2 = "Fluid" if args.d2 < 2.0 else "Solid"
          if args.d1 == args.d2 and args.c1 == args.c2:
