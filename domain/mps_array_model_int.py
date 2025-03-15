@@ -20,6 +20,24 @@ class MPSArrayModelInt:
         """
         Initialize the MPS Array Modeling parameters.
         """
+        # Validate inputs
+        if lx <= 0:
+            raise ValueError("lx must be positive.")
+        if ly <= 0:
+            raise ValueError("ly must be positive.")
+        if f <= 0:
+            raise ValueError("Frequency f must be positive.")
+        if Dt0 <= 0:
+            raise ValueError("Dt0 must be positive.")
+        if L1 <= 0 or L2 <= 0:
+            raise ValueError("L1 and L2 must be positive integers.")
+        if gx < 0 or gy < 0:
+            raise ValueError("gx and gy must be non-negative.")
+        if xs is None or len(xs) == 0:
+            raise ValueError("xs must be provided and non-empty.")
+        if zs is None or len(zs) == 0:
+            raise ValueError("zs must be provided and non-empty.")
+
         self.lx = lx
         self.ly = ly
         self.gx = gx
