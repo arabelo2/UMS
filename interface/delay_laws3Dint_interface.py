@@ -19,15 +19,15 @@ Default values:
   c1       = 1480 m/s
   c2       = 5900 m/s
   plt      = 'y'          (plot ray geometry)
+  elev     = 25           (camera elevation for plot)
+  azim     = 20           (camera azimuth for plot)
   
 Example usage:
   1) Steering and focusing with plot:
-     python interface/delay_laws3Dint_interface.py --Mx=4 --My=4 --sx=0.5 --sy=0.5 --theta=20 --phi=0 --theta20=45 --DT0=10 --DF=10 --c1=1480 --c2=5900 --plt=y
+     python interface/delay_laws3Dint_interface.py --Mx=4 --My=4 --sx=0.5 --sy=0.5 --theta=20 --phi=0 --theta20=45 --DT0=10 --DF=10 --c1=1480 --c2=5900 --plt=y --elev=25 --azim=20
      
   2) Steering and focusing without plot:
      python interface/delay_laws3Dint_interface.py --Mx=4 --My=4 --sx=0.5 --sy=0.5 --theta=20 --phi=0 --theta20=45 --DT0=10 --DF=10 --c1=1480 --c2=5900 --plt=n
-
-Note: The default 3D view for plotting is set to elev=25 and azim=20.
 """
 
 import sys
@@ -48,7 +48,7 @@ def main():
         epilog=(
             "Example usage:\n"
             "  1) With plot:\n"
-            "     python interface/delay_laws3Dint_interface.py --Mx=4 --My=4 --sx=0.5 --sy=0.5 --theta=20 --phi=0 --theta20=45 --DT0=10 --DF=10 --c1=1480 --c2=5900 --plt=y\n\n"
+            "     python interface/delay_laws3Dint_interface.py --Mx=4 --My=4 --sx=0.5 --sy=0.5 --theta=20 --phi=0 --theta20=45 --DT0=10 --DF=10 --c1=1480 --c2=5900 --plt=y --elev=25 --azim=20\n\n"
             "  2) Without plot:\n"
             "     python interface/delay_laws3Dint_interface.py --Mx=4 --My=4 --sx=0.5 --sy=0.5 --theta=20 --phi=0 --theta20=45 --DT0=10 --DF=10 --c1=1480 --c2=5900 --plt=n"
         ),
@@ -67,6 +67,8 @@ def main():
     parser.add_argument("--c1", type=safe_float, default=1480.0, help="Wave speed in first medium (m/s). Default: 1480")
     parser.add_argument("--c2", type=safe_float, default=5900.0, help="Wave speed in second medium (m/s). Default: 5900")
     parser.add_argument("--plt", type=lambda s: s.lower(), choices=["y", "n"], default="y", help="Plot ray geometry? (y/n). Default: y")
+    parser.add_argument("--elev", type=safe_float, default=25.0, help="Camera elevation for 3D plot. Default: 25")
+    parser.add_argument("--azim", type=safe_float, default=20.0, help="Camera azimuth for 3D plot. Default: 20")
     
     args = parser.parse_args()
     
@@ -84,7 +86,7 @@ def main():
     print("Computed delays (in microseconds):")
     print(td)
     
-    # Plot 3D stem plot if plotting is enabled
+    # Plot a 3D stem plot if plotting is enabled
     if args.plt.upper() == "Y":
         plot_title = "Delay Laws 3DInt - 3D Stem Plot"
         fig = plt.figure(figsize=(8, 6))
@@ -102,8 +104,8 @@ def main():
         ax.set_ylabel("Element index (x-direction)")
         ax.set_zlabel("Time Delay (µs)")
         ax.set_title(plot_title)
-        # Set view: defaults similar to MATLAB view(25,20)
-        ax.view_init(elev=25, azim=20)
+        # Set view using CLI parameters
+        ax.view_init(elev=args.elev, azim=args.azim)
         plt.tight_layout()
         plt.show()
 
