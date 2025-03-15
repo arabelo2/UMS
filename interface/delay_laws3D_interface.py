@@ -3,8 +3,9 @@
 Module: delay_laws3D_interface.py
 Layer: Interface
 
-Provides a CLI to compute time delays for a 2D array using delay_laws3D
-and plot them in a 3D stem plot (similar to MATLAB's stem3).
+Provides a CLI to compute time delays for a 2D array using delay_laws3D,
+save the results to a file, and optionally display a 3D stem plot (similar
+to MATLAB's stem3).
 
 Default values:
   M     = 8
@@ -15,14 +16,15 @@ Default values:
   phi   = 0    degrees
   F     = 10   mm  (use inf for steering only)
   c     = 1480 m/s
-  plot  = Y
+  plot  = Y   (display plot by default)
   elev  = 16   (camera elevation)
   azim  = -82  (camera azimuth)
 
 Example usage:
-  python interface/delay_laws3D_interface.py \
-    --M 8 --N 16 --sx 0.5 --sy 0.5 --theta 0 --phi 0 --F 10 --c 1480 \
-    --plot Y --elev 16 --azim -82
+  python interface/delay_laws3D_interface.py --M 8 --N 16 --sx 0.5 --sy 0.5 --theta 0 --phi 0 --F 10 --c 1480 --plot Y --elev 16 --azim -82
+
+  To disable plotting, use:
+  python interface/delay_laws3D_interface.py --plot N
 """
 
 import sys
@@ -39,7 +41,10 @@ from interface.cli_utils import safe_float
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Compute time delays (us) for a 2D array using delay_laws3D, then display a 3D stem plot.",
+        description="Compute time delays (us) for a 2D array using delay_laws3D, then save the results and optionally display a 3D stem plot.",
+        epilog="""Example usage:
+  python interface/delay_laws3D_interface.py --M 8 --N 16 --sx 0.5 --sy 0.5 --theta 0 --phi 0 --F 10 --c 1480 --plot Y --elev 16 --azim -82
+  (By default, the plot is displayed. Use '--plot N' to turn off plotting.)""",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
@@ -63,7 +68,7 @@ def main():
     parser.add_argument("--outfile", type=str, default="delay_laws3D_output.txt",
                         help="Output file to save the time delays. Default=delay_laws3D_output.txt")
     parser.add_argument("--plot", type=str, choices=["Y","N","y","n"], default="Y",
-                        help="Display a 3D stem plot: 'Y'/'N'. Default=Y.")
+                        help="Display a 3D stem plot: 'Y' to display, 'N' to disable. Default=Y.")
     parser.add_argument("--elev", type=safe_float, default=16.0,
                         help="Camera elevation for 3D plot. Default=16.")
     parser.add_argument("--azim", type=safe_float, default=-82.0,
@@ -88,14 +93,14 @@ def main():
                 f.write(f"Element ({i+1},{j+1}): {td[i, j]:.6f} us\n")
     print(f"Time delays saved to {args.outfile}")
     
-    # Plot a 3D stem if requested
+    # Plot a 3D stem plot if requested
     if args.plot.upper() == "Y":
         plot_title = "Delay Laws 3D - 3D Stem Plot"
         fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111, projection='3d')
 
         # Generate grid indices for plotting
-        X, Y = np.meshgrid(range(args.N), range(args.M))
+        X, Y_indices = np.meshgrid(range(args.N), range(args.M))
 
         # Emulate MATLAB's stem3 by drawing vertical lines from z=0 to z=td[i,j].
         for i in range(args.M):
