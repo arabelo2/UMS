@@ -9,7 +9,7 @@ from domain.ferrari2 import ferrari2
 def delay_laws3Dint(Mx: int, My: int, sx: float, sy: float,
                     theta: float, phi: float, theta20: float,
                     DT0: float, DF: float, c1: float, c2: float,
-                    plt_option: str = 'n') -> np.ndarray:
+                    plt_option: str = 'n', view_elev: float = 25.0, view_azim: float = 20.0) -> np.ndarray:
     """
     Compute the delay laws (in microseconds) for steering and focusing a 2-D array 
     through a planar interface between two media in three dimensions.
@@ -20,11 +20,11 @@ def delay_laws3Dint(Mx: int, My: int, sx: float, sy: float,
         sx, sy   : float
                    Pitches (in mm) along the x' and y' directions.
         theta    : float
-                   Angle (in degrees) that the array makes with the interface.
+                   Array angle with the interface (in degrees).
         phi      : float
                    Steering parameter (in degrees) for the second medium.
         theta20  : float
-                   Steering (refracted) angle in the second medium (in degrees).
+                   Refracted steering angle in the second medium (in degrees).
         DT0      : float
                    Height (in mm) of the array center above the interface.
         DF       : float
@@ -33,6 +33,10 @@ def delay_laws3Dint(Mx: int, My: int, sx: float, sy: float,
                    Wave speeds (in m/s) for the first and second media, respectively.
         plt_option: str
                    'y' to plot the ray geometry, 'n' otherwise.
+        view_elev: float
+                   Camera elevation for the 3D plot. Default: 25.
+        view_azim: float
+                   Camera azimuth for the 3D plot. Default: 20.
                    
     Returns:
         td : np.ndarray
@@ -117,8 +121,8 @@ def delay_laws3Dint(Mx: int, My: int, sx: float, sy: float,
             ax.set_ylabel("Y (mm)")
             ax.set_zlabel("Z (mm)")
             ax.set_title("Ray Geometry - Steering and Focusing Case")
-            # Set view: using defaults similar to MATLAB view(25,20)
-            ax.view_init(elev=25, azim=20)
+            # Set view using provided CLI parameters
+            ax.view_init(elev=view_elev, azim=view_azim)
             plt.show()
 
     return td
