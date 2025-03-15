@@ -26,8 +26,10 @@ Example usage:
 
 import sys
 import os
-import argparse
 import math
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 

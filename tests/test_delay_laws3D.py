@@ -1,8 +1,12 @@
 # tests/test_delay_laws3D.py
 
+import sys
+import os
+import math
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import unittest
 import subprocess
-import os
 
 def run_cli(args):
     """
@@ -47,7 +51,7 @@ class TestDelayLaws3DInterface(unittest.TestCase):
         """
         stdout, stderr, code = run_cli(["--M", "0"])
         self.assertNotEqual(code, 0)
-        self.assertIn("M", stderr.lower())
+        self.assertIn("m and n must be", stderr.lower())
     
     def test_invalid_wave_speed_zero(self):
         """
