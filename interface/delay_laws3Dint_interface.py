@@ -79,7 +79,8 @@ def main():
             args.Mx, args.My, args.sx, args.sy,
             args.theta, args.phi, args.theta20,
             args.DT0, args.DF, args.c1, args.c2,
-            args.plt
+            args.plt,  # service function now accepts view parameters as well
+            args.elev, args.azim
         )
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
