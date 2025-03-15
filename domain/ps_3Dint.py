@@ -9,19 +9,19 @@ class Ps3DInt:
     Core domain logic for computing velocity components (vx, vy, vz) using the ps_3Dint algorithm.
     """
 
-    def __init__(self, lx, ly, f, mat, ex, ey, angt, Dt0):
+    def __init__(self, lx: float, ly: float, f: float, mat, ex: float, ey: float, angt: float, Dt0: float):
         """
-        Initialize the Ps3DInt object.
+        Initialize the rectangular piston for 3D velocity computation.
 
         Parameters:
-            lx   : float - Length of the array element in the x-direction (mm).
-            ly   : float - Length of the array element in the y-direction (mm).
-            f    : float - Frequency of the wave (MHz).
-            mat  : list  - Material properties [d1, cp1, d2, cp2, cs2, wave_type].
-            ex   : float - Offset of the element center from the array center in x (mm).
-            ey   : float - Offset of the element center from the array center in y (mm).
-            angt : float - Angle of the array relative to the interface (degrees).
-            Dt0  : float - Distance from the array center to the interface (mm).
+            lx (float): Element length along the x-axis (mm).
+            ly (float): Element length along the y-axis (mm).
+            f (float): Frequency in MHz.
+            mat: Material properties [d1, cp1, d2, cp2, cs2, wave_type].
+            ex (float): Lateral offset along the x-axis (mm).
+            ey (float): Lateral offset along the y-axis (mm).
+            angt (float): Angle of the array relative to the interface (degrees).
+            Dt0 (float): Distance from the array center to the interface (mm).
 
         Raises:
             ValueError: If any input parameter is invalid.
@@ -33,8 +33,8 @@ class Ps3DInt:
             raise ValueError("ly must be a positive value.")
         if f <= 0:
             raise ValueError("f must be a positive value.")
-        if Dt0 <= 0:
-            raise ValueError("Dt0 must be a positive value.")
+        if Dt0 < 0:
+            raise ValueError("Dt0 must be non-negative.")  # Allow Dt0 == 0 now
         if not isinstance(mat, list) or len(mat) != 6:
             raise ValueError("mat must be a list of 6 elements.")
         if mat[-1] not in ['p', 's']:
@@ -57,7 +57,7 @@ class Ps3DInt:
         self.c1 = self.cp1
         self.c2 = self.cp2 if self.wave_type == 'p' else self.cs2
 
-        # Wave numbers
+        # Wave numbers (f in MHz, c in m/s)
         self.k1 = 2000 * np.pi * self.f / self.c1
         self.k2 = 2000 * np.pi * self.f / self.c2
 
