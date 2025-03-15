@@ -11,14 +11,14 @@ Default values:
   My       = 4
   sx       = 0.5 mm
   sy       = 0.5 mm
-  theta    = 20 deg
-  phi      = 0 deg
-  theta20  = 45 deg
+  theta    = 20 deg       (array angle with interface)
+  phi      = 0 deg        (steering parameter for second medium)
+  theta20  = 45 deg       (refracted steering angle in second medium)
   DT0      = 10 mm
-  DF       = 10 mm
+  DF       = 10 mm        (focal distance; use inf for steering-only)
   c1       = 1480 m/s
   c2       = 5900 m/s
-  plt      = 'y' (plot rays)
+  plt      = 'y'          (plot ray geometry)
   
 Example usage:
   1) Steering and focusing with plot:
@@ -27,7 +27,7 @@ Example usage:
   2) Steering and focusing without plot:
      python interface/delay_laws3Dint_interface.py --Mx=4 --My=4 --sx=0.5 --sy=0.5 --theta=20 --phi=0 --theta20=45 --DT0=10 --DF=10 --c1=1480 --c2=5900 --plt=n
 
-Note: The view angle for plotting is set to elev=25 and azim=20 by default.
+Note: The default 3D view for plotting is set to elev=25 and azim=20.
 """
 
 import sys
@@ -37,6 +37,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import argparse
 import numpy as np
+import matplotlib.pyplot as plt
+
 from application.delay_laws3Dint_service import run_delay_laws3Dint_service
 from interface.cli_utils import safe_float
 
@@ -68,14 +70,42 @@ def main():
     
     args = parser.parse_args()
     
-    # Compute delays
-    td = run_delay_laws3Dint_service(args.Mx, args.My, args.sx, args.sy,
-                                     args.theta, args.phi, args.theta20,
-                                     args.DT0, args.DF, args.c1, args.c2,
-                                     args.plt)
+    try:
+        td = run_delay_laws3Dint_service(
+            args.Mx, args.My, args.sx, args.sy,
+            args.theta, args.phi, args.theta20,
+            args.DT0, args.DF, args.c1, args.c2,
+            args.plt
+        )
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
     
     print("Computed delays (in microseconds):")
     print(td)
     
+    # Plot 3D stem plot if plotting is enabled
+    if args.plt.upper() == "Y":
+        plot_title = "Delay Laws 3DInt - 3D Stem Plot"
+        fig = plt.figure(figsize=(8, 6))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # Generate grid indices for plotting
+        X, Y_indices = np.meshgrid(range(args.My), range(args.Mx))
+        
+        # Emulate MATLAB's stem3: for each element, draw a vertical line from 0 to delay value.
+        for i in range(args.Mx):
+            for j in range(args.My):
+                ax.plot([j, j], [i, i], [0, td[i, j]], marker='o', color='b')
+        
+        ax.set_xlabel("Element index (y-direction)")
+        ax.set_ylabel("Element index (x-direction)")
+        ax.set_zlabel("Time Delay (µs)")
+        ax.set_title(plot_title)
+        # Set view: defaults similar to MATLAB view(25,20)
+        ax.view_init(elev=25, azim=20)
+        plt.tight_layout()
+        plt.show()
+
 if __name__ == "__main__":
     main()
