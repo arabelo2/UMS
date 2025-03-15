@@ -26,10 +26,10 @@ Default values:
 
 Example usage:
   1) Steering Only (F = inf):
-     python interface/mps_array_modeling_interface.py --lx 0.15 --ly 0.15 --gx 0.05 --gy 0.05 --f 5 --c 1480 --L1 11 --L2 11 --theta 20 --phi 0 --F inf --ampx_type rect --ampy_type rect --plot Y
+     python interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 --L1=11 --L2=11 --theta=20 --phi=0 --F=inf --ampx_type=rect --ampy_type=rect --xs="-15,15,300" --zs="1,20,200" --plot=Y
 
   2) Steering + Focusing (F finite):
-     python interface/mps_array_modeling_interface.py --lx 0.15 --ly 0.15 --gx 0.05 --gy 0.05 --f 5 --c 1480 --L1 11 --L2 11 --theta 20 --phi 0 --F 15 --ampx_type rect --ampy_type rect --plot Y
+     python interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 --L1=11 --L2=11 --theta=20 --phi=0 --F=15 --ampx_type=rect --ampy_type=rect --xs="-15,15,300" --zs="1,20,200" --plot=Y
 """
 
 import sys
@@ -49,10 +49,10 @@ def main():
         description="Compute normalized pressure field for a 2D array using mps_array_modeling.",
         epilog="""Example usage:
   1) Steering Only (F = inf):
-     python interface/mps_array_modeling_interface.py --lx 0.15 --ly 0.15 --gx 0.05 --gy 0.05 --f 5 --c 1480 --L1 11 --L2 11 --theta 20 --phi 0 --F inf --ampx_type rect --ampy_type rect --plot Y
+     python interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 --L1=11 --L2=11 --theta=20 --phi=0 --F=inf --ampx_type=rect --ampy_type=rect --xs="-15,15,300" --zs="1,20,200" --plot=Y
 
   2) Steering + Focusing (F finite):
-     python interface/mps_array_modeling_interface.py --lx 0.15 --ly 0.15 --gx 0.05 --gy 0.05 --f 5 --c 1480 --L1 11 --L2 11 --theta 20 --phi 0 --F 15 --ampx_type rect --ampy_type rect --plot Y
+     python interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 --L1=11 --L2=11 --theta=20 --phi=0 --F=15 --ampx_type=rect --ampy_type=rect --xs="-15,15,300" --zs="1,20,200" --plot=Y
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -99,7 +99,6 @@ def main():
     zs = parse_array(args.zs)
     
     try:
-        # Pass F to the service function (even if the underlying API expects it as Fl)
         p, xs_out, zs_out = run_mps_array_modeling_service(
             args.lx, args.ly, args.gx, args.gy,
             args.f, args.c, args.L1, args.L2,
@@ -125,7 +124,6 @@ def main():
         plt.colorbar(label="Pressure Magnitude")
         plt.xlabel("x (mm)")
         plt.ylabel("z (mm)")
-        # Determine plot title based on F: infinite means steering-only, otherwise focusing.
         if math.isinf(args.F):
             plt.title("MPS Array Modeling - Steering Only")
         else:
