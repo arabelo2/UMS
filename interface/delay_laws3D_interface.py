@@ -17,11 +17,11 @@ Default values:
   F     = 10   mm  (use inf for steering only)
   c     = 1480 m/s
   plot  = Y   (display plot by default)
-  elev  = 16   (camera elevation)
-  azim  = -82  (camera azimuth)
+  elev  = 25   (camera elevation)
+  azim  = 13   (camera azimuth)
 
 Example usage:
-  python interface/delay_laws3D_interface.py --M 8 --N 16 --sx 0.5 --sy 0.5 --theta 0 --phi 0 --F 10 --c 1480 --plot Y --elev 16 --azim -82
+  python interface/delay_laws3D_interface.py --M 8 --N 16 --sx 0.5 --sy 0.5 --theta 0 --phi 0 --F 10 --c 1480 --plot Y --elev 25 --azim 13
 
   To disable plotting, use:
   python interface/delay_laws3D_interface.py --plot N
@@ -43,7 +43,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Compute time delays (us) for a 2D array using delay_laws3D, then save the results and optionally display a 3D stem plot.",
         epilog="""Example usage:
-  python interface/delay_laws3D_interface.py --M 8 --N 16 --sx 0.5 --sy 0.5 --theta 0 --phi 0 --F 10 --c 1480 --plot Y --elev 16 --azim -82
+  python interface/delay_laws3D_interface.py --M 8 --N 16 --sx 0.5 --sy 0.5 --theta 0 --phi 0 --F 10 --c 1480 --plot Y --elev 25 --azim 13
   (By default, the plot is displayed. Use '--plot N' to turn off plotting.)""",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -69,10 +69,10 @@ def main():
                         help="Output file to save the time delays. Default=delay_laws3D_output.txt")
     parser.add_argument("--plot", type=str, choices=["Y","N","y","n"], default="Y",
                         help="Display a 3D stem plot: 'Y' to display, 'N' to disable. Default=Y.")
-    parser.add_argument("--elev", type=safe_float, default=16.0,
-                        help="Camera elevation for 3D plot. Default=16.")
-    parser.add_argument("--azim", type=safe_float, default=-82.0,
-                        help="Camera azimuth for 3D plot. Default=-82.")
+    parser.add_argument("--elev", type=safe_float, default=25.0,
+                        help="Camera elevation for 3D plot. Default=25.")
+    parser.add_argument("--azim", type=safe_float, default=13.0,
+                        help="Camera azimuth for 3D plot. Default=13.")
     
     args = parser.parse_args()
     
