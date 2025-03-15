@@ -27,8 +27,8 @@ class MPSArrayModelInt:
             raise ValueError("ly must be positive.")
         if f <= 0:
             raise ValueError("Frequency f must be positive.")
-        if Dt0 <= 0:
-            raise ValueError("Dt0 must be positive.")
+        if Dt0 < 0:
+            raise ValueError("Dt0 must be non-negative.")
         if L1 <= 0 or L2 <= 0:
             raise ValueError("L1 and L2 must be positive integers.")
         if gx < 0 or gy < 0:
