@@ -23,7 +23,7 @@ class MPSArrayModeling:
           Number of elements in x- and y-directions.
       theta, phi : float
           Steering angles (degrees).
-      Fl : float
+      F : float
           Focal distance (mm); use np.inf for steering-only.
       ampx_type, ampy_type : str
           Window types for apodization in x and y directions.
@@ -34,7 +34,7 @@ class MPSArrayModeling:
     """
     def __init__(self, lx: float, ly: float, gx: float, gy: float,
                  f: float, c: float, L1: int, L2: int,
-                 theta: float, phi: float, Fl: float,
+                 theta: float, phi: float, F: float,
                  ampx_type: str, ampy_type: str,
                  xs: np.ndarray = None, zs: np.ndarray = None, y: float = 0.0):
         self.lx = lx
@@ -47,7 +47,7 @@ class MPSArrayModeling:
         self.L2 = L2
         self.theta = theta
         self.phi = phi
-        self.Fl = Fl
+        self.F = F
         self.ampx_type = ampx_type
         self.ampy_type = ampy_type
 
@@ -93,7 +93,7 @@ class MPSArrayModeling:
 
         # Compute time delays (in microseconds) for the array.
         td = run_delay_laws3D_service(self.L1, self.L2, self.sx_total, self.sy_total,
-                                      self.theta, self.phi, self.Fl, self.c)
+                                      self.theta, self.phi, self.F, self.c)
         # Compute the delay phase factor:
         delay_phase = np.exp(1j * 2 * np.pi * self.f * td)
 
