@@ -25,7 +25,7 @@ Default values:
   
 Example usage:
   1) Steering and focusing with plot:
-     python interface/delay_laws3Dint_interface.py --Mx=4 --My=4 --sx=0.5 --sy=0.5 --theta=20 --phi=0 --theta20=45 --DT0=10 --DF=10 --c1=1480 --c2=5900 --plt=y --elev=25 --azim=20
+     python interface/delay_laws3Dint_interface.py --Mx=4 --My=4 --sx=0.5 --sy=0.5 --theta=20 --phi=0 --theta20=45 --DT0=10 --DF=10 --c1=1480 --c2=5900 --plt=y --elev=25 --azim=20 --z_scale=10
      
   2) Steering and focusing without plot:
      python interface/delay_laws3Dint_interface.py --Mx=4 --My=4 --sx=0.5 --sy=0.5 --theta=20 --phi=0 --theta20=45 --DT0=10 --DF=10 --c1=1480 --c2=5900 --plt=n
@@ -49,7 +49,7 @@ def main():
         epilog=(
             "Example usage:\n"
             "  1) With plot:\n"
-            "     python interface/delay_laws3Dint_interface.py --Mx=4 --My=4 --sx=0.5 --sy=0.5 --theta=20 --phi=0 --theta20=45 --DT0=10 --DF=10 --c1=1480 --c2=5900 --plt=y --elev=25 --azim=20\n\n"
+            "     python interface/delay_laws3Dint_interface.py --Mx=4 --My=4 --sx=0.5 --sy=0.5 --theta=20 --phi=0 --theta20=45 --DT0=10 --DF=10 --c1=1480 --c2=5900 --plt=y --elev=25 --azim=20 --z_scale=10\n\n"
             "  2) Without plot:\n"
             "     python interface/delay_laws3Dint_interface.py --Mx=4 --My=4 --sx=0.5 --sy=0.5 --theta=20 --phi=0 --theta20=45 --DT0=10 --DF=10 --c1=1480 --c2=5900 --plt=n"
         ),
@@ -109,6 +109,11 @@ def main():
         ax.set_ylabel("Element index (x-direction)")
         ax.set_zlabel("Scaled Time Delay (µs)")
         ax.set_title(plot_title)
+        
+        # Set aspect ratio based on data ranges
+        z_range = np.ptp(td_scaled)
+        ax.set_box_aspect([args.My, args.Mx, z_range if z_range > 0 else 1])
+        
         # Set view using CLI parameters
         ax.view_init(elev=args.elev, azim=args.azim)
         plt.tight_layout()
