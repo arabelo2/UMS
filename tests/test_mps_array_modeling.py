@@ -127,3 +127,11 @@ def test_interface_custom_parameters():
     assert code == 0, f"CLI failed with custom parameters. stderr: {stderr}"
     assert "Pressure field magnitude saved to" in stdout
     assert os.path.exists("mps_array_modeling_output.txt")
+
+# ---------------------------
+# Main Runner to Execute All Tests
+# ---------------------------
+if __name__ == "__main__":
+    import pytest
+    # Run all tests in the tests directory
+    pytest.main(["tests"])
