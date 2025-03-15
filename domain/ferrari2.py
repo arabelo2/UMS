@@ -25,9 +25,12 @@ def ferrari2_scalar(cr, DF, DT, DX):
     """
     tol = 1e-6
     
-    # Validate inputs
-    if DF <= 0 or DT <= 0:
-        raise ValueError("DF and DT must be positive values.")
+    # Allow DT to be zero by substituting a small positive epsilon.
+    if DT == 0:
+        DT = tol
+    
+    if DF <= 0:
+        raise ValueError("DF must be positive.")
 
     # If the media are nearly identical, use the explicit solution.
     if abs(cr - 1) < tol:
