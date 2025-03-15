@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D  # ensures 3D plotting works
 from domain.ferrari2 import ferrari2
 
 def delay_laws3Dint(Mx: int, My: int, sx: float, sy: float,
-                    thetat: float, phi: float, theta2: float,
+                    theta: float, phi: float, theta20: float,
                     DT0: float, DF: float, c1: float, c2: float,
                     plt_option: str = 'n') -> np.ndarray:
     """
@@ -19,11 +19,11 @@ def delay_laws3Dint(Mx: int, My: int, sx: float, sy: float,
                    Number of elements in the (x', y') directions.
         sx, sy   : float
                    Pitches (in mm) along the x' and y' directions.
-        thetat   : float
+        theta    : float
                    Angle (in degrees) that the array makes with the interface.
         phi      : float
                    Steering parameter (in degrees) for the second medium.
-        theta2   : float
+        theta20  : float
                    Steering (refracted) angle in the second medium (in degrees).
         DT0      : float
                    Height (in mm) of the array center above the interface.
@@ -55,10 +55,9 @@ def delay_laws3Dint(Mx: int, My: int, sx: float, sy: float,
     De = np.zeros(Mx)
     xi = np.zeros((Mx, My))
 
-    # Compute ang1 (in degrees) in first medium
-    # Ensure the argument to asin is in [-1, 1]
-    sin_theta2 = math.sin(math.radians(theta2))
-    arg = (c1 * sin_theta2) / c2
+    # Compute ang1 (in degrees) in first medium using theta20
+    sin_theta20 = math.sin(math.radians(theta20))
+    arg = (c1 * sin_theta20) / c2
     if arg > 1:
         arg = 1
     elif arg < -1:
@@ -67,8 +66,8 @@ def delay_laws3Dint(Mx: int, My: int, sx: float, sy: float,
     
     if math.isinf(DF):
         # Steering-only case
-        ux = math.sin(math.radians(ang1)) * math.cos(math.radians(phi)) * math.cos(math.radians(thetat)) - \
-             math.cos(math.radians(ang1)) * math.sin(math.radians(thetat))
+        ux = math.sin(math.radians(ang1)) * math.cos(math.radians(phi)) * math.cos(math.radians(theta)) - \
+             math.cos(math.radians(ang1)) * math.sin(math.radians(theta))
         uy = math.sin(math.radians(ang1)) * math.sin(math.radians(phi))
         for i in range(Mx):
             for j in range(My):
@@ -76,15 +75,15 @@ def delay_laws3Dint(Mx: int, My: int, sx: float, sy: float,
         td = np.abs(np.min(t)) + t  # make delays positive
     else:
         # Steering and focusing case
-        DQ = DT0 * math.tan(math.radians(ang1)) + DF * math.tan(math.radians(theta2))
+        DQ = DT0 * math.tan(math.radians(ang1)) + DF * math.tan(math.radians(theta20))
         x_val = DQ * math.cos(math.radians(phi))
         y_val = DQ * math.sin(math.radians(phi))
         for i in range(Mx):
             for j in range(My):
                 # Calculate distance along the interface for each element
-                Db[i, j] = math.sqrt((x_val - ex[i] * math.cos(math.radians(thetat)))**2 + (y_val - ey[j])**2)
+                Db[i, j] = math.sqrt((x_val - ex[i] * math.cos(math.radians(theta)))**2 + (y_val - ey[j])**2)
         # Compute De for each element in x-direction
-        De = DT0 + ex * math.sin(math.radians(thetat))
+        De = DT0 + ex * math.sin(math.radians(theta))
         for i in range(Mx):
             for j in range(My):
                 xi[i, j] = ferrari2(cr, DF, De[i], Db[i, j])
@@ -104,10 +103,10 @@ def delay_laws3Dint(Mx: int, My: int, sx: float, sy: float,
                     xp = np.zeros(3)
                     yp = np.zeros(3)
                     zp = np.zeros(3)
-                    xp[0] = ex[i] * math.cos(math.radians(thetat))
-                    zp[0] = DT0 + ex[i] * math.sin(math.radians(thetat))
+                    xp[0] = ex[i] * math.cos(math.radians(theta))
+                    zp[0] = DT0 + ex[i] * math.sin(math.radians(theta))
                     yp[0] = ey[j]
-                    xp[1] = ex[i] * math.cos(math.radians(thetat)) + xi[i, j] * (x_val - ex[i] * math.cos(math.radians(thetat))) / Db[i, j]
+                    xp[1] = ex[i] * math.cos(math.radians(theta)) + xi[i, j] * (x_val - ex[i] * math.cos(math.radians(theta))) / Db[i, j]
                     yp[1] = ey[j] + xi[i, j] * (y_val - ey[j]) / Db[i, j]
                     zp[1] = 0
                     xp[2] = x_val

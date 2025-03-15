@@ -1,6 +1,9 @@
 # tests/test_delay_laws3Dint.py
 
+import sys
 import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import subprocess
 import numpy as np
 import pytest
@@ -29,8 +32,8 @@ def test_delay_steering_only():
     Expect the returned delay matrix to have shape (Mx, My) and contain finite values.
     """
     from domain.delay_laws3Dint import delay_laws3Dint
-    td = delay_laws3Dint(Mx=4, My=4, sx=0.5, sy=0.5, thetat=20, phi=0,
-                         theta2=45, DT0=10, DF=float('inf'), c1=1480, c2=5900, plt_option='n')
+    td = delay_laws3Dint(Mx=4, My=4, sx=0.5, sy=0.5, theta=20, phi=0,
+                         theta20=45, DT0=10, DF=float('inf'), c1=1480, c2=5900, plt_option='n')
     assert td.shape == (4, 4)
     assert np.all(np.isfinite(td))
 
@@ -39,8 +42,8 @@ def test_delay_focusing():
     Test delay laws in focusing case (DF finite).
     """
     from domain.delay_laws3Dint import delay_laws3Dint
-    td = delay_laws3Dint(Mx=4, My=4, sx=0.5, sy=0.5, thetat=20, phi=0,
-                         theta2=45, DT0=10, DF=10, c1=1480, c2=5900, plt_option='n')
+    td = delay_laws3Dint(Mx=4, My=4, sx=0.5, sy=0.5, theta=20, phi=0,
+                         theta20=45, DT0=10, DF=10, c1=1480, c2=5900, plt_option='n')
     assert td.shape == (4, 4)
     # In focusing case, delays should be non-negative.
     assert np.all(td >= 0)
