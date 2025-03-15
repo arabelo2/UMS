@@ -75,12 +75,11 @@ def main():
     args = parser.parse_args()
     
     try:
-        td = run_delay_laws3Dint_service(
+        td, td_scaled = run_delay_laws3Dint_service(
             args.Mx, args.My, args.sx, args.sy,
             args.theta, args.phi, args.theta20,
             args.DT0, args.DF, args.c1, args.c2,
-            args.plt,  # service function now accepts view parameters as well
-            args.elev, args.azim
+            args.plt, args.elev, args.azim, args.z_scale
         )
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -89,14 +88,11 @@ def main():
     print("Computed delays (in microseconds):")
     print(td)
     
-    # Plot a 3D stem plot if plotting is enabled
+    # Plot a 3D stem plot if plotting is enabled using the scaled delays.
     if args.plt.upper() == "Y":
         plot_title = "Delay Laws 3DInt - 3D Stem Plot"
         fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111, projection='3d')
-        
-        # Scale delays to exaggerate vertical variation
-        td_scaled = td * args.z_scale
         
         # Generate grid indices for plotting
         X, Y_indices = np.meshgrid(range(args.My), range(args.Mx))
