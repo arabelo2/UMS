@@ -1,24 +1,24 @@
-# application/mps_array_model_int_service.py
-
 from domain.mps_array_model_int import MPSArrayModelInt
 
-class MLSArrayModelIntService:
+def run_mps_array_model_int_service(lx: float, ly: float, gx: float, gy: float,
+                                    f: float, d1: float, c1: float, d2: float, c2: float, cs2: float, wave_type: str,
+                                    L1: int, L2: int, angt: float, Dt0: float,
+                                    theta20: float, phi: float, DF: float,
+                                    ampx_type: str, ampy_type: str,
+                                    xs, zs, y: float):
     """
-    Service layer for MLS Array Modeling at a fluid/solid interface.
+    Service function to compute the normalized velocity field using MPSArrayModelInt.
+    
+    Returns:
+        dict: Contains the velocity field ('p') and grid coordinates ('x', 'z').
     """
-    def __init__(self, f, d1, c1, d2, c2, cs2, wave_type, M, d, g, angt, ang20, DF, DT0, wtype, x=None, z=None):
-        self.model = MPSArrayModelInt(f, d1, c1, d2, c2, cs2, wave_type, M, d, g, angt, DT0, ang20, x, z)
-
-    def run(self):
-        result = self.model.compute_field()
-        if not isinstance(result, dict):
-            raise ValueError("compute_field did not return a dictionary.")
-        required_keys = ['p', 'x', 'z']
-        for key in required_keys:
-            if key not in result:
-                raise ValueError(f"Missing key '{key}' in result from compute_field.")
-        return result
-
-def run_mps_array_model_int_service(f, d1, c1, d2, c2, cs2, wave_type, M, d, g, angt, DT0, ang20, DF, wtype, x=None, z=None):
-    service = MLSArrayModelIntService(f, d1, c1, d2, c2, cs2, wave_type, M, d, g, angt, DT0, ang20, DF, wtype, x, z)
-    return service.run()
+    model = MPSArrayModelInt(lx, ly, gx, gy,
+                             f, d1, c1, d2, c2, cs2, wave_type,
+                             L1, L2, angt, Dt0,
+                             theta20, phi, DF,
+                             ampx_type, ampy_type,
+                             xs, zs, y)
+    result = model.compute_field()
+    if not isinstance(result, dict) or 'p' not in result or 'x' not in result or 'z' not in result:
+        raise ValueError("Service did not return expected result dictionary with keys 'p', 'x', 'z'.")
+    return result
