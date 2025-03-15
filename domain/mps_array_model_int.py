@@ -19,23 +19,6 @@ class MPSArrayModelInt:
                  xs: np.ndarray, zs: np.ndarray, y: float):
         """
         Initialize the MPS Array Modeling parameters.
-
-        Parameters:
-            lx, ly : float - Element dimensions in x and y (mm).
-            gx, gy : float - Gap lengths (mm).
-            f      : float - Frequency (MHz).
-            d1, cp1: float - Density and compressional wave speed of medium one.
-            d2, cp2, cs2: float - Density, compressional and shear wave speeds of medium two.
-            wave_type : str - 'p' for compressional, 's' for shear.
-            L1, L2 : int   - Number of elements in x- and y-directions.
-            angt   : float - Array angle with the interface (deg).
-            Dt0    : float - Height of array center above interface (mm).
-            theta20: float - Refracted steering angle in second medium (deg).
-            phi    : float - Steering angle in second medium (deg).
-            DF     : float - Focal distance in second medium (mm); use np.inf for steering-only.
-            ampx_type, ampy_type: str - Window types for apodization (e.g., 'rect').
-            xs, zs : np.ndarray - Field evaluation grid coordinates.
-            y      : float - Fixed y-coordinate for evaluation.
         """
         self.lx = lx
         self.ly = ly
@@ -71,9 +54,9 @@ class MPSArrayModelInt:
 
         Returns:
             dict: Contains:
-                'vmag' - Normalized velocity magnitude (2D np.ndarray).
-                'xs'   - x-coordinates used.
-                'zs'   - z-coordinates used.
+                'p' - Normalized velocity magnitude (2D np.ndarray).
+                'x' - x-coordinates used.
+                'z' - z-coordinates used.
         """
         # Create evaluation grid
         x_grid, z_grid = np.meshgrid(self.xs, self.zs)
@@ -126,4 +109,5 @@ class MPSArrayModelInt:
 
         # Compute velocity magnitude
         vmag = np.sqrt(np.abs(vx)**2 + np.abs(vy)**2 + np.abs(vz)**2)
-        return {'vmag': vmag, 'xs': self.xs, 'zs': self.zs}
+        # Return keys 'p', 'x', and 'z' for consistency with the interface layer.
+        return {'p': vmag, 'x': self.xs, 'z': self.zs}
