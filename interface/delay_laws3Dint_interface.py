@@ -21,6 +21,7 @@ Default values:
   plt      = 'y'          (plot ray geometry)
   elev     = 25           (camera elevation for plot)
   azim     = 20           (camera azimuth for plot)
+  z_scale  = 10           (scale factor for z-axis in stem plot)
   
 Example usage:
   1) Steering and focusing with plot:
@@ -69,6 +70,7 @@ def main():
     parser.add_argument("--plt", type=lambda s: s.lower(), choices=["y", "n"], default="y", help="Plot ray geometry? (y/n). Default: y")
     parser.add_argument("--elev", type=safe_float, default=25.0, help="Camera elevation for 3D plot. Default: 25")
     parser.add_argument("--azim", type=safe_float, default=20.0, help="Camera azimuth for 3D plot. Default: 20")
+    parser.add_argument("--z_scale", type=safe_float, default=10.0, help="Scale factor for z-axis (delay values) in stem plot. Default: 10")
     
     args = parser.parse_args()
     
@@ -92,17 +94,20 @@ def main():
         fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111, projection='3d')
         
+        # Scale delays to exaggerate vertical variation
+        td_scaled = td * args.z_scale
+        
         # Generate grid indices for plotting
         X, Y_indices = np.meshgrid(range(args.My), range(args.Mx))
         
-        # Emulate MATLAB's stem3: for each element, draw a vertical line from 0 to delay value.
+        # Emulate MATLAB's stem3: for each element, draw a vertical line from 0 to scaled delay value.
         for i in range(args.Mx):
             for j in range(args.My):
-                ax.plot([j, j], [i, i], [0, td[i, j]], marker='o', color='b')
+                ax.plot([j, j], [i, i], [0, td_scaled[i, j]], marker='o', color='b')
         
         ax.set_xlabel("Element index (y-direction)")
         ax.set_ylabel("Element index (x-direction)")
-        ax.set_zlabel("Time Delay (µs)")
+        ax.set_zlabel("Scaled Time Delay (µs)")
         ax.set_title(plot_title)
         # Set view using CLI parameters
         ax.view_init(elev=args.elev, azim=args.azim)
