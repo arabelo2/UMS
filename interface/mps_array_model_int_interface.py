@@ -71,10 +71,10 @@ def main():
     parser.add_argument("--gy", type=safe_float, default=0.05, help="Gap length in y-direction (mm). Default: 0.05")
     parser.add_argument("--f", type=safe_float, default=5.0, help="Frequency (MHz). Default: 5")
     parser.add_argument("--d1", type=safe_float, default=1.0, help="Density of medium one. Default: 1.0")
-    parser.add_argument("--c1", type=safe_float, default=1480.0, help="Compressional wave speed of medium one (m/s). Default: 1480")
+    parser.add_argument("--c1", type=safe_float, default=1480.0, help="Wave speed in first medium (m/s). Default: 1480")
     parser.add_argument("--d2", type=safe_float, default=7.9, help="Density of medium two. Default: 7.9")
-    parser.add_argument("--c2", type=safe_float, default=5900.0, help="Compressional wave speed of medium two (m/s). Default: 5900")
-    parser.add_argument("--cs2", type=safe_float, default=3200.0, help="Shear wave speed of medium two (m/s). Default: 3200")
+    parser.add_argument("--c2", type=safe_float, default=5900.0, help="Wave speed in second medium (m/s). Default: 5900")
+    parser.add_argument("--cs2", type=safe_float, default=3200.0, help="Shear wave speed in second medium (m/s). Default: 3200")
     parser.add_argument("--type", type=str, default="p", choices=["p", "s"], help="Wave type for medium two ('p' or 's'). Default: p")
     parser.add_argument("--L1", type=int, default=11, help="Number of elements in x-direction. Default: 11")
     parser.add_argument("--L2", type=int, default=11, help="Number of elements in y-direction. Default: 11")
@@ -89,23 +89,24 @@ def main():
     parser.add_argument("--zs", type=str, default="1,20,100", help="z-coordinates as comma-separated list or start,stop,num_points. Default: \"1,20,100\"")
     parser.add_argument("--y", type=safe_float, default=0.0, help="Fixed y-coordinate for evaluation. Default: 0")
     parser.add_argument("--plot", type=lambda s: s.lower(), choices=["y", "n"], default="y", help="Plot the pressure field? (y/n). Default: y")
+    parser.add_argument("--z_scale", type=safe_float, default=10.0, help="Scale factor for z-axis (delay values) in stem plot. Default: 10")
     
     args = parser.parse_args()
     
     # Process xs and zs arrays using the helper.
-    if args.x is None or args.x.strip() == "":
+    if args.xs is None or args.xs.strip() == "":
         x_vals = None
     else:
         try:
-            x_vals = parse_array(args.x)
+            x_vals = parse_array(args.xs)
         except Exception as e:
             parser.error(str(e))
     
-    if args.z is None or args.z.strip() == "":
+    if args.zs is None or args.zs.strip() == "":
         z_vals = None
     else:
         try:
-            z_vals = parse_array(args.z)
+            z_vals = parse_array(args.zs)
         except Exception as e:
             parser.error(str(e))
     
