@@ -16,10 +16,13 @@ Default values:
   F     = 10   mm  (use inf for steering only)
   c     = 1480 m/s
   plot  = Y
+  elev  = 16   (camera elevation)
+  azim  = -82  (camera azimuth)
 
 Example usage:
   python interface/delay_laws3D_interface.py \
-    --M 8 --N 16 --sx 0.5 --sy 0.5 --theta 0 --phi 0 --F 10 --c 1480 --plot Y
+    --M 8 --N 16 --sx 0.5 --sy 0.5 --theta 0 --phi 0 --F 10 --c 1480 \
+    --plot Y --elev 16 --azim -82
 """
 
 import sys
@@ -40,7 +43,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
-    # Updated defaults to match your requested parameters
+    # Define arguments with updated defaults and new camera parameters
     parser.add_argument("--M", type=int, default=8,
                         help="Number of elements in x-direction. Default=8.")
     parser.add_argument("--N", type=int, default=16,
@@ -61,6 +64,10 @@ def main():
                         help="Output file to save the time delays. Default=delay_laws3D_output.txt")
     parser.add_argument("--plot", type=str, choices=["Y","N","y","n"], default="Y",
                         help="Display a 3D stem plot: 'Y'/'N'. Default=Y.")
+    parser.add_argument("--elev", type=safe_float, default=16.0,
+                        help="Camera elevation for 3D plot. Default=16.")
+    parser.add_argument("--azim", type=safe_float, default=-82.0,
+                        help="Camera azimuth for 3D plot. Default=-82.")
     
     args = parser.parse_args()
     
@@ -87,17 +94,16 @@ def main():
         fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111, projection='3d')
 
-        # X will correspond to column index (j), Y to row index (i).
-        # So we generate a grid, but we only need it for plotting lines.
+        # Generate grid indices for plotting
         X, Y = np.meshgrid(range(args.N), range(args.M))
 
         # Emulate MATLAB's stem3 by drawing vertical lines from z=0 to z=td[i,j].
         for i in range(args.M):
             for j in range(args.N):
                 ax.plot(
-                    [j, j],     # same x
-                    [i, i],     # same y
-                    [0, td[i, j]],  # z from 0 to td
+                    [j, j],     # x-axis (column index)
+                    [i, i],     # y-axis (row index)
+                    [0, td[i, j]],  # z-axis from 0 to delay value
                     marker='o',
                     color='b'
                 )
@@ -107,8 +113,8 @@ def main():
         ax.set_zlabel("Time Delay (µs)")
         ax.set_title(plot_title)
 
-        # Match MATLAB's view(-82,16)
-        ax.view_init(elev=16, azim=-82)
+        # Use CLI parameters for camera viewing angle
+        ax.view_init(elev=args.elev, azim=args.azim)
 
         plt.tight_layout()
         plt.show()
