@@ -21,7 +21,7 @@ This formulation is numerically approximated using discretization techniques, as
 ### 3. Analysis of the 1-D Piston Element (Figure 1)
 The first figure represents the **normalized pressure field along the z-axis for a 1-D piston element** computed using the RS integral. 
 
-![Figure 1: Normalized pressure calculation for a 1-D piston element using the Rayleigh-Sommerfeld Integral](examples/figures/Rayleigh-Sommerfeld_Integral_1D_piston.png)
+![Figure 1: Normalized pressure calculation for a 1-D piston element using the Rayleigh-Sommerfeld Integral](../../examples/figures/Rayleigh-Sommerfeld_Integral_1-D_piston.png)
 
 The numerical parameters include:
 - **Element half-length**: 3.175 mm (6.35/2 mm)
@@ -38,7 +38,7 @@ These observations validate fundamental properties of the **Fresnel and Fraunhof
 ### 4. Analysis of the 2-D Piston Element (Figure 2)
 The second figure presents the **2-D spatial distribution of the normalized pressure magnitude** using the RS integral.
 
-![Figure 2: Normalized pressure calculation for a 2-D piston element using the Rayleigh-Sommerfeld Integral](examples/figures/Rayleigh-Sommerfeld_Integral_2D_piston.png)
+![Figure 2: Normalized pressure calculation for a 2-D piston element using the Rayleigh-Sommerfeld Integral](../../examples/figures/Rayleigh-Sommerfeld_Integral_2-D_piston.png)
 
 The simulation parameters include:
 - **Element width**: 1.0 mm
