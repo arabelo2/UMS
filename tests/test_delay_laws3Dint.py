@@ -1,5 +1,3 @@
-# tests/test_delay_laws3Dint.py
-
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -153,26 +151,27 @@ def test_cli_default_run_no_plot():
     """
     Test CLI execution with default parameters but no plot.
     """
-    stdout, stderr, code = run_cli(["--plt=n"])
+    stdout, stderr, code = run_cli(["--plot=n"])
     assert code == 0, f"CLI exited with code {code}. stderr: {stderr}"
-    assert "Computed delays" in stdout
-    # We expect no error, and no figure should remain open.
+    assert "Computed delays:" in stdout
+    assert "Results saved to mps_array_model_int_output.txt" in stdout
 
 def test_cli_with_plot_and_z_scale():
     """
     Test CLI with a custom z_scale, verifying no error exit, 
     and presence of 'Computed delays' in stdout.
     """
-    stdout, stderr, code = run_cli(["--z_scale=100", "--plt=y", "--elev=10", "--azim=60"])
+    stdout, stderr, code = run_cli(["--z_scale=100", "--plot=y", "--elev=10", "--azim=60"])
     assert code == 0, f"CLI failed with code {code}. stderr: {stderr}"
-    assert "Computed delays" in stdout
+    assert "Computed delays:" in stdout
+    assert "Results saved to mps_array_model_int_output.txt" in stdout
 
 def test_cli_invalid_input():
     """
-    Test CLI with an invalid numeric input for Mx => we expect argparse to fail.
+    Test CLI with an invalid numeric input for L1 => we expect argparse to fail.
     """
-    stdout, stderr, code = run_cli(["--Mx=abc"])
-    assert code != 0, "CLI should fail when Mx is non-numeric."
+    stdout, stderr, code = run_cli(["--L1=abc"])
+    assert code != 0, "CLI should fail when L1 is non-numeric."
     assert "invalid int value" in stderr.lower()
 
 def test_cli_focusing_mode():
@@ -181,11 +180,12 @@ def test_cli_focusing_mode():
     and 'Computed delays' in stdout.
     """
     stdout, stderr, code = run_cli([
-        "--DF=5", "--Mx=4", "--My=4", "--theta=10", "--phi=15", "--theta20=40",
-        "--plt=n"
+        "--DF=5", "--L1=4", "--L2=4", "--theta=10", "--phi=15", "--theta20=40",
+        "--plot=n"
     ])
     assert code == 0, f"CLI focusing mode failed. stderr: {stderr}"
-    assert "Computed delays" in stdout
+    assert "Computed delays:" in stdout
+    assert "Results saved to mps_array_model_int_output.txt" in stdout
 
 def test_cli_extreme_rotation():
     """
@@ -193,11 +193,12 @@ def test_cli_extreme_rotation():
     verifying no error and presence of 'Computed delays'.
     """
     stdout, stderr, code = run_cli([
-        "--plt=y", "--z_scale=50", 
+        "--plot=y", "--z_scale=50", 
         "--elev=85", "--azim=-45"
     ])
     assert code == 0, f"CLI extreme rotation failed. stderr: {stderr}"
-    assert "Computed delays" in stdout
+    assert "Computed delays:" in stdout
+    assert "Results saved to mps_array_model_int_output.txt" in stdout
 
 def test_cli_big_z_scale():
     """
@@ -205,10 +206,11 @@ def test_cli_big_z_scale():
     """
     stdout, stderr, code = run_cli([
         "--z_scale=1000", 
-        "--plt=y"
+        "--plot=y"
     ])
     assert code == 0, f"CLI big z_scale test failed. stderr: {stderr}"
-    assert "Computed delays" in stdout
+    assert "Computed delays:" in stdout
+    assert "Results saved to mps_array_model_int_output.txt" in stdout
 
 if __name__ == "__main__":
     pytest.main()

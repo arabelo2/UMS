@@ -130,6 +130,10 @@ def main():
     x = result['x']
     z = result['z']
     
+    # Print computed delays to stdout
+    print("Computed delays:")
+    print(p)  # Print the computed delays
+    
     outfile = "mps_array_model_int_output.txt"
     with open(outfile, "w") as f:
          for i in range(p.shape[0]):

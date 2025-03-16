@@ -90,6 +90,9 @@ def main():
     parser.add_argument("--y", type=safe_float, default=0.0, help="Fixed y-coordinate for evaluation. Default: 0")
     parser.add_argument("--plot", type=lambda s: s.lower(), choices=["y", "n"], default="y", help="Plot the pressure field? (y/n). Default: y")
     parser.add_argument("--z_scale", type=safe_float, default=10.0, help="Scale factor for z-axis (delay values) in stem plot. Default: 10")
+    parser.add_argument("--elev", type=safe_float, default=25.0, help="Camera elevation for 3D plot. Default: 25")
+    parser.add_argument("--azim", type=safe_float, default=20.0, help="Camera azimuth for 3D plot. Default: 20")
+
     
     args = parser.parse_args()
     
