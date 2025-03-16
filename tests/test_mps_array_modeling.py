@@ -13,15 +13,23 @@ import matplotlib.pyplot as plt
 # ---------------------------
 def run_cli(args):
     """
-    Helper function to execute the CLI with given arguments.
+    Helper function to execute the mps_array_modeling_interface.py CLI with given arguments.
     Returns stdout, stderr, and the exit code.
     """
     # Set the matplotlib backend in the subprocess environment
     env = os.environ.copy()
-    env["MPLBACKEND"] = "Agg"  # Force the Agg backend in the subprocess
+    env["MPLBACKEND"] = "Agg"  # Use a non-interactive backend for matplotlib
 
-    cmd = ["python", "interface/mps_array_modeling_interface.py"] + args
-    result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    # Construct the absolute path to the script
+    script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../src/interface/mps_array_modeling_interface.py'))
+
+    # Run the CLI script
+    result = subprocess.run(
+        ["python", script_path] + args,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
     return result.stdout, result.stderr, result.returncode
 
 # Fixture to close all plots after each test

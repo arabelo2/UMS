@@ -20,8 +20,16 @@ def run_cli(args):
     env = os.environ.copy()
     env["MPLBACKEND"] = "Agg"  # Force the Agg backend in the subprocess
 
-    cmd = ["python", "interface/mps_array_model_int_interface.py"] + args
-    result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    # Construct the absolute path to the script
+    script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../src/interface/mps_array_model_int_interface.py'))
+
+    # Run the CLI script
+    result = subprocess.run(
+        ["python", script_path] + args,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
     return result.stdout, result.stderr, result.returncode
 
 # Fixture to close all plots after each test
