@@ -14,7 +14,7 @@ def ferrari2_scalar(cr, DF, DT, DX):
         DF  : float
               Depth in medium two (DF, in mm). Must be positive.
         DT  : float
-              Height in medium one (DT, in mm). Must be positive.
+              Height in medium one (DT, in mm). Must be non-negative.
         DX  : float
               Separation distance along the interface (in mm); can be positive or negative.
     
@@ -24,13 +24,20 @@ def ferrari2_scalar(cr, DF, DT, DX):
               xi is computed as (candidate root)*DT. Otherwise, the fallback root finder returns xi directly.
     """
     tol = 1e-6
-    
+
+    # Input validation
+    if not isinstance(cr, (int, float)) or cr <= 0:
+        raise ValueError("cr must be a positive number.")
+    if not isinstance(DF, (int, float)) or DF <= 0:
+        raise ValueError("DF must be positive.")
+    if not isinstance(DT, (int, float)) or DT < 0:
+        raise ValueError("DT must be non-negative.")
+    if not isinstance(DX, (int, float)):
+        raise ValueError("DX must be a number.")
+
     # Allow DT to be zero by substituting a small positive epsilon.
     if DT == 0:
         DT = tol
-    
-    if DF <= 0:
-        raise ValueError("DF must be positive.")
 
     # If the media are nearly identical, use the explicit solution.
     if abs(cr - 1) < tol:
