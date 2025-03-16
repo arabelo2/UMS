@@ -1,9 +1,7 @@
 # tests/test_delay_laws2D_int.py
 
-import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+import subprocess
 import numpy as np
 import pytest
 from application.delay_laws2D_int_service import (

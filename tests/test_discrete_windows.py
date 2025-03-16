@@ -2,19 +2,31 @@
 
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 import unittest
 import subprocess
-import os
+
+# Add the src directory to the Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 def run_cli(args):
     """
-    Helper function to call discrete_windows_interface.py with the provided args.
+    Helper function to execute the discrete_windows_interface.py CLI with given arguments.
     Returns stdout, stderr, and the exit code.
     """
-    cmd = ["python", "interface/discrete_windows_interface.py"] + args
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    # Set the matplotlib backend in the subprocess environment
+    env = os.environ.copy()
+    env["MPLBACKEND"] = "Agg"  # Use a non-interactive backend for matplotlib
+
+    # Construct the absolute path to the script
+    script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../src/interface/discrete_windows_interface.py'))
+
+    # Run the CLI script
+    result = subprocess.run(
+        ["python", script_path] + args,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
     return result.stdout, result.stderr, result.returncode
 
 class TestDiscreteWindowsInterface(unittest.TestCase):
@@ -40,7 +52,7 @@ class TestDiscreteWindowsInterface(unittest.TestCase):
 
     def test_plot_disabled(self):
         """
-        Provide --plot N. We skip the plot but still output the file. 
+        Provide --plot N. We skip the plot but still output the file.
         """
         stdout, stderr, code = run_cli(["--plot", "N"])
         self.assertEqual(code, 0, f"CLI exited with code {code}, stderr: {stderr}")
@@ -82,7 +94,7 @@ class TestDiscreteWindowsInterface(unittest.TestCase):
 
     def test_invalid_type_parameter(self):
         """
-        Provide an invalid wtype => domain logic raises ValueError => 
+        Provide an invalid wtype => domain logic raises ValueError =>
         exit code != 0, mention 'Invalid window type' in stderr.
         """
         stdout, stderr, code = run_cli(["--type", "foo"])

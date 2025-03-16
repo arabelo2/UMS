@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 # tests/test_ps_3Dint.py
-#!/usr/bin/env python3
-# tests/test_ps_3Dint.py
 
-import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 import pytest
 import numpy as np
 import matplotlib

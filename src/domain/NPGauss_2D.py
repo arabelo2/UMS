@@ -1,5 +1,6 @@
 # domain/NPGauss_2D.py
 
+import os
 import numpy as np
 import math
 from domain.gauss_c10 import gauss_c10

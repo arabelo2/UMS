@@ -2,21 +2,28 @@
 
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 import unittest
 import subprocess
-import os
 
 def run_cli(args):
     """
-    Helper function that calls delay_laws2D_interface.py with the provided args.
+    Helper function to execute the delay_laws2D_interface.py CLI with given arguments.
     Returns stdout, stderr, and the exit code.
     """
-    cmd = ["python", "interface/delay_laws2D_interface.py"] + args
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    return result.stdout, result.stderr, result.returncode
+    # Set the matplotlib backend in the subprocess environment
+    env = os.environ.copy()
+    env["MPLBACKEND"] = "Agg"  # Use a non-interactive backend for matplotlib
 
+    # Run the CLI script
+    result = subprocess.run(
+        ["python", "src/interface/delay_laws2D_interface.py"] + args,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    return result.stdout, result.stderr, result.returncode
 class TestDelayLaws2DInterface(unittest.TestCase):
 
     def setUp(self):

@@ -1,18 +1,28 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# tests/test_delay_laws3Dint.py
 
 import subprocess
 import numpy as np
 import pytest
+
+import os
+import subprocess
 
 def run_cli(args):
     """
     Helper function to execute the delay_laws3Dint_interface.py CLI with given arguments.
     Returns stdout, stderr, and the exit code.
     """
-    cmd = ["python", "interface/delay_laws3Dint_interface.py"] + args
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    # Set the matplotlib backend in the subprocess environment
+    env = os.environ.copy()
+    env["MPLBACKEND"] = "Agg"  # Use a non-interactive backend for matplotlib
+
+    # Run the CLI script
+    result = subprocess.run(
+        ["python", "src/interface/delay_laws3Dint_interface.py"] + args,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
     return result.stdout, result.stderr, result.returncode
 
 @pytest.fixture(autouse=True)

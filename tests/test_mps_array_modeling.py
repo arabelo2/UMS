@@ -1,9 +1,6 @@
 # tests/test_mps_array_modeling.py
 
-import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 import subprocess
 import numpy as np
 import pytest

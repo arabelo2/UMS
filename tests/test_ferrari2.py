@@ -1,9 +1,7 @@
 # tests/test_ferrari2.py
 
-import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+import subprocess
 import pytest
 import numpy as np
 import warnings

@@ -1,9 +1,6 @@
 # tests/test_NPGauss_2D.py
 
-import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 import pytest
 import subprocess
 import matplotlib
@@ -32,15 +29,20 @@ def remove_output_file():
 
 def run_cli(args):
     """
-    Helper function to call NPGauss_2D_interface.py with the provided args.
-    Returns stdout, stderr, and exit code.
+    Helper function to execute the NPGauss_2D_interface.py CLI with given arguments.
+    Returns stdout, stderr, and the exit code.
     """
     # Set the matplotlib backend in the subprocess environment
     env = os.environ.copy()
-    env["MPLBACKEND"] = "Agg"  # Force the Agg backend in the subprocess
+    env["MPLBACKEND"] = "Agg"  # Use a non-interactive backend for matplotlib
 
-    cmd = ["python", "interface/NPGauss_2D_interface.py"] + args
-    result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    # Run the CLI script
+    result = subprocess.run(
+        ["python", "src/interface/NPGauss_2D_interface.py"] + args,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
     return result.stdout, result.stderr, result.returncode
 
 def test_default_run():
