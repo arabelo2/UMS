@@ -9,19 +9,19 @@ class Ps3DInt:
     Core domain logic for computing velocity components (vx, vy, vz) using the ps_3Dint algorithm.
     """
 
-    def __init__(self, lx: float, ly: float, f: float, mat, ex: float, ey: float, angt: float, Dt0: float):
+    def __init__(self, lx, ly, f, mat, ex, ey, angt, Dt0):
         """
-        Initialize the rectangular piston for 3D velocity computation.
+        Initialize the Ps3DInt object.
 
         Parameters:
-            lx (float): Element length along the x-axis (mm).
-            ly (float): Element length along the y-axis (mm).
-            f (float): Frequency in MHz.
-            mat: Material properties [d1, cp1, d2, cp2, cs2, wave_type].
-            ex (float): Lateral offset along the x-axis (mm).
-            ey (float): Lateral offset along the y-axis (mm).
-            angt (float): Angle of the array relative to the interface (degrees).
-            Dt0 (float): Distance from the array center to the interface (mm).
+            lx   : float - Length of the array element in the x-direction (mm).
+            ly   : float - Length of the array element in the y-direction (mm).
+            f    : float - Frequency of the wave (MHz).
+            mat  : list  - Material properties [d1, cp1, d2, cp2, cs2, wave_type].
+            ex   : float - Offset of the element center from the array center in x (mm).
+            ey   : float - Offset of the element center from the array center in y (mm).
+            angt : float - Angle of the array relative to the interface (degrees).
+            Dt0  : float - Distance from the array center to the interface (mm).
 
         Raises:
             ValueError: If any input parameter is invalid.
@@ -33,8 +33,8 @@ class Ps3DInt:
             raise ValueError("ly must be a positive value.")
         if f <= 0:
             raise ValueError("f must be a positive value.")
-        if Dt0 < 0:
-            raise ValueError("Dt0 must be non-negative.")  # Allow Dt0 == 0 now
+        if Dt0 < 0:  # Allow Dt0 == 0 now
+            raise ValueError("Dt0 must be non-negative.")
         if not isinstance(mat, list) or len(mat) != 6:
             raise ValueError("mat must be a list of 6 elements.")
         if mat[-1] not in ['p', 's']:
@@ -57,7 +57,7 @@ class Ps3DInt:
         self.c1 = self.cp1
         self.c2 = self.cp2 if self.wave_type == 'p' else self.cs2
 
-        # Wave numbers (f in MHz, c in m/s)
+        # Wave numbers
         self.k1 = 2000 * np.pi * self.f / self.c1
         self.k2 = 2000 * np.pi * self.f / self.c2
 
@@ -101,9 +101,15 @@ class Ps3DInt:
                 xi = pts.compute_intersection(x, y, z)
 
                 # Compute incident and refracted angles
-                Db = np.sqrt((x - (self.ex + xc[rr]) * np.cos(self.angt)) ** 2 + (y - (self.ey + yc[qq])) ** 2)
+                Db = np.sqrt((x - (self.ex + xc[rr]) * np.cos(self.angt)) ** 2 +
+                             (y - (self.ey + yc[qq])) ** 2)
                 Ds = self.Dt0 + (self.ex + xc[rr]) * np.sin(self.angt)
-                ang1 = np.where(Db != 0, np.arctan2(xi, Ds), 0)
+                # Compute raw angle (radians) using arctan2
+                raw_ang1 = np.where(Db != 0, np.arctan2(xi, Ds), 0)
+                # Convert to degrees, take absolute value, and clip to [0, 90]
+                ang1_deg = np.clip(np.abs(np.rad2deg(raw_ang1)), 0, 90)
+                # Convert back to radians for further computations
+                ang1 = np.deg2rad(ang1_deg)
                 ang2 = np.where(ang1 != 0, np.arctan2(Db - xi, z), 0)
 
                 # Ray path lengths
@@ -120,12 +126,15 @@ class Ps3DInt:
                 pz = np.where(Db != 0, z / r2_safe, 1)
 
                 # Transmission coefficients
-                tpp, tps = FluidSolidTransmission.compute_coefficients(self.d1, self.cp1, self.d2, self.cp2, self.cs2, np.rad2deg(ang1))
+                tpp, tps = FluidSolidTransmission.compute_coefficients(
+                    self.d1, self.cp1, self.d2, self.cp2, self.cs2, np.rad2deg(ang1)
+                )
                 T = np.where(self.wave_type == 'p', tpp, tps)
 
                 # Directivity term
-                argx = self.k1 * (x - (self.ex + xc[rr]) * np.cos(self.angt)) * dx / (2 * r1)
-                argy = self.k1 * (y - (self.ey + yc[qq])) * dy / (2 * r1)
+                r1_safe = np.where(np.abs(r1) < eps, eps, r1)
+                argx = self.k1 * (x - (self.ex + xc[rr]) * np.cos(self.angt)) * dx / (2 * r1_safe)
+                argy = self.k1 * (y - (self.ey + yc[qq])) * dy / (2 * r1_safe)
                 dir_term = (np.sinc(argx / np.pi) * np.sinc(argy / np.pi))
 
                 # Denominator terms

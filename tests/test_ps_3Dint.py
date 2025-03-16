@@ -71,11 +71,16 @@ def test_angt_90(default_params, coordinates):
     assert vy.shape == (1, 31)
     assert vz.shape == (1, 31)
 
-def test_Dt0_zero(default_params, coordinates):
-    """Test with Dt0 = 0 (array on the interface)."""
-    with pytest.raises(ValueError):
-        ps = Ps3DInt(**{**default_params, "Dt0": 0})
-        vx, vy, vz = ps.compute_velocity_components(coordinates["x"], coordinates["y"], coordinates["z"])
+def test_Dt0_zero_valid(default_params, coordinates):
+    """Test with Dt0 = 0 (array on the interface) is now allowed and computes valid velocity components."""
+    # We update the default so Dt0=0 is permitted.
+    ps = Ps3DInt(**{**default_params, "Dt0": 0})
+    vx, vy, vz = ps.compute_velocity_components(coordinates["x"], coordinates["y"], coordinates["z"])
+    # Check output shapes and that the outputs are finite.
+    assert vx.shape == coordinates["x"].shape
+    assert np.all(np.isfinite(vx))
+    assert np.all(np.isfinite(vy))
+    assert np.all(np.isfinite(vz))
 
 def test_f_zero(default_params, coordinates):
     """Test with f = 0 (zero frequency)."""
