@@ -5,7 +5,6 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import argparse
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from application.rs_2Dv_service import run_rs_2Dv_service
@@ -70,7 +69,7 @@ def main():
     parser.add_argument("--plot-mode", type=str, choices=["both", "1D", "2D"], default="both",
                         help="Plot mode: 'both' to show both 1D and 2D plots, '1D' to show only the 1D plot, '2D' to show only the 2D plot. Default: both.")
     
-    args = parser.parse_args()
+    args = parser.parse_args()  # Parse command-line arguments
     
     # Process 1D simulation z parameter.
     try:
@@ -111,10 +110,12 @@ def main():
     if args.plot_mode in ["both", "1D"]:
         plt.figure(figsize=(8, 5))
         plt.plot(z1, np.abs(p1), 'b-', lw=2)
-        plt.xlabel("z (mm)")
-        plt.ylabel("Normalized Pressure Magnitude")
-        plt.title("1D Rayleigh–Sommerfeld Simulation")
-        plt.grid(True)
+        plt.xlabel("z (mm)", fontsize=18)  # Set fontsize for x-axis label
+        plt.ylabel("Normalized pressure magnitude", fontsize=18)  # Set fontsize for y-axis label
+        plt.title("Normalized pressure calculation for a 1-D piston element using the Rayleigh-Sommerfeld Integral", fontsize=20)  # Set fontsize for title
+        plt.tick_params(axis='both', labelsize=16)  # Set fontsize for tick labels on both axes
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)  # Enable grid for both major and minor ticks
+        plt.minorticks_on()  # Enable minor ticks
     
     # Plotting 2D simulation.
     if args.plot_mode in ["both", "2D"]:
@@ -122,12 +123,17 @@ def main():
         plt.imshow(np.abs(p2), cmap="jet",
                    extent=[x2.min(), x2.max(), z2.max(), z2.min()],
                    aspect='auto')
-        plt.xlabel("x (mm)")
-        plt.ylabel("z (mm)")
-        plt.title("2D Rayleigh–Sommerfeld Simulation")
-        plt.colorbar(label="Pressure Magnitude")
+        plt.xlabel("x (mm)", fontsize=16)  # Set fontsize for x-axis label
+        plt.ylabel("z (mm)", fontsize=16)  # Set fontsize for y-axis label
+        plt.title("Normalized pressure calculation for a 2-D piston element using the Rayleigh-Sommerfeld Integral", fontsize=18)  # Set fontsize for title
+        cbar = plt.colorbar()  # Create colorbar
+        cbar.set_label("Normalized pressure magnitude", fontsize=16)  # Set fontsize for colorbar label
+        cbar.ax.tick_params(labelsize=14)  # Set fontsize for colorbar tick labels
+        plt.tick_params(axis='both', labelsize=16)  # Set fontsize for tick labels on both axes
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)  # Enable grid for both major and minor ticks
+        plt.minorticks_on()  # Enable minor ticks
     
     plt.show()
 
 if __name__ == '__main__':
-    main()
+    main()  # Ensure the script runs as the main program
