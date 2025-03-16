@@ -7,6 +7,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import subprocess
 import numpy as np
 import pytest
+import matplotlib
+matplotlib.use('Agg')  # Set the backend to non-interactive globally
+import matplotlib.pyplot as plt
 
 # ---------------------------
 # Helper function for CLI tests
@@ -16,9 +19,32 @@ def run_cli(args):
     Helper function to execute the mps_array_model_int_interface.py CLI with given arguments.
     Returns stdout, stderr, and the exit code.
     """
+    # Set the matplotlib backend in the subprocess environment
+    env = os.environ.copy()
+    env["MPLBACKEND"] = "Agg"  # Force the Agg backend in the subprocess
+
     cmd = ["python", "interface/mps_array_model_int_interface.py"] + args
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, env=env)
     return result.stdout, result.stderr, result.returncode
+
+# Fixture to close all plots after each test
+@pytest.fixture(autouse=True)
+def close_plots_after_test():
+    """
+    Fixture to close all matplotlib plots after each test.
+    """
+    yield
+    plt.close('all')
+
+# Fixture to remove the output file before and after each test
+@pytest.fixture(autouse=True)
+def cleanup_output_files():
+    """Cleanup generated output files after each test."""
+    files = ["mps_array_model_int_output.txt"]
+    yield
+    for f in files:
+        if os.path.exists(f):
+            os.remove(f)
 
 # ---------------------------
 # Domain Layer Tests
@@ -130,15 +156,6 @@ def test_service_layer_focusing():
 # ---------------------------
 # Interface Layer Tests (CLI)
 # ---------------------------
-@pytest.fixture(autouse=True)
-def cleanup_output_files():
-    """Cleanup generated output files after each test."""
-    files = ["mps_array_model_int_output.txt"]
-    yield
-    for f in files:
-        if os.path.exists(f):
-            os.remove(f)
-
 def test_cli_default_run():
     """
     Test running the CLI with default parameters (plot disabled).

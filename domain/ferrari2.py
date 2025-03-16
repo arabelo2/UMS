@@ -30,8 +30,8 @@ def ferrari2_scalar(cr, DF, DT, DX):
         raise ValueError("cr must be a positive number.")
     if not isinstance(DF, (int, float)) or DF <= 0:
         raise ValueError("DF must be positive.")
-    if not isinstance(DT, (int, float)):
-        raise ValueError("DT must be a number.")
+    if not isinstance(DT, (int, float)) or DT < 0:
+        raise ValueError("DT must be non-negative.")
     
     # Clamp DT to 0 if it's slightly negative (due to numerical precision)
     DT = max(DT, 0)
