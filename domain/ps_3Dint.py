@@ -96,14 +96,17 @@ class Ps3DInt:
         # Loop over segments
         for rr in range(R):
             for qq in range(Q):
+                # Compute Ds and clamp it to a small positive value if negative
+                Ds = self.Dt0 + (self.ex + xc[rr]) * np.sin(self.angt)
+                Ds = max(Ds, eps)  # Ensure Ds is non-negative
+
                 # Compute intersection point xi
-                pts = Pts3DIntf(self.ex, self.ey, xc[rr], yc[qq], np.rad2deg(self.angt), self.Dt0, self.c1, self.c2)
+                pts = Pts3DIntf(self.ex, self.ey, xc[rr], yc[qq], np.rad2deg(self.angt), Ds, self.c1, self.c2)
                 xi = pts.compute_intersection(x, y, z)
 
                 # Compute incident and refracted angles
                 Db = np.sqrt((x - (self.ex + xc[rr]) * np.cos(self.angt)) ** 2 +
                              (y - (self.ey + yc[qq])) ** 2)
-                Ds = self.Dt0 + (self.ex + xc[rr]) * np.sin(self.angt)
                 # Compute raw angle (radians) using arctan2
                 raw_ang1 = np.where(Db != 0, np.arctan2(xi, Ds), 0)
                 # Convert to degrees, take absolute value, and clip to [0, 90]

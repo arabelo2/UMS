@@ -7,7 +7,7 @@ from domain.interface2 import interface2
 def ferrari2_scalar(cr, DF, DT, DX):
     """
     Solve for the intersection point, xi (in mm), using Ferrari's method for scalar inputs.
-    
+
     Parameters:
         cr  : float
               Ratio c1/c2 (wave speed in medium one divided by wave speed in medium two).
@@ -17,7 +17,7 @@ def ferrari2_scalar(cr, DF, DT, DX):
               Height in medium one (DT, in mm). Must be non-negative.
         DX  : float
               Separation distance along the interface (in mm); can be positive or negative.
-    
+
     Returns:
         xi  : float
               The computed intersection point (in mm). If a valid candidate is found via Ferrari’s method,
@@ -30,10 +30,11 @@ def ferrari2_scalar(cr, DF, DT, DX):
         raise ValueError("cr must be a positive number.")
     if not isinstance(DF, (int, float)) or DF <= 0:
         raise ValueError("DF must be positive.")
-    if not isinstance(DT, (int, float)) or DT < 0:
-        raise ValueError("DT must be non-negative.")
-    if not isinstance(DX, (int, float)):
-        raise ValueError("DX must be a number.")
+    if not isinstance(DT, (int, float)):
+        raise ValueError("DT must be a number.")
+    
+    # Clamp DT to 0 if it's slightly negative (due to numerical precision)
+    DT = max(DT, 0)
 
     # Allow DT to be zero by substituting a small positive epsilon.
     if DT == 0:
