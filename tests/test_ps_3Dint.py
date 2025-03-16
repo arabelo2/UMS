@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # tests/test_ps_3Dint.py
+#!/usr/bin/env python3
+# tests/test_ps_3Dint.py
 
 import sys
 import os
@@ -7,7 +9,19 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # Set the backend to non-interactive
+import matplotlib.pyplot as plt
 from domain.ps_3Dint import Ps3DInt
+
+# Fixture to close all plots after each test
+@pytest.fixture(autouse=True)
+def close_plots_after_test():
+    """
+    Fixture to close all matplotlib plots after each test.
+    """
+    yield
+    plt.close('all')
 
 # Default parameters for testing
 @pytest.fixture
@@ -136,3 +150,6 @@ def test_negative_parameters(default_params, coordinates):
         Ps3DInt(**{**default_params, "f": -5})
     with pytest.raises(ValueError):
         Ps3DInt(**{**default_params, "Dt0": -50.8})
+
+if __name__ == '__main__':
+    pytest.main()

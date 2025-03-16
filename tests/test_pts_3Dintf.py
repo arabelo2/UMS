@@ -6,7 +6,19 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # Set the backend to non-interactive
+import matplotlib.pyplot as plt
 from application.pts_3Dintf_service import run_pts_3Dintf_service
+
+# Fixture to close all plots after each test
+@pytest.fixture(autouse=True)
+def close_plots_after_test():
+    """
+    Fixture to close all matplotlib plots after each test.
+    """
+    yield
+    plt.close('all')
 
 @pytest.mark.parametrize(
     "ex, ey, xn, yn, angt, Dt0, c1, c2, x, y, z, expected_shape",

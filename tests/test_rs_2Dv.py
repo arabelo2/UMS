@@ -9,6 +9,8 @@ import numpy as np
 import sys
 from io import StringIO
 import argparse
+import matplotlib
+matplotlib.use('Agg')  # Set the backend to non-interactive
 import matplotlib.pyplot as plt
 
 # Import helper functions from cli_utils.
@@ -19,6 +21,13 @@ from interface.rs_2Dv_interface import main as cli_main
 
 # Import the service layer for direct testing.
 from application.rs_2Dv_service import run_rs_2Dv_service
+
+# Fixture to close all plots after each test
+def tearDownModule():
+    """
+    Close all matplotlib plots after the test module completes.
+    """
+    plt.close('all')
 
 class TestCliUtils(unittest.TestCase):
     def test_safe_eval_valid(self):
@@ -59,11 +68,14 @@ class TestCliUtils(unittest.TestCase):
 
 class TestInterfaceMain(unittest.TestCase):
     def setUp(self):
-        # Backup original sys.argv and sys.stdout.
+        # Backup original sys.argv, sys.stdout, and sys.stderr.
         self.original_argv = sys.argv.copy()
         self.original_stdout = sys.stdout
+        self.original_stderr = sys.stderr
         self.captured_output = StringIO()
+        self.captured_errors = StringIO()
         sys.stdout = self.captured_output
+        sys.stderr = self.captured_errors
         # Patch plt.show() to a dummy function so that the tests do not block.
         self.original_show = plt.show
         plt.show = lambda: None
@@ -71,6 +83,7 @@ class TestInterfaceMain(unittest.TestCase):
     def tearDown(self):
         sys.argv = self.original_argv
         sys.stdout = self.original_stdout
+        sys.stderr = self.original_stderr
         plt.show = self.original_show
 
     def test_cli_main_valid_1D(self):
@@ -147,6 +160,9 @@ class TestInterfaceMain(unittest.TestCase):
         ]
         with self.assertRaises(SystemExit):
             cli_main()
+        # Capture and discard the error message.
+        errors = self.captured_errors.getvalue()
+        self.assertIn("Invalid arithmetic expression", errors)
 
     def test_cli_main_invalid_x2(self):
         # Test that providing an invalid array for --x2 causes a SystemExit.
@@ -162,6 +178,9 @@ class TestInterfaceMain(unittest.TestCase):
         ]
         with self.assertRaises(SystemExit):
             cli_main()
+        # Capture and discard the error message.
+        errors = self.captured_errors.getvalue()
+        self.assertIn("Invalid format", errors)
 
     def test_cli_main_invalid_z2(self):
         # Test that providing an invalid array for --z2 causes a SystemExit.
@@ -177,7 +196,9 @@ class TestInterfaceMain(unittest.TestCase):
         ]
         with self.assertRaises(SystemExit):
             cli_main()
-
+        # Capture and discard the error message.
+        errors = self.captured_errors.getvalue()
+        self.assertIn("Invalid format", errors)
 class TestRS2DvService(unittest.TestCase):
     def test_service_returns_valid_output_1D(self):
         # Test that the service returns a NumPy array of the correct size for 1D simulation.

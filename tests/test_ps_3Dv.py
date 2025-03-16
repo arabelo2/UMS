@@ -6,7 +6,19 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import numpy as np
 import pytest
+import matplotlib
+matplotlib.use('Agg')  # Set the backend to non-interactive
+import matplotlib.pyplot as plt
 from application.ps_3Dv_service import run_ps_3Dv_service
+
+# Fixture to close all plots after each test
+@pytest.fixture(autouse=True)
+def close_plots_after_test():
+    """
+    Fixture to close all matplotlib plots after each test.
+    """
+    yield
+    plt.close('all')
 
 # Helper functions to mimic the interface meshgrid creation for 2D and 3D cases.
 def meshgrid_2d(x, y):

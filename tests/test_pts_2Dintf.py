@@ -8,6 +8,9 @@ import unittest
 import sys
 from io import StringIO
 from unittest.mock import patch
+import matplotlib
+matplotlib.use('Agg')  # Set the backend to non-interactive
+import matplotlib.pyplot as plt
 
 class TestPts2DintfInterface(unittest.TestCase):
     def setUp(self):
@@ -22,6 +25,7 @@ class TestPts2DintfInterface(unittest.TestCase):
     def tearDown(self):
         sys.stdout = self.orig_stdout
         sys.stderr = self.orig_stderr
+        plt.close('all')  # Close all matplotlib plots after each test
 
     def run_interface(self, args_list):
         """

@@ -7,7 +7,17 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import unittest
 import numpy as np
 import math
+import matplotlib
+matplotlib.use('Agg')  # Set the backend to non-interactive
+import matplotlib.pyplot as plt
 from application.on_axis_foc2D_service import run_on_axis_foc2D_service
+
+# Fixture to close all plots after each test
+def tearDownModule():
+    """
+    Close all matplotlib plots after the test module completes.
+    """
+    plt.close('all')
 
 class TestOnAxisFoc2DService(unittest.TestCase):
 
@@ -80,3 +90,4 @@ class TestOnAxisFoc2DService(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+    

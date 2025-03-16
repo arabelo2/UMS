@@ -6,7 +6,19 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import numpy as np
 import pytest
+import matplotlib
+matplotlib.use('Agg')  # Set the backend to non-interactive
+import matplotlib.pyplot as plt
 from application.mls_array_modeling_gauss_service import run_mls_array_modeling_gauss
+
+# Fixture to close all plots after each test
+@pytest.fixture(autouse=True)
+def close_plots_after_test():
+    """
+    Fixture to close all matplotlib plots after each test.
+    """
+    yield
+    plt.close('all')
 
 def test_pressure_field_shape():
     """

@@ -68,13 +68,13 @@ def on_axis_foc2D(b, R, f, c, z):
     # For z <= R, use positive u; for z > R, use negative u.
     # We use element-wise conditions.
     x_val = np.where(z <= R,
-                     np.sqrt((u * kb * b) / (np.pi * z)),
-                     np.sqrt((-u * kb * b) / (np.pi * z)))
+                     np.sqrt((u * kb * b) / (np.pi * z)),  # Allow complex results
+                     np.sqrt((-u * kb * b) / (np.pi * z)))  # Allow complex results
     
     # Denom is computed similarly.
     denom_val = np.where(z <= R,
-                         np.sqrt(u),
-                         np.sqrt(-u))
+                         np.sqrt(u),  # Allow complex results
+                         np.sqrt(-u))  # Allow complex results
     
     # Compute the Fresnel integral: for z<=R use fresnel_int(x_val), for z>R use its conjugate.
     Fr = np.where(z <= R,
