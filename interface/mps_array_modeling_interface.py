@@ -133,7 +133,7 @@ def main():
          for i in range(p.shape[0]):
              for j in range(p.shape[1]):
                  f.write(f"{p[i, j].real:.6f}+{p[i, j].imag:.6f}j\n")
-    print(f"Results saved to {outfile}")
+    print(f"Pressure field magnitude saved to {outfile}")
     
     if args.plot == "y":
          plt.figure(figsize=(10, 6))
