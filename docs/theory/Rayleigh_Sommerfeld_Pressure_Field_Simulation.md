@@ -6,13 +6,15 @@ Ultrasonic phased arrays rely on the precise modeling of acoustic wave propagati
 ### 2. The Rayleigh-Sommerfeld Integral and Piston Element Models
 The Rayleigh-Sommerfeld integral is a boundary integral formulation that provides the pressure field at any observation point based on the contributions from a finite-sized aperture. This approach assumes a monochromatic wave propagating through an isotropic medium, making it particularly well-suited for modeling phased array elements (Schmerr, 2015, Chapter 2). The RS integral is expressed as:
 
-\[ p(x, z) = \frac{i \rho c}{2\pi} \int_S \frac{e^{ikR}}{R} dS \]
+\[
+    p(x, z) = \frac{i \rho c}{2\pi} \int_S \frac{e^{ikR}}{R} dS
+\]
 
 where:
 - \( p(x, z) \) is the pressure at point \( (x, z) \),
 - \( \rho \) is the fluid density,
 - \( c \) is the wave propagation speed,
-- \( k \) is the wave number \( (2\pi/\lambda) \),
+- \( k \) is the wave number \( \frac{2\pi}{\lambda} \),
 - \( R \) is the distance between the source and observation point,
 - \( S \) is the surface of the piston element.
 
@@ -27,7 +29,7 @@ The numerical parameters include:
 - **Element half-length**: 3.175 mm (6.35/2 mm)
 - **Frequency**: 5 MHz
 - **Propagation speed**: 1500 m/s
-- **Spatial resolution**: \( \lambda/20 = 0.015 \) mm
+- **Spatial resolution**: \( \frac{\lambda}{20} = 0.015 \) mm
 
 This plot showcases **two key physical effects**:
 1. **Near-field fluctuations (0 < z < 50 mm)**: The oscillatory behavior in this region is consistent with diffraction effects from the finite aperture. This corresponds to the region where interference from different parts of the element is significant (Schmerr, 2015, Section 2.3).
@@ -44,7 +46,7 @@ The simulation parameters include:
 - **Element width**: 1.0 mm
 - **Frequency**: 5 MHz
 - **Propagation speed**: 1500 m/s
-- **Spatial resolution**: \( \lambda/10 = 0.030 \) mm
+- **Spatial resolution**: \( \frac{\lambda}{10} = 0.030 \) mm
 
 This figure reveals **three critical wave phenomena**:
 1. **Primary beam formation along the z-axis**: The high-intensity central lobe confirms the expected focusing behavior of a **single-element piston transducer** (Schmerr, 2015, Chapter 4.6).
@@ -56,3 +58,4 @@ The presented figures align closely with theoretical predictions based on the Ra
 
 ### References
 Schmerr, L. W. (2015). *Fundamentals of Ultrasonic Phased Arrays*. Springer International Publishing.
+
