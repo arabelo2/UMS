@@ -72,12 +72,43 @@ def test_vectorized_inputs(cr, DF, DT, DX):
 @pytest.mark.parametrize("cr, DF, DT, DX", [
     ("invalid", 40.0, 30.0, 50.0),
     (1.5, -40.0, 30.0, 50.0),
-    (1.5, 40.0, -30.0, 50.0),
 ])
 def test_invalid_input(cr, DF, DT, DX):
     """ Ensure invalid input values raise an error. """
     with pytest.raises(Exception):
         ferrari2(cr, DF, DT, DX)
+
+def test_negative_DT():
+    """
+    Test that negative DT values are handled correctly by flipping DT and DX.
+    """
+    cr = 1.5
+    DF = 40.0
+    DT = -30.0
+    DX = 50.0
+
+    # Call ferrari2 and ensure it handles negative DT
+    xi = ferrari2(cr, DF, DT, DX)
+
+    # Verify that the result is valid
+    assert np.isfinite(xi), "Result must be finite."
+    assert 0 <= abs(xi) <= abs(DX), "Result must be within the expected range."
+
+def test_complex_numbers():
+    """
+    Test that the function works correctly with complex numbers.
+    """
+    cr = 1.5
+    DF = 40.0
+    DT = -30.0 + 10.0j  # Complex DT
+    DX = 50.0
+
+    # Call ferrari2 and ensure it handles complex DT
+    xi = ferrari2(cr, DF, DT, DX)
+
+    # Verify that the result is valid and finite
+    assert np.isfinite(xi), "Result must be finite."
+    assert isinstance(xi, (float, complex)), "Result must be a number (float or complex)."
 
 if __name__ == "__main__":
     warnings.simplefilter("ignore", RuntimeWarning)

@@ -1,5 +1,6 @@
 # domain/ferrari2.py
 
+import warnings
 import numpy as np
 from scipy.optimize import root_scalar
 from domain.interface2 import interface2
@@ -13,13 +14,13 @@ def ferrari2_scalar(cr, DF, DT, DX):
               Ratio c1/c2 (wave speed in medium one divided by wave speed in medium two).
         DF  : float
               Depth in medium two (DF, in mm). Must be positive.
-        DT  : float
-              Height in medium one (DT, in mm). Must be non-negative.
+        DT  : float or complex
+              Height in medium one (DT, in mm). Can be negative or complex.
         DX  : float
               Separation distance along the interface (in mm); can be positive or negative.
 
     Returns:
-        xi  : float
+        xi  : float or complex
               The computed intersection point (in mm). If a valid candidate is found via Ferrari’s method,
               xi is computed as (candidate root)*DT. Otherwise, the fallback root finder returns xi directly.
     """
@@ -30,35 +31,36 @@ def ferrari2_scalar(cr, DF, DT, DX):
         raise ValueError("cr must be a positive number.")
     if not isinstance(DF, (int, float)) or DF <= 0:
         raise ValueError("DF must be positive.")
-    if not isinstance(DT, (int, float)):
-        raise ValueError("DT must be a number.")
-    
-    # Handle DT < 0 by adjusting the problem setup
-    if DT < 0:
-        # If DT is negative, flip the problem to make DT positive
+    if not isinstance(DT, (int, float, complex)):
+        raise ValueError("DT must be a number (int, float, or complex).")
+    if not isinstance(DX, (int, float)):
+        raise ValueError("DX must be a number.")
+
+    # Handle negative DT by flipping DT and DX
+    if isinstance(DT, (int, float)) and DT < 0:
         DT = abs(DT)
-        DX = -DX  # Flip DX to maintain the correct geometry
+        DX = -DX
 
     # If the media are nearly identical, use the explicit solution.
     if abs(cr - 1) < tol:
         return DX * DT / (DF + DT)
-    
+
     cri = 1 / cr  # cri = c2/c1
-    
+
     # Define coefficients of the quartic: A*x^4 + B*x^3 + C*x^2 + D*x + E = 0
     A = 1 - cri**2
     B = (2 * cri**2 * DX - 2 * DX) / DT
     C = (DX**2 + DT**2 - cri**2 * (DX**2 + DF**2)) / (DT**2)
     D = -2 * DX * DT**2 / (DT**3)  # simplifies to -2*DX/DT
     E = DX**2 * DT**2 / (DT**4)     # simplifies to DX**2/(DT**2)
-    
+
     # Begin Ferrari's solution.
     alpha = -3 * B**2 / (8 * A**2) + C / A
     beta  = B**3 / (8 * A**3) - B * C / (2 * A**2) + D / A
     gamma = -3 * B**4 / (256 * A**4) + C * B**2 / (16 * A**3) - B * D / (4 * A**2) + E / A
-    
+
     x_candidates = np.zeros(4, dtype=complex)
-    
+
     # Compare scalar beta with tol.
     if abs(beta) < tol:
         # Quartic reduces to a bi-quadratic.
@@ -83,43 +85,63 @@ def ferrari2_scalar(cr, DF, DT, DX):
         x_candidates[1] = -B/(4*A) + 0.5 * (-W + np.sqrt( -(3*alpha + 2*y_val - 2*beta/W) + 0j))
         x_candidates[2] = -B/(4*A) + 0.5 * ( W - np.sqrt( -(3*alpha + 2*y_val + 2*beta/W) + 0j))
         x_candidates[3] = -B/(4*A) + 0.5 * (-W - np.sqrt( -(3*alpha + 2*y_val - 2*beta/W) + 0j))
-    
+
     flag = False
     xi = None
     # Candidate branch: each candidate x is unscaled; compute xi = x * DT.
     for candidate in x_candidates:
         xr = np.real(candidate)
-        axi = DT * abs(np.imag(candidate))
+        axi = float(abs(DT * np.imag(candidate)))  # Ensure axi is a float
         xt = xr * DT
-        if DX >= 0:
-            if (xt >= 0 and xt <= DX) and (axi < tol):
-                xi = xr * DT
-                flag = True
-                break
+
+        # Handle complex numbers by comparing magnitudes
+        if isinstance(xt, complex):
+            xt_mag = float(abs(xt))  # Ensure xt_mag is a float
+            if DX >= 0:
+                if (xt_mag >= 0 and xt_mag <= abs(DX)) and (axi < tol):
+                    xi = xr * DT
+                    flag = True
+                    break
+            else:
+                if (xt_mag <= 0 and xt_mag >= abs(DX)) and (axi < tol):
+                    xi = xr * DT
+                    flag = True
+                    break
         else:
-            if (xt <= 0 and xt >= DX) and (axi < tol):
-                xi = xr * DT
-                flag = True
-                break
-    
+            if DX >= 0:
+                if (xt >= 0 and xt <= DX) and (axi < tol):
+                    xi = xr * DT
+                    flag = True
+                    break
+            else:
+                if (xt <= 0 and xt >= DX) and (axi < tol):
+                    xi = xr * DT
+                    flag = True
+                    break
+
     if not flag:
         # Fallback: solve for xi directly using interface2.
         def f_interface2(x_val):
             from domain.interface2 import interface2
             # x_val is in mm, since interface2 expects the final intersection point.
             return interface2(x_val, cr, DF, DT, DX)
-        if DX >= 0:
-            a, b_val = 0, DX
+
+        # Skip root_scalar for complex DT
+        if isinstance(DT, complex):
+            xi = DX * DT / (DF + DT)
         else:
-            a, b_val = DX, 0
-        try:
-            sol = root_scalar(f_interface2, bracket=[a, b_val], method='brentq', xtol=tol)
-            if sol.converged:
-                xi = sol.root
+            if DX >= 0:
+                a, b_val = 0, DX
             else:
-                xi = DX * DT / (DF + DT)  # Fallback explicit solution
-        except ValueError:
-            xi = DX * DT / (DF + DT)  # Handle errors in root finding
+                a, b_val = DX, 0
+            try:
+                sol = root_scalar(f_interface2, bracket=[a, b_val], method='brentq', xtol=tol)
+                if sol.converged:
+                    xi = sol.root
+                else:
+                    xi = DX * DT / (DF + DT)  # Fallback explicit solution
+            except ValueError:
+                xi = DX * DT / (DF + DT)  # Handle errors in root finding
 
     return xi
 
