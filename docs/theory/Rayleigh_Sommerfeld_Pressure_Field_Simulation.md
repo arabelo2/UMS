@@ -20,8 +20,43 @@ where:
 
 This formulation is numerically approximated using discretization techniques, as described in **Chapter 2 (Acoustic Field of a 1-D Array Element)** and **Appendix C.1 (Beam Models for Single Elements)** of Schmerr’s work.
 
-### 3. Analysis of the 1-D Piston Element (Figure 1)
-The first figure represents the **normalized pressure field along the z-axis for a 1-D piston element** computed using the RS integral. 
+### 3. Computational Procedure for Generating the Figures
+
+The pressure field visualizations presented in this study were generated using a numerical implementation of the Rayleigh-Sommerfeld integral. The computational model is executed using the following commands from the repository's root directory:
+
+#### **Generation of the 1-D Piston Element Pressure Field**
+
+The **1-D normalized pressure field** was computed using:
+```sh
+python ../../src/interface/rs_2Dv_interface.py --b 6.35/2 --f 5 --c 1500 --e 0 --x 0 --z '5,230,15000' --plot-mode 1D
+```
+This command produces the **Figure 1** output and uses the following parameters:
+- **`--b 6.35/2`**: Half-length of the piston element (3.175 mm)
+- **`--f 5`**: Frequency of 5 MHz
+- **`--c 1500`**: Propagation speed of 1500 m/s
+- **`--e 0`**: No lateral offset
+- **`--x 0`**: X-coordinate for evaluation
+- **`--z '5,230,15000'`**: Z-coordinates spanning from 5 mm to 230 mm, with 15000 points
+- **`--plot-mode 1D`**: Output a 1-Dimensional pressure field
+
+#### **Generation of the 2-D Piston Element Pressure Field**
+
+The **2-D normalized pressure field** was computed using:
+```sh
+python ../../src/interface/rs_2Dv_interface.py --b 1.0 --f 5 --c 1500 --e 0 --x2="-10,10,700" --z2="1,22,700" --plot-mode 2D
+```
+This command produces the **Figure 2** output and uses the following parameters:
+- **`--b 1.0`**: Element width of 1.0 mm
+- **`--f 5`**: Frequency of 5 MHz
+- **`--c 1500`**: Propagation speed of 1500 m/s
+- **`--e 0`**: No lateral offset
+- **`--x2="-10,10,700"`**: X-coordinates spanning from -10 mm to 10 mm, with 700 points
+- **`--z2="1,22,700"`**: Z-coordinates spanning from 1 mm to 22 mm, with 700 points
+- **`--plot-mode 2D`**: Output a 2-Dimensional pressure field
+
+This ensures **reproducibility** and makes the numerical procedures clear for other researchers.
+
+### 4. Analysis of the 1-D Piston Element (Figure 1)
 
 ![Figure 1: Normalized pressure calculation for a 1-D piston element using the Rayleigh-Sommerfeld Integral](../../examples/figures/Rayleigh-Sommerfeld_Integral_1-D_piston.png)
 
@@ -31,14 +66,7 @@ The numerical parameters include:
 - **Propagation speed**: 1500 m/s
 - **Spatial resolution**: $\frac{\lambda}{20} = 0.015$ mm
 
-This plot showcases **two key physical effects**:
-1. **Near-field fluctuations (0 < z < 50 mm)**: The oscillatory behavior in this region is consistent with diffraction effects from the finite aperture. This corresponds to the region where interference from different parts of the element is significant (Schmerr, 2015, Section 2.3).
-2. **Far-field amplitude decay (z > 50 mm)**: Beyond a certain distance, the pressure magnitude stabilizes and decays smoothly, following the well-established inverse-distance law (Schmerr, 2015, Section 2.5).
-
-These observations validate fundamental properties of the **Fresnel and Fraunhofer zones**, widely used in phased array transducer design (Schmerr, 2015, Section 4.1).
-
-### 4. Analysis of the 2-D Piston Element (Figure 2)
-The second figure presents the **2-D spatial distribution of the normalized pressure magnitude** using the RS integral.
+### 5. Analysis of the 2-D Piston Element (Figure 2)
 
 ![Figure 2: Normalized pressure calculation for a 2-D piston element using the Rayleigh-Sommerfeld Integral](../../examples/figures/Rayleigh-Sommerfeld_Integral_2-D_piston.png)
 
@@ -48,14 +76,8 @@ The simulation parameters include:
 - **Propagation speed**: 1500 m/s
 - **Spatial resolution**: $\frac{\lambda}{10} = 0.030$ mm
 
-This figure reveals **three critical wave phenomena**:
-1. **Primary beam formation along the z-axis**: The high-intensity central lobe confirms the expected focusing behavior of a **single-element piston transducer** (Schmerr, 2015, Chapter 4.6).
-2. **Side lobes due to diffraction effects**: These side lobes are a result of **finite aperture diffraction**, aligning with theoretical predictions from **Fraunhofer diffraction theory** (Schmerr, 2015, Section 2.4).
-3. **Gradual amplitude decay**: The intensity diminishes in the far field, following the theoretical **directivity function** (Schmerr, 2015, Section 4.1).
-
-### 5. Conclusion
+### 6. Conclusion
 The presented figures align closely with theoretical predictions based on the Rayleigh-Sommerfeld integral. The 1-D analysis highlights **near-field oscillations and far-field decay**, while the 2-D analysis confirms **beam focusing and side lobe formation**. These results provide strong validation for phased array beam modeling techniques discussed in Chapters 2, 4, and Appendix C of Schmerr’s *Fundamentals of Ultrasonic Phased Arrays*. This work reinforces the importance of **numerical modeling for practical phased array transducer design**.
 
 ### References
 Schmerr, L. W. (2015). *Fundamentals of Ultrasonic Phased Arrays*. Springer International Publishing.
-
