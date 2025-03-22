@@ -183,23 +183,42 @@ def main():
         # If z1 is a vector, plot versus z1.
         if isinstance(z1, np.ndarray):
             plt.plot(z1, np.abs(p1), 'b-', lw=2)
-            plt.xlabel("z (mm)")
+            plt.xlabel("z (mm)", fontsize=18)  # Set fontsize for x-axis label
         else:
             # Otherwise, plot versus a default linspace.
             default_z = np.linspace(5, 80, len(np.atleast_1d(p1)))
             plt.plot(default_z, np.abs(p1), 'b-', lw=2)
-            plt.xlabel("z (mm)")
-        plt.ylabel("Normalized Pressure Magnitude")
-        plt.title("1D LS Simulation")
-        plt.grid(True)
+            plt.xlabel("z (mm)", fontsize=18)  # Set fontsize for x-axis label
+        plt.ylabel("Normalized pressure magnitude", fontsize=18)  # Set fontsize for y-axis label
+        if args.Nopt == 1:
+            plt.title("Normalized pressure field from a 1-D line source\nacross a fluid–fluid interface with refraction", fontsize=18, linespacing=1.2)
+        elif args.Nopt and args.Nopt > 1:
+            plt.title(f"Normalized pressure field from a 2-D piston element using the line source model\nacross a fluid–fluid interface with refraction (N = {args.Nopt})", fontsize=18, linespacing=1.2)
+        else:
+            plt.title("Normalized pressure field from a 2-D piston element using the line source model\nacross a fluid–fluid interface with refraction", fontsize=18, linespacing=1.2)
+        plt.tick_params(axis='both', labelsize=16)  # Set fontsize for tick labels on both axes
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)  # Enable grid for both major and minor ticks
+        plt.minorticks_on()  # Enable minor ticks
     
     if args.plot_mode in ["both", "2D"] and p2 is not None:
         plt.figure(figsize=(10, 6))
-        plt.imshow(np.abs(p2), cmap="jet", extent=[x2.min(), x2.max(), z2.max(), z2.min()], aspect="auto")
-        plt.xlabel("x (mm)")
-        plt.ylabel("z (mm)")
-        plt.title("2D LS Simulation")
-        plt.colorbar(label="Pressure Magnitude")
+        plt.imshow(np.abs(p2), cmap="jet",
+                   extent=[x2.min(), x2.max(), z2.max(), z2.min()],
+                   aspect="auto")        
+        plt.xlabel("x (mm)", fontsize=16)  # Set fontsize for x-axis label
+        plt.ylabel("z (mm)", fontsize=16)  # Set fontsize for y-axis label
+        if args.Nopt == 1:
+            plt.title("Normalized pressure field from a 2-D line source\nacross a fluid–fluid interface with refraction", fontsize=18, linespacing=1.2)
+        elif args.Nopt and args.Nopt > 1:
+            plt.title(f"Normalized pressure field from a 2-D piston element using the line source model\nacross a fluid–fluid interface with refraction (N = {args.Nopt})", fontsize=18, linespacing=1.2)
+        else:
+            plt.title("Normalized pressure field from a 2-D piston element using the line source model\nacross a fluid–fluid interface with refraction", fontsize=18, linespacing=1.2)
+        cbar = plt.colorbar()  # Create colorbar
+        cbar.set_label("Normalized pressure magnitude", fontsize=16)  # Set fontsize for colorbar label
+        cbar.ax.tick_params(labelsize=14)  # Set fontsize for colorbar tick labels
+        plt.tick_params(axis='both', labelsize=16)  # Set fontsize for tick labels on both axes
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)  # Enable grid for both major and minor ticks
+        plt.minorticks_on()  # Enable minor ticks
     
     plt.show()
     

@@ -120,9 +120,9 @@ def main():
         if args.N == 1:
             plt.title("Normalized pressure field for a single line source element", fontsize=18)
         elif args.N and args.N > 1:
-            plt.title(f"Normalized pressure calculation for a 1-D piston element using the Line Source Model (N = {args.N})", fontsize=18)
+            plt.title(f"Normalized pressure field for a 1-D piston element using the line source model (N = {args.N})", fontsize=18)
         else:
-            plt.title("Normalized pressure calculation for a 1-D piston element using the Line Source Model", fontsize=18)
+            plt.title("Normalized pressure field for a 1-D piston element using the line source model", fontsize=18)
         plt.tick_params(axis='both', labelsize=16)  # Set fontsize for tick labels on both axes
         plt.grid(True, which='both', linestyle='--', linewidth=0.5)  # Enable grid for both major and minor ticks
         plt.minorticks_on()  # Enable minor ticks
@@ -137,9 +137,9 @@ def main():
         if args.N == 1:
             plt.title("Normalized pressure field for a 2-D single line source element", fontsize=18)
         elif args.N and args.N > 1:
-            plt.title(f"Normalized pressure calculation for a 2-D piston element using the Line Source Model (N = {args.N})", fontsize=18)
+            plt.title(f"Normalized pressure field for a 2-D piston element using the line source model (N = {args.N})", fontsize=18)
         else:
-            plt.title("Normalized pressure calculation for a 2-D piston element using the Line Source Model", fontsize=18)
+            plt.title("Normalized pressure field for a 2-D piston element using the line source model", fontsize=18)
         cbar = plt.colorbar()  # Create colorbar
         cbar.set_label("Normalized pressure magnitude", fontsize=16)  # Set fontsize for colorbar label
         cbar.ax.tick_params(labelsize=14)  # Set fontsize for colorbar tick labels
