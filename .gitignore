@@ -20,3 +20,6 @@ pressure_output.txt
 
 # Images files
 *.png
+
+# Backup copy of a file
+*.bak
