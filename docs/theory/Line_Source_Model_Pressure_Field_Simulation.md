@@ -22,7 +22,7 @@ This model appears in **Section 2.4 (Line Source Models)**, **Section 4.5 (Array
 #### **Generation of the 1-D LS Pressure Field (Auto-computed N)**
 
 ```sh
-python src/interface/ls_2Dv_interface.py --b 3 --f 5 --c 1500 --x 0 --z="5,80,200" --plot-mode 1D
+python ../../src/interface/ls_2Dv_interface.py --b 3 --f 5 --c 1500 --x 0 --z="5,80,200" --plot-mode 1D
 ```
 
 This produces the following output:
@@ -37,7 +37,7 @@ This produces the following output:
 #### **Generation of the 1-D LS Pressure Field (N = 20)**
 
 ```sh
-python src/interface/ls_2Dv_interface.py --b 3 --f 5 --c 1500 --x 0 --z="5,80,200" --N 20 --plot-mode 1D
+python ../../src/interface/ls_2Dv_interface.py --b 3 --f 5 --c 1500 --x 0 --z="5,80,200" --N 20 --plot-mode 1D
 ```
 
 ![Figure 2: Line Source Model – 1-D piston element with N = 20](../../examples/figures/Line-Source_Model_N20_1-D_piston.png)
@@ -47,7 +47,7 @@ This allows visual comparison between auto-computed and explicitly defined segme
 #### **Generation of the 2-D LS Pressure Field (Auto N)**
 
 ```sh
-python src/interface/ls_2Dv_interface.py --b 1 --f 5 --c 1500 --x2="-10,10,200" --z2="1,20,200" --plot-mode 2D
+python ../../src/interface/ls_2Dv_interface.py --b 1 --f 5 --c 1500 --x2="-10,10,200" --z2="1,20,200" --plot-mode 2D
 ```
 
 ![Figure 3: Line Source Model – 2-D piston element (auto N)](../../examples/figures/Line-Source_Model_2-D_piston.png)
@@ -58,7 +58,7 @@ python src/interface/ls_2Dv_interface.py --b 1 --f 5 --c 1500 --x2="-10,10,200" 
 #### **Generation of the 2-D LS Pressure Field (N = 20)**
 
 ```sh
-python src/interface/ls_2Dv_interface.py --b 1 --f 5 --c 1500 --x2="-10,10,200" --z2="1,20,200" --N 20 --plot-mode 2D
+python ../../src/interface/ls_2Dv_interface.py --b 1 --f 5 --c 1500 --x2="-10,10,200" --z2="1,20,200" --N 20 --plot-mode 2D
 ```
 
 ![Figure 4: Line Source Model – 2-D piston element with N = 20](../../examples/figures/Line-Source_Model_N20_2-D_piston.png)
