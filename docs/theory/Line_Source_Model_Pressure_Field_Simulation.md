@@ -28,8 +28,6 @@ $$
 N = \text{round}\left(\frac{2000 \cdot f \cdot b}{c}\right)
 $$
 
-(Equation 2.61)
-
 ### 3. Computational Procedure for Generating the Figures
 
 All simulations were conducted using the `ls_2Dv_interface.py` module. Below are the specific CLI commands used to produce each figure, ensuring reproducibility.
