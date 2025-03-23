@@ -22,7 +22,7 @@ Where:
 - $k = \frac{2 \pi f \cdot 10^6}{c}$: Wavenumber (1/mm)
 - $x$: Lateral position(s) (mm)
 - $z$: Axial depth (mm)
-- $F(u)$: Complex Fresnel integral
+- $F(u)$: Fresnel integral expression, as used in the Fresnel integral beam model
 
 This implementation relies on the numerical evaluation of the Fresnel integral using the cosine and sine integrals defined in **Abramowitz and Stegun, Handbook of Mathematical Functions, pp. 301–302**.
 
