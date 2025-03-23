@@ -55,7 +55,7 @@ python ../../src/interface/ls_2Dint_interface.py --b 3 --f 5 --c 1480 \
   --x2="0,29.6,1000" --z2="1,30.6,1000"
 ```
 
-![2D LS Field - Auto N](../../examples/figures/Line-Source_Model_2-D_piston_fluid-fluid_Nauto.png)
+![2D LS Field - Auto N](../../examples/figures/Line-Source_Model_2-D_piston_water-steel_Nauto.png)
 
 - **Wavelength**: $\lambda = \frac{c}{f} = \frac{1480}{5 \times 10^6} = 0.296~\text{mm}$
 - **Spatial Resolution**: $\lambda / 10 = 0.0296~\text{mm}$
@@ -84,7 +84,7 @@ python ../../src/interface/ls_2Dint_interface.py --b 3 --f 5 --c 1480 \
   --x2="0,29.6,1000" --z2="1,30.6,1000" --Nopt 15
 ```
 
-![2D LS Field - N = 15](../../examples/figures/Line-Source_Model_2-D_piston_fluid-fluid_N15.png)
+![2D LS Field - N = 15](../../examples/figures/Line-Source_Model_2-D_piston_water-steel_N15.png)
 
 ## 4. Observations and Analysis
 
