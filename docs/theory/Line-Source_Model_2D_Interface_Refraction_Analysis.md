@@ -43,8 +43,6 @@ $$
 N = \text{round}\left(\frac{2000 \cdot f \cdot b}{c_1}\right)
 $$
 
-*(Equation 2.61, Schmerr 2015)*
-
 ## 3. Numerical Simulations and CLI Commands
 
 The CLI interface used for these simulations is `ls_2Dint_interface.py`, accepting frequency, aperture, material properties, incident angle, and propagation distances as parameters.
@@ -57,10 +55,26 @@ python ../../src/interface/ls_2Dint_interface.py --b 3 --f 5 --c 1480 \
   --x2="0,29.6,1000" --z2="1,30.6,1000"
 ```
 
-![2D LS Field - Auto N](../../examples/figures/Line-Source_Model_2-D_piston_water-steel_Nauto.png)
+![2D LS Field - Auto N](../../examples/figures/Line-Source_Model_2-D_piston_fluid-fluid_Nauto.png)
 
 - **Wavelength**: $\lambda = \frac{c}{f} = \frac{1480}{5 \times 10^6} = 0.296~\text{mm}$
 - **Spatial Resolution**: $\lambda / 10 = 0.0296~\text{mm}$
+
+**Explanation of Parameters**:
+
+- `--b 3`: Half-length of the transducer element in mm (total length = 6 mm).
+- `--f 5`: Operating frequency in MHz.
+- `--c 1480`: Propagation speed in the first medium (water) in m/s.
+- `--mat "1,1480,7.9,5900"`: Material properties:
+  - `d₁ = 1 g/cm³` (density of water),
+  - `c₁ = 1480 m/s` (speed in water),
+  - `d₂ = 7.9 g/cm³` (density of steel),
+  - `c₂ = 5900 m/s` (speed in steel).
+- `--e 0`: Lateral offset of the transducer from the array center in mm.
+- `--angt 10.217`: Tilt angle of the source with respect to the x-axis (in degrees). This value aims to produce a 45° transmitted wave in steel, based on Snell's law.
+- `--Dt0 50.8`: Distance from the array center to the interface in mm.
+- `--x2`, `--z2`: Define the spatial sampling grid in mm. Here, resolution is set based on λ/10.
+- `--Nopt`: (Optional) Number of discrete line segments to model the aperture. If omitted, computed automatically.
 
 ### **2-D LS Pressure Field — Fixed N = 15**
 
@@ -70,7 +84,7 @@ python ../../src/interface/ls_2Dint_interface.py --b 3 --f 5 --c 1480 \
   --x2="0,29.6,1000" --z2="1,30.6,1000" --Nopt 15
 ```
 
-![2D LS Field - N = 15](../../examples/figures/Line-Source_Model_2-D_piston_water-steel_N15.png)
+![2D LS Field - N = 15](../../examples/figures/Line-Source_Model_2-D_piston_fluid-fluid_N15.png)
 
 ## 4. Observations and Analysis
 
