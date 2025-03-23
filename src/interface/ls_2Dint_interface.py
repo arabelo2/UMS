@@ -191,11 +191,11 @@ def main():
             plt.xlabel("z (mm)", fontsize=18)  # Set fontsize for x-axis label
         plt.ylabel("Normalized pressure magnitude", fontsize=18)  # Set fontsize for y-axis label
         if args.Nopt == 1:
-            plt.title("Normalized pressure field from a 1-D line source\nacross a fluid–fluid interface with refraction", fontsize=18, linespacing=1.2)
+            plt.title("Normalized pressure field from a 1-D line source\nacross a Water–Steel interface with refraction", fontsize=18, linespacing=1.2)
         elif args.Nopt and args.Nopt > 1:
-            plt.title(f"Normalized pressure field from a 2-D piston element using the line source model\nacross a fluid–fluid interface with refraction (N = {args.Nopt})", fontsize=18, linespacing=1.2)
+            plt.title(f"Normalized pressure field from a 2-D piston element using the line source model\nacross a Water–Steel interface with refraction (N = {args.Nopt})", fontsize=18, linespacing=1.2)
         else:
-            plt.title("Normalized pressure field from a 2-D piston element using the line source model\nacross a fluid–fluid interface with refraction", fontsize=18, linespacing=1.2)
+            plt.title("Normalized pressure field from a 2-D piston element using the line source model\nacross a Water–Steel interface with refraction", fontsize=18, linespacing=1.2)
         plt.tick_params(axis='both', labelsize=16)  # Set fontsize for tick labels on both axes
         plt.grid(True, which='both', linestyle='--', linewidth=0.5)  # Enable grid for both major and minor ticks
         plt.minorticks_on()  # Enable minor ticks
@@ -208,11 +208,11 @@ def main():
         plt.xlabel("x (mm)", fontsize=16)  # Set fontsize for x-axis label
         plt.ylabel("z (mm)", fontsize=16)  # Set fontsize for y-axis label
         if args.Nopt == 1:
-            plt.title("Normalized pressure field from a 2-D line source\nacross a fluid–fluid interface with refraction", fontsize=18, linespacing=1.2)
+            plt.title("Normalized pressure field from a 2-D line source\nacross a Water–Steel interface with refraction", fontsize=18, linespacing=1.2)
         elif args.Nopt and args.Nopt > 1:
-            plt.title(f"Normalized pressure field from a 2-D piston element using the line source model\nacross a fluid–fluid interface with refraction (N = {args.Nopt})", fontsize=18, linespacing=1.2)
+            plt.title(f"Normalized pressure field from a 2-D piston element using the line source model\nacross a Water–Steel interface with refraction (N = {args.Nopt})", fontsize=18, linespacing=1.2)
         else:
-            plt.title("Normalized pressure field from a 2-D piston element using the line source model\nacross a fluid–fluid interface with refraction", fontsize=18, linespacing=1.2)
+            plt.title("Normalized pressure field from a 2-D piston element using the line source model\nacross a Water–Steel interface with refraction", fontsize=18, linespacing=1.2)
         cbar = plt.colorbar()  # Create colorbar
         cbar.set_label("Normalized pressure magnitude", fontsize=16)  # Set fontsize for colorbar label
         cbar.ax.tick_params(labelsize=14)  # Set fontsize for colorbar tick labels
