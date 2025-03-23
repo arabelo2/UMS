@@ -12,32 +12,33 @@ The pressure field at any point in the second fluid is computed using a Rayleigh
 
 ### Governing Equations and Variables
 
-The normalized pressure field \( p(x, z) \) is given by:
+The normalized pressure field $\( p(x, z) \)$ is given by:
 
 $$
 p(x, z) = \frac{\sqrt{2 k_1 b / (j\pi)}}{N} \sum_{j=1}^{N} T_p(\theta_{j}) \cdot D(\theta_{j}) \cdot \frac{e^{i(k_1 r_1 + k_2 r_2)}}{\sqrt{r_1 + (c_2/c_1)r_2 \cdot \frac{\cos^2(\theta_1)}{\cos^2(\theta_2)}}}
 $$
 
+
 Where:
 
-- \( b \): Half-length of the piston source (mm)
-- \( f \): Frequency (MHz)
-- \( c_1, c_2 \): Sound speeds in the two fluids (m/s)
-- \( d_1, d_2 \): Densities in the two fluids (g/cm\(^3\))
-- \( k_1 = 2000 \pi b f / c_1 \), \( k_2 = 2000 \pi b f / c_2 \): Normalized wave numbers
-- \( T_p \): Pressure transmission coefficient
-- \( D \): Directivity function
-- \( r_1 \), \( r_2 \): Normalized path lengths through the two media
+- $\( b \)$: Half-length of the piston source (mm)
+- $\( f \)$: Frequency (MHz)
+- $\( c_1, c_2 \)$: Sound speeds in the two fluids (m/s)
+- $\( d_1, d_2 \)$: Densities in the two fluids $(g/cm\(^3\))$
+- $\( k_1 = 2000 \pi b f / c_1 \), \( k_2 = 2000 \pi b f / c_2 \)$: Normalized wave numbers
+- $\( T_p \)$: Pressure transmission coefficient
+- $\( D \)$: Directivity function
+- $\( r_1 \), \( r_2 \)$: Normalized path lengths through the two media
 
 ### Segment Discretization
 
-The number of segments \( N \) used to discretize the source is either user-defined via the `--Nopt` argument or automatically calculated using:
+The number of segments $\( N \)$ used to discretize the source is either user-defined via the `--Nopt` argument or automatically calculated using:
 
 $$
-N = \text{round}\left( \frac{2000 f b}{c_1} \right)
+N = \text{round}\left(\frac{2000 \cdot f \cdot b}{c}\right)
 $$
 
-This ensures that each segment is no larger than one wavelength in medium 1. For \( N = 1 \), the source is modeled as a single radiator; for \( N > 1 \), composite source behavior is captured.
+This ensures that each segment is no larger than one wavelength in medium 1. For $\( N = 1 \)$, the source is modeled as a single radiator; for $\( N > 1 \)$, composite source behavior is captured.
 
 ## 3. CLI Commands and Simulation Setup
 
@@ -55,8 +56,8 @@ python src/interface/ls_2Dint_interface.py \
 
 ![Auto-computed N](../../examples/figures/Line-Source_Model_2-D_piston_fluid-fluid_Nauto.png)
 
-- **Lambda** = \( c / f = 1480 / 5\times10^6 = 0.296 \text{ mm} \)
-- **Resolution** = \( \lambda / 10 = 0.0296 \text{ mm} \)
+- **Lambda** = $\( c / f = 1480 / 5\times10^6 = 0.296 \text{ mm} \)$
+- **Resolution** = $\( \lambda / 10 = 0.0296 \text{ mm} \)$
 
 ### **2-D Simulation with N = 15**
 
@@ -81,7 +82,7 @@ Both simulations confirm beam refraction toward the slower medium (Snell's Law),
 
 ## 5. Conclusion
 
-The LS2D interface model is a powerful approach for simulating pressure fields across fluid-fluid boundaries. It combines asymptotic approximations with ray theory to provide a computationally efficient yet physically realistic solution. The use of segment-based discretization and parameter tuning (e.g., \( N \)) offers flexibility and precision. The results validate theoretical predictions from Schmerr (2015), confirming the model's utility in ultrasonic phased array simulations.
+The LS2D interface model is a powerful approach for simulating pressure fields across fluid-fluid boundaries. It combines asymptotic approximations with ray theory to provide a computationally efficient yet physically realistic solution. The use of segment-based discretization and parameter tuning (e.g., $\( N \)$) offers flexibility and precision. The results validate theoretical predictions from Schmerr (2015), confirming the model's utility in ultrasonic phased array simulations.
 
 ## References
 
