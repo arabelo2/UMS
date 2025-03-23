@@ -86,15 +86,17 @@ def main():
     p = run_on_axis_foc2D_service(args.b, args.R, args.f, args.c, z_vals)
     
     # Print computed pressure.
-    print("Normalized Pressure (p):", p)
+    print("Normalized pressure magnitude (p):", p)
     
     # Plot the pressure magnitude vs. z.
-    plt.figure(figsize=(8, 5))
+    plt.figure(figsize=(10, 6))
     plt.plot(z_vals, np.abs(p), 'b-', lw=2)
-    plt.xlabel("z (mm)")
-    plt.ylabel("Normalized Pressure Magnitude")
-    plt.title("On-Axis Focused 2D Simulation")
-    plt.grid(True)
+    plt.xlabel("z (mm)", fontsize=16)  # Set fontsize for x-axis label
+    plt.ylabel("Normalized pressure magnitude", fontsize=18, linespacing=1.2)  # Set fontsize for y-axis label    
+    plt.title("On-axis pressure field for a focused 1-D element using the Fresnel integral model", fontsize=20, linespacing=1.2)
+    plt.tick_params(axis='both', labelsize=16)  # Set fontsize for tick labels on both axes
+    plt.grid(True, which='both', linestyle='--', linewidth=0.5)  # Enable grid for both major and minor ticks
+    plt.minorticks_on()  # Enable minor ticks
     
     if args.plotfile:
         plt.savefig(args.plotfile)
