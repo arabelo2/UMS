@@ -50,7 +50,7 @@ The CLI interface used for these simulations is `ls_2Dint_interface.py`, accepti
 ### **2-D LS Pressure Field — Automatically Computed N**
 
 ```sh
-python src/interface/ls_2Dint_interface.py --b 3 --f 5 --c 1480 \
+python ../../src/interface/ls_2Dint_interface.py --b 3 --f 5 --c 1480 \
   --mat "1,1480,7.9,5900" --e 0 --angt 10.217 --Dt0 50.8 \
   --x2="0,29.6,1000" --z2="1,30.6,1000"
 ```
@@ -63,7 +63,7 @@ python src/interface/ls_2Dint_interface.py --b 3 --f 5 --c 1480 \
 ### **2-D LS Pressure Field — Fixed N = 15**
 
 ```sh
-python src/interface/ls_2Dint_interface.py --b 3 --f 5 --c 1480 \
+python ../../src/interface/ls_2Dint_interface.py --b 3 --f 5 --c 1480 \
   --mat "1,1480,7.9,5900" --e 0 --angt 10.217 --Dt0 50.8 \
   --x2="0,29.6,1000" --z2="1,30.6,1000" --Nopt 15
 ```
