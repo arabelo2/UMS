@@ -22,7 +22,7 @@ and the result is plotted as:
     plot(x, abs(p))
 
 Example usage:
-    py ./fresnel_2D_interface.py --b 6 --f 5 --c 1500 --z 60 --x="-10,10,200" 
+    python interface/fresnel_2D_interface.py --b 6 --f 5 --c 1500 --z 60 --x="-10,10,200" 
     [--outfile "pressure_output.txt" --plotfile "plot.png"]
     
 Note: For negative values in --x, enclose the argument in quotes, e.g., --x="-10,10,200".
@@ -44,7 +44,7 @@ def main():
         description="Compute Fresnel-based pressure field for a 1-D element in a fluid.",
         epilog=(
             "Example usage:\n"
-            "  python fresnel_2D_interface.py --b 6 --f 5 --c 1500 --z 60 --x=\"-10,10,200\" \n\n"
+            "  python interface/fresnel_2D_interface.py --b 6 --f 5 --c 1500 --z 60 --x=\"-10,10,200\" \n\n"
             "Defaults:\n"
             "  b = 6, f = 5, c = 1500, z = 60, x = linspace(-10,10,200).\n"
             "The pressure field p is computed and plotted as |p| vs. x."
@@ -86,7 +86,7 @@ def main():
     p = run_fresnel_2D_service(args.b, args.f, args.c, x_vals, args.z)
     
     # Print the computed pressure.
-    print("Normalized Pressure (p):", p)
+    print("Normalized pressure magnitude (p):", p)
     
     # Save the pressure matrix to a file.
     try:
@@ -105,14 +105,16 @@ def main():
     except Exception as e:
         print("Error saving the output file:", e)
     
-    # Plot the pressure magnitude vs x if p is 1D.
+	# Plot the pressure magnitude vs x if p is 1D.
     if isinstance(p, np.ndarray) and p.ndim == 1 and p.shape == x_vals.shape:
-        plt.figure(figsize=(8, 5))
+        plt.figure(figsize=(10, 6))
         plt.plot(x_vals, np.abs(p), 'b-', lw=2)
-        plt.xlabel("x (mm)")
-        plt.ylabel("Normalized Pressure Magnitude")
-        plt.title("Fresnel 2D Simulation")
-        plt.grid(True)
+        plt.xlabel("x (mm)", fontsize=16)  # Set fontsize for x-axis label
+        plt.ylabel("Normalized pressure magnitude", fontsize=18, linespacing=1.2)  # Set fontsize for y-axis label
+        plt.title(f"Lateral pressure field at fixed depth using the Fresnel integral (z = {args.z})\n(1-D piston model)", fontsize=20, linespacing=1.2)
+        plt.tick_params(axis='both', labelsize=16)  # Set fontsize for tick labels on both axes
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)  # Enable grid for both major and minor ticks
+        plt.minorticks_on()  # Enable minor ticks
         if args.plotfile:
             plt.savefig(args.plotfile)
             print(f"Plot saved in {args.plotfile}")
@@ -120,9 +122,14 @@ def main():
             plt.show()
     else:
         # If p is not 1D, show a generic plot.
-        plt.figure(figsize=(8, 6))
-        plt.plot(np.abs(p))
-        plt.title("Pressure Magnitude")
+        plt.figure(figsize=(10, 6))
+        plt.plot(np.abs(p), 'b-', lw=2)
+        plt.xlabel("Index", fontsize=18, linespacing=1.2)
+        plt.ylabel("Normalized pressure magnitude", fontsize=18, linespacing=1.2)
+        plt.title(f"Lateral pressure field at fixed depth using the Fresnel integral (z = {args.z})\n(1-D piston model)", fontsize=20, linespacing=1.2)
+        plt.tick_params(axis='both', labelsize=16)
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.minorticks_on()
         plt.show()
 
 if __name__ == "__main__":
