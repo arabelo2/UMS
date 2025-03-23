@@ -46,7 +46,7 @@ Each Gaussian beam models the propagation of energy along the axis with a partic
 | $\( x \)$   | Observation line (mm)             | $\(-10,10\)$  |
 
 - **Wavelength**: $\( \lambda = \frac{c}{f} = \frac{1500}{5 \times 10^6} = 0.3\, \text{mm} \)$
-- **Resolution**: $\( \lambda / 20 = 0.015\, \text{mm} \)$
+- **Spatial Resolution:**: $\( \lambda / 20 = 0.015\, \text{mm} \)$
 
 ## Usage Example
 
