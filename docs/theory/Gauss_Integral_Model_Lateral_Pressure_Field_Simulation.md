@@ -19,7 +19,7 @@ Additionally, it builds on the general concepts of beam modeling introduced in:
 - **Section 2.4**: Modeling Fields from Apertures
 - **Section 2.5**: Radiation Through a Planar Interface
 
-The model uses 15 Gaussian beams to simulate the pressure field of a piston source. The normalized pressure field is given by:
+The model uses 15 Gaussian beams to simulate the pressure field of a piston source. The normalized pressure field is derived from the expression:
 
 $$
 p(x, z) = \sum_{n=1}^{15} A_n \sqrt{\frac{q_{b0}^{(n)}}{q_b^{(n)}}} \exp\left(\frac{i k_b x_b^2}{2 q_b^{(n)}}\right)
@@ -27,13 +27,13 @@ $$
 
 Where:
 
-- $\( A_n \), \( B_n \)$: optimized complex coefficients from Wen and Breazeale.
 - $\( q_b^{(n)} = z_b - i \frac{1000 \pi f b}{B_n c} \)$
 - $\( q_{b0}^{(n)} = -i \frac{1000 \pi f b}{B_n c} \)$
 - $\( k_b = \frac{2000 \pi f b}{c} \)$: scaled wave number
-- $\( x_b = \frac{x}{b} \), \( z_b = \frac{z}{b} \)$
+- $\( x_b = \frac{x}{b}, \quad z_b = \frac{z}{b} \)$
+- $\( A_n \), \( B_n \)$: optimized complex coefficients from Wen and Breazeale
 
-Each Gaussian beam models the propagation of energy along the axis with a particular width and phase curvature, enabling the reconstruction of complex pressure fields. The coefficients $\( A_n \)$ and $\( B_n \)$ are fixed values obtained through numerical optimization to best match the full diffraction solution.
+Each Gaussian beam models the propagation of energy along the axis with a particular width and phase curvature, enabling the reconstruction of complex pressure fields. The coefficients $\( A_n \)$ and $\( B_n \)$ are fixed values obtained through numerical optimization to best match the full diffraction solution. 
 
 ## Default Parameters
 
