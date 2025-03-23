@@ -13,6 +13,12 @@ This implementation is based on the multi-Gaussian beam model described in:
 - **Appendix C.1**: Beam Models for Single Elements  
 - **Appendix C.5**: Code Listings (Code Listing C.10)
 
+Additionally, it builds on the general concepts of beam modeling introduced in:
+
+- **Chapter 2**: Radiation of Ultrasound
+- **Section 2.4**: Modeling Fields from Apertures
+- **Section 2.5**: Radiation Through a Planar Interface
+
 The model uses 15 Gaussian beams to simulate the pressure field of a piston source. The normalized pressure field is given by:
 
 $$
@@ -26,6 +32,8 @@ Where:
 - $\( q_{b0} = -i \frac{1000 \pi f b}{B_n c} \)$
 - $\( k_b = \frac{2000 \pi f b}{c} \)$: scaled wave number
 - $\( x_b = \frac{x}{b} \), \( z_b = \frac{z}{b} \)$
+
+Each Gaussian beam models the propagation of energy along the axis with a particular width and phase curvature, enabling the reconstruction of complex pressure fields.
 
 ## Default Parameters
 
@@ -71,4 +79,25 @@ These plots show comparisons of pressure magnitude computed using Fresnel 2D and
 
 Wen, J.J. and Breazeale, M.A., "Computer optimization of the Gaussian beam description of an ultrasonic field," in *Computational Acoustics*, Vol. 2, Elsevier, 1990, pp. 181–196.
 
-Schmerr Jr., L.W., *Fundamentals of Ultrasonic Phased Arrays*, Springer, Sections 3.4, 4.6, and Appendices C.1 and C.5.
+Schmerr Jr., L.W., *Fundamentals of Ultrasonic Phased Arrays*, Springer:
+
+- Chapter 2: Radiation of Ultrasound
+- Section 2.4: Modeling Fields from Apertures
+- Section 2.5: Radiation Through a Planar Interface
+- Section 3.4: Multi-Gaussian Beam Model
+- Section 4.6: Use of Gaussians for Modeling Phased Array Beam Fields
+- Appendix C.1 and C.5
+
+## Notes
+
+- The $Gauss\_2D$ model uses discrete beams to approximate a continuous pressure field.
+- Excellent agreement with $Fresnel\_2D$ model, especially at higher depths.
+- The difference is more evident near the transducer (e.g., at z = 60 mm).
+- Multi-Gaussian modeling is ideal when analytical or Fresnel-based solutions are computationally intensive.
+
+## Files
+
+- `domain/gauss_2D.py`
+- `application/gauss_2D_service.py`
+- `interface/fresnel_2D_and_gauss_2D_pressure_interface.py`
+- `domain/gauss_c15.py`
