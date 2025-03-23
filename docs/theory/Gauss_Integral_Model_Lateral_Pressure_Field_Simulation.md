@@ -2,7 +2,7 @@
 
 ## Overview
 
-This simulation compares the lateral pressure field of a 1-D piston element using the **$Gauss\_2D$** model, which implements the **multi-Gaussian beam approximation**. This model is particularly useful for approximating the Fresnel integral results with high computational efficiency.
+This simulation compares the lateral pressure field of a 1-D piston element using the **Gauss 2D** model, which implements the **multi-Gaussian beam approximation**. This model is particularly useful for approximating the Fresnel integral results with high computational efficiency.
 
 ## Theoretical Background
 
@@ -90,8 +90,8 @@ Schmerr Jr., L.W., *Fundamentals of Ultrasonic Phased Arrays*, Springer:
 
 ## Notes
 
-- The $Gauss\_2D$ model uses discrete beams to approximate a continuous pressure field.
-- Excellent agreement with $Fresnel\_2D$ model, especially at higher depths.
+- The Gauss 2D model uses discrete beams to approximate a continuous pressure field.
+- Excellent agreement with Fresnel 2D model, especially at higher depths.
 - The difference is more evident near the transducer (e.g., at z = 60 mm).
 - Multi-Gaussian modeling is ideal when analytical or Fresnel-based solutions are computationally intensive.
 
