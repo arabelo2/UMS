@@ -1,4 +1,4 @@
-# Lateral Pressure Field Simulation Using Multi-Gaussian Beam Model (Gauss_2D)
+# **Lateral Pressure Field Simulation Using Multi-Gaussian Beam Model (Gauss_2D)**
 
 ## Overview
 
