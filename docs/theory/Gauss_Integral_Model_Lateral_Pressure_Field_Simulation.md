@@ -45,7 +45,7 @@ Where:
 Command-line example:
 
 ```bash
-python interface/fresnel_2D_and_gauss_2D_pressure_interface.py \
+python ../../src/interface/fresnel_2D_and_gauss_2D_pressure_interface.py \
   --b 6 --f 5 --c 1500 --z 60 \
   --x1="-10,10,1401" \
   --x2="-10,10,43"
@@ -57,15 +57,15 @@ These plots show comparisons of pressure magnitude computed using Fresnel 2D and
 
 ### z = 60 mm
 
-![z=60](../images/Lateral_pressure_field_comparison_fresnel_gauss_z60.png)
+![z=60](../../examples/figures/Lateral_pressure_field_comparison_fresnel_gauss_z60.png)
 
 ### z = 120 mm
 
-![z=120](../images/Lateral_pressure_field_comparison_fresnel_gauss_z120.png)
+![z=120](../../examples/figures/Lateral_pressure_field_comparison_fresnel_gauss_z120.png)
 
 ### z = 180 mm
 
-![z=180](../images/Lateral_pressure_field_comparison_fresnel_gauss_z180.png)
+![z=180](../../examples/figures/Lateral_pressure_field_comparison_fresnel_gauss_z180.png)
 
 ## References
 
