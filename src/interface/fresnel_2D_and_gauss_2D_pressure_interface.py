@@ -10,7 +10,7 @@ for a 1-D piston element. The Fresnel integral approach gives a continuous field
 while Gauss 2D uses a multi-Gaussian approximation.
 
 Example usage:
-  python fresnel_2D_and_gauss_2D_pressure_interface.py --b 6 --f 5 --c 1500 --z 60 --x1="-10,10,200" --x2="-10,10,40"
+  python interface/fresnel_2D_and_gauss_2D_pressure_interface.py --b 6 --f 5 --c 1500 --z 60 --x1="-10,10,200" --x2="-10,10,40"
 
 Defaults:
   b = 6 mm, f = 5 MHz, c = 1500 m/s, z = 60 mm,
@@ -34,7 +34,7 @@ def main():
         description="Compare Fresnel 2D and Gauss 2D pressure fields for a 1-D piston element.",
         epilog=(
             "Example usage:\n"
-            "  python fresnel_2D_and_gauss_2D_pressure_interface.py --b 6 --f 5 --c 1500 --z 60 --x1=\"-10,10,200\" --x2=\"-10,10,40\"\n\n"
+            "  python interface/fresnel_2D_and_gauss_2D_pressure_interface.py --b 6 --f 5 --c 1500 --z 60 --x1=\"-10,10,200\" --x2=\"-10,10,40\"\n\n"
             "Defaults:\n"
             "  b = 6 mm, f = 5 MHz, c = 1500 m/s, z = 60 mm,\n"
             "  x1 = linspace(-10,10,200) for Fresnel 2D,\n"
