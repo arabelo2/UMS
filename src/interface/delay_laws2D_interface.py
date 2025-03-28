@@ -85,13 +85,15 @@ def main():
         else:
             plot_title = "Delay Laws 2D - Steering + Focusing"
 
-        plt.figure(figsize=(8, 5))
+        plt.figure(figsize=(10, 6))
         x_coords = np.arange(1, len(td) + 1)
         plt.stem(x_coords, td, linefmt='b-', markerfmt='bo', basefmt='r-')
-        plt.xlabel("Element index")
-        plt.ylabel("Time Delay (microseconds)")
-        plt.title(plot_title)
+        plt.xlabel("Element index", fontsize=16)
+        plt.ylabel("Time Delay (microseconds)", fontsize=16)
+        plt.title(plot_title, fontsize=18)
         plt.grid(True)
+        plt.minorticks_on()
+        plt.tick_params(axis='both', labelsize=14)
         plt.tight_layout()
         plt.show()
 
