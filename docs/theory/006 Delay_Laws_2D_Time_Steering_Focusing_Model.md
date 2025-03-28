@@ -96,6 +96,13 @@ python ../../src/interface/delay_laws2D_interface.py --M 16 --s 0.5 --Phi 30 --F
 
 ## 4. Examples and Visual Results
 
+This section shows how different parameter values affect the shape of the delay profile.
+
+- **F = inf**: Corresponds to **steering only**. The wavefront is tilted to aim the beam in the desired direction without convergence.
+- **F = 15 mm**: Corresponds to **steering and focusing**. The wavefront is curved to converge at a focal point along the propagation axis.
+- **Phi = 30°**: Introduces beam steering to the right.
+- **Phi = 0°**: No steering; focusing is symmetric around the center.
+
 ### **(A) Steering Only**
 
 ```bash
@@ -123,7 +130,19 @@ python src/interface/delay_laws2D_interface.py --M 16 --s 0.5 --Phi 0 --F 15 --c
 
 ## 6. Conclusion
 
-The `delay_laws2D` model generates precise time delay profiles that are critical for controlling the acoustic wavefronts in phased array transducers. Through proper delay application, beams can be directed and focused to enhance resolution and target specific imaging zones, both in transmission and reception. This tool serves as a foundational block for more complex 2D array and imaging simulations.
+The `delay_laws2D` model provides a robust and flexible method to generate time delays for linear phased array elements, enabling precise beamforming capabilities. The simulation results illustrate two core behaviors:
+
+- **Steering Only** ($F = \infty$, $\Phi = 30^\circ$):
+  - Produces a linearly increasing delay profile.
+  - Tilts the beam without changing its focal properties.
+  - Useful in applications requiring rapid angular sweeps.
+
+- **Steering + Focusing** ($F = 15$ mm, $\Phi = 0^\circ$):
+  - Creates a symmetric, parabolic delay profile.
+  - Concentrates acoustic energy at a defined depth.
+  - Enhances lateral resolution in imaging or inspection zones.
+
+These results highlight the fundamental difference between planar wave propagation and focused wavefronts. Steering provides directional control, while focusing adds spatial selectivity, making both techniques essential in ultrasonic phased array systems.
 
 ## References
 
