@@ -1,10 +1,10 @@
 # **Lateral Pressure Field Simulation Using Multi-Gaussian Beam Model (Gauss_2D)**
 
-## Overview
+## 1. Introduction
 
 This simulation compares the lateral pressure field of a 1-D piston element using the **Gauss 2D** model, which implements the **multi-Gaussian beam approximation**. This model is particularly useful for approximating the Fresnel integral results with high computational efficiency.
 
-## Theoretical Background
+## 2. Theoretical Background
 
 This implementation is based on the multi-Gaussian beam model described in:
 
@@ -75,20 +75,7 @@ These plots show comparisons of pressure magnitude computed using Fresnel 2D and
 
 ![z=180](../../examples/figures/Lateral_pressure_field_comparison_fresnel_gauss_z180.png)
 
-## References
-
-Wen, J.J. and Breazeale, M.A., "Computer optimization of the Gaussian beam description of an ultrasonic field," in *Computational Acoustics*, Vol. 2, Elsevier, 1990, pp. 181–196.
-
-Schmerr Jr., L.W., *Fundamentals of Ultrasonic Phased Arrays*, Springer:
-
-- Chapter 2: Radiation of Ultrasound
-- Section 2.4: Modeling Fields from Apertures
-- Section 2.5: Radiation Through a Planar Interface
-- Section 3.4: Multi-Gaussian Beam Model
-- Section 4.6: Use of Gaussians for Modeling Phased Array Beam Fields
-- Appendix C.1 and C.5
-
-## Notes
+## 3. Conclusion
 
 - The Gauss 2D model uses discrete beams to approximate a continuous pressure field.
 - Excellent agreement with Fresnel 2D model, especially at higher depths.
@@ -101,3 +88,9 @@ Schmerr Jr., L.W., *Fundamentals of Ultrasonic Phased Arrays*, Springer:
 - `application/gauss_2D_service.py`
 - `interface/fresnel_2D_and_gauss_2D_pressure_interface.py`
 - `domain/gauss_c15.py`
+
+## References
+
+- Schmerr, L. W. (2015). *Fundamentals of Ultrasonic Phased Arrays*. Springer International Publishing.
+
+- Wen, J.J. and Breazeale, M.A., "Computer optimization of the Gaussian beam description of an ultrasonic field," in *Computational Acoustics*, Vol. 2, Elsevier, 1990, pp. 181–196.
