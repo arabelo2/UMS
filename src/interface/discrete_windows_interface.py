@@ -67,13 +67,14 @@ def main():
 
     # Optional plot
     if args.plot.upper() == "Y":
-        plt.figure(figsize=(8,5))
+        plt.figure(figsize=(10, 6))
         x_coords = np.arange(1, len(amp)+1)
         plt.stem(x_coords, amp, linefmt='b-', markerfmt='bo', basefmt='r-')
-        plt.xlabel("Element index")
-        plt.ylabel("Amplitude")
-        plt.title(f"Discrete Window: {args.type} (M={args.M})")
-        plt.grid(True)
+        plt.xlabel("Element index", fontsize=16)
+        plt.ylabel("Amplitude", fontsize=16)
+        plt.title(f"Discrete Window: {args.type} (M={args.M})", fontsize=18)
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)  # Enable grid for both major and minor ticks
+        plt.minorticks_on()  # Enable minor ticks
         plt.tight_layout()
         plt.show()
 
