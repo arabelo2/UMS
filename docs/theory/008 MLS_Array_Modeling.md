@@ -71,57 +71,120 @@ This module is implemented using clean architectural layers:
 
 It calls auxiliary modules:
 
-- `elements.py` (Code Listing C.15)
+- `elements.py`
 - `delay_laws2D_service.py` (for delays)
 - `discrete_windows_service.py` (for windowing)
 - `ls_2Dv_service.py` (for single element response)
 
 ## 4. Examples and Visual Results
 
-### **Steered Beam ($\Phi = 0^\circ$, $F=\infty$)**
+### **Steered Beam ($\Phi = 20^\circ$, $F=\infty$, $M=32$, Rectangular)**
 
 ```bash
-python mls_array_modeling_interface.py --Phi 0 --F inf --M 32 --f 5 --wtype rect
+python ../../src/interface/mls_array_modeling_interface.py --f 5 --c 1480 --M 32 --dl 0.5 --gd 0.1 --Phi 20 --F inf --wtype rect --plot Y
 ```
 
-![MLS_steered_beam_phi0_Finf_M32_f5_wtyperect](../../examples/figures/MLS_steered_beam_phi0_Finf_M32_f5_wtyperect.png)
-This shows a broad beam along the z-axis without convergence. Sidelobes are visible due to the rectangular window.
+![phi20_Finf_M32_rect](../../examples/figures/MLS_steered_beam_phi20_Finf_M32_f5_wtyperect.png)
+> Clear steering to the right with visible sidelobes. No focusing applied.
 
-### **Focused Beam ($\Phi = 0^\circ$, $F=30$ mm)**
+### **Steered + Focused ($\Phi = 20^\circ$, $F=30$, $M=32$, Rectangular)**
 
 ```bash
-python mls_array_modeling_interface.py --Phi 0 --F 30 --M 32 --f 5 --wtype Han
+python ../../src/interface/mls_array_modeling_interface.py --f 5 --c 1480 --M 32 --dl 0.5 --gd 0.1 --Phi 20 --F 30 --wtype rect --plot Y
 ```
 
-![MLS_steered_focused_beam_phi0_F30_M32_f5_wtypehan](../../examples/figures/MLS_steered_focused_beam_phi0_F30_M32_f5_wtypehan.png)
-Here, the beam converges at $z=30$ mm. The Hann window reduces sidelobes and improves focus quality.
+![phi20_F30_M32_rect](../../examples/figures/MLS_steered_focused_beam_phi20_F30_M32_f5_wtyperect.png)
+> Focused beam demonstrates convergence at $z=30$ mm. Steering combined with focal precision.
 
-### **Steered + Focused Beam ($\Phi = 20^\circ$, $F=30$ mm)**
+### **Steered Only ($\Phi = 0^\circ$, $F=\infty$, $M=32$, Rectangular)**
 
 ```bash
-python mls_array_modeling_interface.py --Phi 20 --F 30 --M 32 --f 5 --wtype rect
+python ../../src/interface/mls_array_modeling_interface.py --f 5 --c 1480 --M 32 --dl 0.5 --gd 0.1 --Phi 0 --F inf --wtype rect --plot Y
 ```
 
-![MLS_steered_focused_beam_phi20_F30_M32_f5_wtyperect](../../examples/figures/MLS_steered_focused_beam_phi20_F30_M32_f5_wtyperect.png)
-The beam is tilted and focused. This illustrates combined directional and spatial control.
+![phi0_Finf_M32_rect](../../examples/figures/MLS_steered_beam_phi0_Finf_M32_f5_wtyperect.png)
+> Beam remains symmetric, wide due to rectangular apodization.
 
-### **Steered + Focused, Higher M**
+### **Steered Only ($\Phi = 0^\circ$, $F=\infty$, $M=32$, Hann)**
 
 ```bash
-python mls_array_modeling_interface.py --Phi 0 --F 30 --M 256 --f 5 --wtype rect
+python ../../src/interface/mls_array_modeling_interface.py --f 5 --c 1480 --M 32 --dl 0.5 --gd 0.1 --Phi 0 --F inf --wtype Han --plot Y
 ```
 
-![MLS_steered_focused_beam_phi0_F30_M256_f5_wtyperect](../../examples/figures/MLS_steered_focused_beam_phi0_F30_M256_f5_wtyperect.png)
-A much narrower main lobe is formed due to the increased number of elements, enhancing resolution.
+![phi0_Finf_M32_han](../../examples/figures/MLS_steered_beam_phi0_Finf_M32_f5_wtypehan.png)
+> Similar width to rectangular, but sidelobes are significantly reduced.
 
-### **Steered + Focused, $\Phi=15^\circ$, $f=2.5$ MHz**
+### **Steered + Focused ($\Phi = 0^\circ$, $F=30$, $M=32$, Hann)**
 
 ```bash
-python mls_array_modeling_interface.py --Phi 15 --F 30 --M 64 --f 2.5 --wtype Ham
+python ../../src/interface/mls_array_modeling_interface.py --f 5 --c 1480 --M 32 --dl 0.5 --gd 0.1 --Phi 0 --F 30 --wtype Han --plot Y
 ```
 
-![MLS_steered_focused_beam_phi15_F30_M64_f2.5_wtypeham](../../examples/figures/MLS_steered_focused_beam_phi15_F30_M64_f2.5_wtypeham.png)
-This lower frequency and moderate element count lead to a wider main lobe with reduced resolution.
+![phi0_F30_M32_han](../../examples/figures/MLS_steered_focused_beam_phi0_F30_M32_f5_wtypehan.png)
+> Hann window provides a focused mainlobe with suppressed side energy.
+
+### **Steered Only ($\Phi = 0^\circ$, $F=\infty$, $M=128$, Rectangular)**
+
+```bash
+python ../../src/interface/mls_array_modeling_interface.py --f 5 --c 1480 --M 128 --dl 0.5 --gd 0.1 --Phi 0 --F inf --wtype rect --plot Y
+```
+
+![phi0_Finf_M128_rect](../../examples/figures/MLS_steered_beam_phi0_Finf_M128_f5_wtyperect.png)
+> Increasing $M$ narrows the mainlobe due to greater aperture.
+
+### **Steered + Focused ($\Phi = 0^\circ$, $F=20$, $M=128$, Rectangular)**
+
+```bash
+python ../../src/interface/mls_array_modeling_interface.py --f 5 --c 1480 --M 128 --dl 0.5 --gd 0.1 --Phi 0 --F 20 --wtype rect --plot Y
+```
+
+![phi0_F20_M128_rect](../../examples/figures/MLS_steered_beam_phi0_F20_M128_f5_wtyperect.png)
+> High-resolution focus at shallower depth. Increased $M$ and short $F$ improve localization.
+
+### **Steered + Focused ($\Phi = 0^\circ$, $F=30$, $M=256$, Hann)**
+
+```bash
+python ../../src/interface/mls_array_modeling_interface.py --f 5 --c 1480 --M 256 --dl 0.5 --gd 0.1 --Phi 0 --F 30 --wtype Han --plot Y
+```
+
+![phi0_F30_M256_han](../../examples/figures/MLS_steered_focused_beam_phi0_F30_M256_f5_wtypehan.png)
+> Excellent beam quality — narrow mainlobe and low sidelobes with large aperture and Hann taper.
+
+### **Steered + Focused ($\Phi = 0^\circ$, $F=30$, $M=256$, Rectangular)**
+
+```bash
+python ../../src/interface/mls_array_modeling_interface.py --f 5 --c 1480 --M 256 --dl 0.5 --gd 0.1 --Phi 0 --F 30 --wtype rect --plot Y
+```
+
+![phi0_F30_M256_rect](../../examples/figures/MLS_steered_focused_beam_phi0_F30_M256_f5_wtyperect.png)
+> Sharper focus than lower $M$, but sidelobes more pronounced than with Hann window.
+
+### **Steered + Focused ($\Phi = 15^\circ$, $F=30$, $M=256$, Rectangular)**
+
+```bash
+python ../../src/interface/mls_array_modeling_interface.py --f 5 --c 1480 --M 256 --dl 0.5 --gd 0.1 --Phi 15 --F 30 --wtype rect --plot Y
+```
+
+![phi15_F30_M256_rect](../../examples/figures/MLS_steered_focused_beam_phi15_F30_M256_f5_wtyperect.png)
+> Beam steered off-axis with excellent focus control. Rectangular window maintains strong energy.
+
+### **Steered + Focused ($\Phi = 15^\circ$, $F=30$, $M=64$, $f=2.5$ MHz, Rectangular)**
+
+```bash
+python ../../src/interface/mls_array_modeling_interface.py --f 2.5 --c 1480 --M 64 --dl 0.5 --gd 0.1 --Phi 15 --F 30 --wtype rect --plot Y
+```
+
+![phi15_F30_M64_f2.5_rect](../../examples/figures/MLS_steered_focused_beam_phi15_F30_M64_f2.5_wtyperect.png)
+> Lower frequency results in broader beam and longer wavelength interference pattern.
+
+### **Steered + Focused ($\Phi = 15^\circ$, $F=30$, $M=64$, $f=2.5$ MHz, Hamming)**
+
+```bash
+python ../../src/interface/mls_array_modeling_interface.py --f 2.5 --c 1480 --M 64 --dl 0.5 --gd 0.1 --Phi 15 --F 30 --wtype Ham --plot Y
+```
+
+![phi15_F30_M64_f2.5_ham](../../examples/figures/MLS_steered_focused_beam_phi15_F30_M64_f2.5_wtypeham.png)
+> Hamming window smooths sidelobes and preserves symmetry even at lower frequency.
 
 ## 5. Conclusion
 
@@ -131,14 +194,14 @@ This modeling confirms the theory presented in Schmerr’s text:
 - **Focusing** (finite $F$) increases lateral resolution by converging energy at a point.
 - **Combined steering + focusing** offers directional control and spatial selectivity — critical for nondestructive evaluation and imaging.
 
-We observe that:
+Key takeaways from the 13 figure comparisons:
 
-- **Higher M** increases directivity and narrows the beam.
-- **Windowing functions** (e.g., Hann vs. Rectangular) strongly affect sidelobe behavior — Hann provides smoother beam profiles.
-- **Lower frequency** (e.g., 2.5 MHz) results in broader mainlobes due to longer wavelengths.
-- **Focused and steered beams** offer precise beam shaping capabilities — with trade-offs in resolution and beamwidth.
+- **Higher M** improves lateral resolution by narrowing the beam and reducing diffraction effects.
+- **Windowing** (Hann, Hamming) reduces sidelobes at the cost of some energy efficiency. Rectangular gives stronger peak intensity but more ringing.
+- **Frequency** influences resolution — lower frequencies (e.g., 2.5 MHz) yield wider beams, while higher frequencies (5 MHz) offer finer resolution.
+- **Shallow focusing** (e.g., $F=20$) leads to tighter convergence but shorter beam propagation depth.
 
-This model serves as a fundamental building block for more advanced simulations, including MPS (Multi-Point Source) and full aperture imaging.
+This module is essential to explore the trade-offs in phased array system design and serves as a reference for advancing into 2-D and MPS beam modeling.
 
 ## References
 
