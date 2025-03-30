@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # interface/mls_array_modeling_interface.py
 
 import sys
@@ -61,10 +62,22 @@ def main():
     if args.plot.upper() == "Y":
         plt.figure(figsize=(10, 6))
         plt.imshow(np.abs(p), cmap="jet", extent=[x.min(), x.max(), z.max(), z.min()], aspect='auto')
-        plt.colorbar(label='Normalized Pressure Magnitude')
-        plt.xlabel("x (mm)")
-        plt.ylabel("z (mm)")
-        plt.title("MLS Array Modeling Pressure Field")
+        plt.xlabel("x (mm)", fontsize=16)
+        plt.ylabel("z (mm)", fontsize=16)
+
+        # Dynamically build title
+        if np.isinf(args.F):
+            title = f"MLS Steered Beam (Φ={args.Phi}°, F={args.F}, M={args.M}, f={args.f} MHz, Window={args.wtype})"
+        else:
+            title = f"MLS Steered + Focused Beam (Φ={args.Phi}°, F={args.F} mm, M={args.M}, f={args.f} MHz, Window={args.wtype})"
+        plt.title(title, fontsize=18, linespacing=1.2)
+
+        cbar = plt.colorbar()
+        cbar.set_label("Normalized pressure magnitude", fontsize=16, linespacing=1.2)
+        cbar.ax.tick_params(labelsize=14)
+        plt.tick_params(axis='both', labelsize=16)
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.minorticks_on()
         plt.tight_layout()
         plt.show()
 
