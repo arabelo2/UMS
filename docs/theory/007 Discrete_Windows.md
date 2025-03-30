@@ -4,7 +4,7 @@
 
 In phased array systems, **apodization** (or amplitude weighting) is a signal processing technique used to reduce side lobes in the beam profile by modulating the transmission or reception amplitude of each array element. The `discrete_windows` model implements this concept using well-known window functions that define the amplitude distribution across a 1-D linear array.
 
-This module replicates the behavior of the MATLAB function `discrete_windows.m`, supporting the following window types:
+This module provides a clean and efficient Python-based implementation to generate amplitude profiles for common window functions used in beamforming. The available window types include:
 
 - `rect` (Rectangular): No apodization, all amplitudes equal.
 - `cos` (Cosine): Smooth transition toward the edges.
