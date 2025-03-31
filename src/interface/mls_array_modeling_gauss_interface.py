@@ -69,10 +69,22 @@ def main():
         plt.imshow(np.abs(p), cmap="jet",
                    extent=[x.min(), x.max(), z.max(), z.min()],
                    aspect='auto')
-        plt.xlabel("x (mm)")
-        plt.ylabel("z (mm)")
-        plt.title("Normalized Pressure Field (Gaussian MLS Array Modeling)")
-        plt.colorbar(label="Pressure Magnitude")
+        plt.xlabel("x (mm)", fontsize=16)
+        plt.ylabel("z (mm)", fontsize=16)
+
+        # Dynamic title based on parameters
+        if np.isinf(args.F):
+            title = f"Gaussian MLS Steered Beam (Φ={args.Phi}°, F=∞, M={args.M}, f={args.f} MHz, Window={args.wtype})"
+        else:
+            title = f"Gaussian MLS Steered + Focused Beam (Φ={args.Phi}°, F={args.F} mm, M={args.M}, f={args.f} MHz, Window={args.wtype})"
+        plt.title(title, fontsize=18, linespacing=1.2)
+
+        cbar = plt.colorbar()
+        cbar.set_label("Normalized pressure magnitude", fontsize=16, linespacing=1.2)
+        cbar.ax.tick_params(labelsize=14)
+        plt.tick_params(axis='both', labelsize=16)
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.minorticks_on()
         plt.tight_layout()
         plt.show()
 

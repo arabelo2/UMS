@@ -67,7 +67,7 @@ def main():
 
         # Dynamically build title
         if np.isinf(args.F):
-            title = f"MLS Steered Beam (Φ={args.Phi}°, F={args.F}, M={args.M}, f={args.f} MHz, Window={args.wtype})"
+            title = f"MLS Steered Beam (Φ={args.Phi}°, F=∞, M={args.M}, f={args.f} MHz, Window={args.wtype})"
         else:
             title = f"MLS Steered + Focused Beam (Φ={args.Phi}°, F={args.F} mm, M={args.M}, f={args.f} MHz, Window={args.wtype})"
         plt.title(title, fontsize=18, linespacing=1.2)
