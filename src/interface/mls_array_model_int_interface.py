@@ -53,56 +53,62 @@ def main():
 
     args = parser.parse_args()
 
-    # Process x: if not provided or empty, set x_vals to None so the domain uses its default.
-    if args.x is None or args.x.strip() == "":
-        x_vals = None
-    else:
-        try:
-            x_vals = parse_array(args.x)
-        except Exception as e:
-            parser.error(str(e))
-    
-    # Process z similarly.
-    if args.z is None or args.z.strip() == "":
-        z_vals = None
-    else:
-        try:
-            z_vals = parse_array(args.z)
-        except Exception as e:
-            parser.error(str(e))
-    
+    # Process x and z
+    try:
+        x_vals = parse_array(args.x) if args.x and args.x.strip() else None
+        z_vals = parse_array(args.z) if args.z and args.z.strip() else None
+    except Exception as e:
+        parser.error(str(e))
+
     result = run_mls_array_model_int_service(
-         args.f, args.d1, args.c1, args.d2, args.c2,
-         args.M, args.d, args.g, args.angt, args.ang20,
-         args.DF, args.DT0, args.wtype, x_vals, z_vals
+        args.f, args.d1, args.c1, args.d2, args.c2,
+        args.M, args.d, args.g, args.angt, args.ang20,
+        args.DF, args.DT0, args.wtype, x_vals, z_vals
     )
-    p = result['p']
-    x = result['x']
-    z = result['z']
-    
+    p, x, z = result['p'], result['x'], result['z']
+
     outfile = "mls_array_model_int_output.txt"
     with open(outfile, "w") as f:
-         for i in range(p.shape[0]):
-             for j in range(p.shape[1]):
-                 f.write(f"{p[i, j].real:.6f}+{p[i, j].imag:.6f}j\n")
+        for i in range(p.shape[0]):
+            for j in range(p.shape[1]):
+                f.write(f"{p[i, j].real:.6f}+{p[i, j].imag:.6f}j\n")
     print(f"Results saved to {outfile}")
-    
+
     if args.plot == "y":
-         plt.figure(figsize=(10, 6))
-         plt.imshow(np.abs(p), cmap="jet", extent=[x.min(), x.max(), z.max(), z.min()], aspect='auto')
-         plt.xlabel("x (mm)")
-         plt.ylabel("z (mm)")
-         # Determine medium type based on density thresholds (e.g., threshold = 2.0)
-         medium1 = "Fluid" if args.d1 < 2.0 else "Solid"
-         medium2 = "Fluid" if args.d2 < 2.0 else "Solid"
-         if args.d1 == args.d2 and args.c1 == args.c2:
-             plot_title = f"MLS Array Modeling Pressure Field for {medium1}"
-         else:
-             plot_title = f"MLS Array Modeling Pressure Field at {medium1}/{medium2} Interface"
-         plt.title(plot_title)
-         plt.colorbar(label="Pressure Magnitude")
-         plt.tight_layout()
-         plt.show()
+        plt.figure(figsize=(10, 6))
+        plt.imshow(np.abs(p), cmap="jet", extent=[x.min(), x.max(), z.max(), z.min()], aspect='auto')
+        plt.xlabel("x (mm)", fontsize=16)
+        plt.ylabel("z (mm)", fontsize=16)
+
+        # Determine medium type
+        medium1 = "Fluid" if args.d1 < 2.0 else "Solid"
+        medium2 = "Fluid" if args.d2 < 2.0 else "Solid"
+
+        # Dynamic plot title with all key parameters
+        if np.isinf(args.DF):
+            title = (
+                f"Gaussian MLS Steered Beam at {medium1}/{medium2} Interface\n"
+                f"(f={args.f} MHz, d1={args.d1} g/cm³, c1={args.c1} m/s, d2={args.d2} g/cm³, c2={args.c2} m/s,\n"
+                f"M={args.M}, d={args.d} mm, g={args.g} mm, θ={args.angt}°, Φ={args.ang20}°, "
+                f"F=∞, DT0={args.DT0} mm, Window={args.wtype})"
+            )
+        else:
+            title = (
+                f"Gaussian MLS Steered + Focused Beam at {medium1}/{medium2} Interface\n"
+                f"(f={args.f} MHz, d1={args.d1} g/cm³, c1={args.c1} m/s, d2={args.d2} g/cm³, c2={args.c2} m/s,\n"
+                f"M={args.M}, d={args.d} mm, g={args.g} mm, θ={args.angt}°, Φ={args.ang20}°, "
+                f"F={args.DF} mm, DT0={args.DT0} mm, Window={args.wtype})"
+            )
+
+        plt.title(title, fontsize=16, linespacing=1.2)
+        cbar = plt.colorbar()
+        cbar.set_label("Normalized pressure magnitude", fontsize=16, linespacing=1.2)
+        cbar.ax.tick_params(labelsize=14)
+        plt.tick_params(axis='both', labelsize=16)
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.minorticks_on()
+        plt.tight_layout()
+        plt.show()
 
 if __name__ == "__main__":
     main()
