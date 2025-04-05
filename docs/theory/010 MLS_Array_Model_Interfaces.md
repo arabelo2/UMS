@@ -1,4 +1,4 @@
-# **Linear MLS Array Modeling at a Fluid/Fluid or Fluid/Solid Interface**
+# **MLS Array Modeling at a Fluid/Fluid or Fluid/Solid Interface**
 
 ## 1. Introduction
 
@@ -45,7 +45,7 @@ $$
 Distances in each medium are calculated via Snell's law to find intersection points ($\xi$), using Ferrari's method:
 
 $$
-\frac{\sin(\theta_1)}{c_1} = \frac{\sin(\theta_2)}{c_2}
+\frac{\sin(\theta)}{c_1} = \frac{\sin(\Phi)}{c_2}
 $$
 
 The detailed delay calculation incorporates the resulting geometry to focus energy precisely through interfaces, supported by sections 4.7 and 8.4.
