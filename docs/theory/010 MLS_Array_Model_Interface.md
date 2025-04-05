@@ -77,7 +77,25 @@ Supportive modules include:
 - `discrete_windows.py`
 - `pts_2Dintf.py`
 
-## 4. Examples and Results
+## 4. Spatial Resolution Considerations
+
+The spatial resolution for the simulations was calculated as follows:
+
+- Ideal spatial resolution:
+
+$$
+\text{Wavelength (}\lambda\text{)} = \frac{c}{f} = \frac{1.480 \times 10^3 \text{ m/s}}{5 \times 10^6 \text{ Hz}} = 0.296 \text{ mm}
+$$
+
+$$
+\text{Spatial resolution} = \frac{\lambda}{3} = 0.09867 \text{ mm}
+$$
+
+This would suggest approximately 618 points for the x-axis and 1003 points for the z-axis. However, to simplify the simulations, a slightly adjusted wavelength of 0.3 mm (corresponding to a propagation speed of 1.5×10³ m/s) was adopted, resulting in a spatial resolution of 0.1 mm and the use of 610 points along the x-axis and 990 points along the z-axis.
+
+This minor simplification results in negligible differences in spatial resolution while significantly simplifying computations.
+
+## 5. Examples and Results
 
 ### (1) Steered + Focused Beam: Fluid/Solid Interface ($\theta=0^\circ$, $\Phi=0^\circ$, $F=75$ mm, Hann Window)
 
@@ -110,7 +128,7 @@ python src/interface/mls_array_model_int_interface.py --f 5 --d1 1.0 --c1 1480 -
 
 - Fluid-fluid scenario showcases smoother wave propagation without refraction, resulting in symmetric focal characteristics.
 
-## 5. Conclusion
+## 6. Conclusion
 
 The simulation results validate theoretical predictions from Schmerr:
 
