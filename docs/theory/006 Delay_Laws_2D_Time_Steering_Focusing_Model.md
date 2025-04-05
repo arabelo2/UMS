@@ -1,4 +1,4 @@
-# **Delay Law Generation for 1-D Linear Arrays (delay_laws2D)**
+# **Delay Law Generation for 1-D Linear Arrays**
 
 ## 1. Introduction
 

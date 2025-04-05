@@ -87,14 +87,14 @@ def main():
         # Dynamic plot title with all key parameters
         if np.isinf(args.DF):
             title = (
-                f"Gaussian MLS Steered Beam at {medium1}/{medium2} Interface\n"
+                f"MLS Steered Beam at {medium1}/{medium2} Interface\n"
                 f"(f={args.f} MHz, d1={args.d1} g/cm³, c1={args.c1} m/s, d2={args.d2} g/cm³, c2={args.c2} m/s,\n"
                 f"M={args.M}, d={args.d} mm, g={args.g} mm, θ={args.angt}°, Φ={args.ang20}°, "
                 f"F=∞, DT0={args.DT0} mm, Window={args.wtype})"
             )
         else:
             title = (
-                f"Gaussian MLS Steered + Focused Beam at {medium1}/{medium2} Interface\n"
+                f"MLS Steered + Focused Beam at {medium1}/{medium2} Interface\n"
                 f"(f={args.f} MHz, d1={args.d1} g/cm³, c1={args.c1} m/s, d2={args.d2} g/cm³, c2={args.c2} m/s,\n"
                 f"M={args.M}, d={args.d} mm, g={args.g} mm, θ={args.angt}°, Φ={args.ang20}°, "
                 f"F={args.DF} mm, DT0={args.DT0} mm, Window={args.wtype})"

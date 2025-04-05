@@ -1,4 +1,4 @@
-# **Gaussian-Based MLS Array Modeling (mls_array_modeling_gauss)**
+# **Gaussian-Based MLS Array Modeling**
 
 ## 1. Introduction
 

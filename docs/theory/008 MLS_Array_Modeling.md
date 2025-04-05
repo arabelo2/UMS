@@ -1,4 +1,4 @@
-# **Linear MLS Array Modeling (mls_array_modeling)**
+# **Linear MLS Array Modeling**
 
 ## 1. Introduction
 

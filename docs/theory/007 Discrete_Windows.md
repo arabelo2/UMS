@@ -1,4 +1,4 @@
-# **Discrete Apodization Amplitude Windows (discrete_windows)**
+# **Discrete Apodization Amplitude Windows**
 
 ## 1. Introduction
 
