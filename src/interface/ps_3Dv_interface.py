@@ -52,16 +52,16 @@ def main():
             "3. 2D simulation with (vector, scalar, vector):\n"
             "   python interface/ps_3Dv_interface.py --lx=6 --ly=12 --f=5 --c=1480 --ex=0 --ey=0 \\\n"
             "       --x=0 --y=\"-5,5,200\" --z=\"5,100,400\"\n\n"
-            "4. 2D simulation with (vector, scalar, vector) and 3D field plotting:\n"
+            "4. 3D simulation with (vector, scalar, vector) and 3D field plotting:\n"
             "   python interface/ps_3Dv_interface.py --lx=6 --ly=12 --f=5 --c=1480 --ex=0 --ey=0 \\\n"
             "       --x=\"-5,5,200\" --y=0 --z=\"5,100,400\" --plot-3dfield\n\n"
-            "5. 2D simulation with (scalar, vector, vector) and 3D field plotting:\n"
+            "5. 3D simulation with (scalar, vector, vector) and 3D field plotting:\n"
             "   python interface/ps_3Dv_interface.py --lx=6 --ly=12 --f=5 --c=1480 --ex=0 --ey=0 \\\n"
             "       --x=0 --y=\"-5,5,200\" --z=\"5,100,400\" --plot-3dfield\n\n"
-            "6. 2D simulation with (vector, vector, scalar) and 3D field plotting:\n"
+            "6. 3D simulation with (vector, vector, scalar) and 3D field plotting:\n"
             "   python interface/ps_3Dv_interface.py --lx=6 --ly=12 --f=5 --c=1480 --ex=0 --ey=0 \\\n"
             "       --x=\"-5,5,200\" --y=\"-5,5,200\" --z=50 --plot-3dfield\n\n"
-            "7. 2D simulation with (vector, vector, scalar) using wider range and 3D field plotting:\n"
+            "7. 3D simulation with (vector, vector, scalar) using wider range and 3D field plotting:\n"
             "   python interface/ps_3Dv_interface.py --lx=6 --ly=12 --f=5 --c=1480 --ex=0 --ey=0 \\\n"
             "       --x=\"-20,20,200\" --y=\"-20,20,200\" --z=50 --plot-3dfield\n\n"
             "Note: For array inputs, if exactly three numbers are provided, they are interpreted\n"
@@ -224,9 +224,9 @@ def main():
                 im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
                 plt.xlabel("y (mm)", fontsize=16)
                 plt.ylabel("z (mm)", fontsize=16)
-                plt.title(f"2D Rayleigh-Sommerfeld Simulation for Rectangular Piston at x = {x_vals}", fontsize=16, linespacing=1.2)
+                plt.title(f"2D Rayleigh-Sommerfeld Simulation for Rectangular Piston at x = {x_vals} mm", fontsize=16, linespacing=1.2)
                 ax = plt.gca()
-                apply_plot_style(ax, title=f"2D Rayleigh-Sommerfeld Simulation for Rectangular Piston at x = {x_vals}", xlabel="y (mm)", ylabel="z (mm)")
+                apply_plot_style(ax, title=f"2D Rayleigh-Sommerfeld Simulation for Rectangular Piston at x = {x_vals} mm", xlabel="y (mm)", ylabel="z (mm)")
                 plt.grid(True, which='both', linestyle='--', linewidth=0.5)
                 plt.minorticks_on()
                 plt.tight_layout()
@@ -238,9 +238,9 @@ def main():
                 im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
                 plt.xlabel("x (mm)", fontsize=16)
                 plt.ylabel("z (mm)", fontsize=16)
-                plt.title(f"2D Rayleigh-Sommerfeld Simulation for Rectangular Piston at y = {y_vals}", fontsize=16, linespacing=1.2)
+                plt.title(f"2D Rayleigh-Sommerfeld Simulation for Rectangular Piston at y = {y_vals} mm", fontsize=16, linespacing=1.2)
                 ax = plt.gca()
-                apply_plot_style(ax, title=f"2D Rayleigh-Sommerfeld Simulation for Rectangular Piston at y = {y_vals}", xlabel="x (mm)", ylabel="z (mm)")
+                apply_plot_style(ax, title=f"2D Rayleigh-Sommerfeld Simulation for Rectangular Piston at y = {y_vals} mm", xlabel="x (mm)", ylabel="z (mm)")
                 plt.grid(True, which='both', linestyle='--', linewidth=0.5)
                 plt.minorticks_on()
                 plt.tight_layout()
@@ -252,9 +252,9 @@ def main():
                 im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
                 plt.xlabel("x (mm)", fontsize=16)
                 plt.ylabel("y (mm)", fontsize=16)
-                plt.title(f"2D Rayleigh-Sommerfeld Simulation for Rectangular Piston at z = {z_vals}", fontsize=16, linespacing=1.2)
+                plt.title(f"2D Rayleigh-Sommerfeld Simulation for Rectangular Piston at z = {z_vals} mm", fontsize=16, linespacing=1.2)
                 ax = plt.gca()
-                apply_plot_style(ax, title=f"2D Rayleigh-Sommerfeld Simulation for Rectangular Piston at z = {z_vals}", xlabel="x (mm)", ylabel="y (mm)")
+                apply_plot_style(ax, title=f"2D Rayleigh-Sommerfeld Simulation for Rectangular Piston at z = {z_vals} mm", xlabel="x (mm)", ylabel="y (mm)")
                 plt.grid(True, which='both', linestyle='--', linewidth=0.5)
                 plt.minorticks_on()
                 plt.tight_layout()
