@@ -9,7 +9,6 @@ This model is especially relevant to:
 - **Section 4.7**: Beam Steering and Focusing Through a Planar Interface
 - **Section 5.2**: Steering and Focusing Through a Planar Interface
 - **Appendix C.2**: Delay and Apodization Laws
-- **Code Listing C.19**: Delay Law Calculation with Refraction
 
 The model uses Snell's Law to correctly handle wave refraction through the interface, determining both the time-of-flight from array elements to focal points and the necessary delays to synchronize wavefronts.
 
@@ -26,12 +25,13 @@ Let:
 - $\theta_1$ = incident angle in medium 1 (derived)
 - $\theta_2 = \Phi$ = steering angle in medium 2 (user-defined)
 - $c_1$, $c_2$: wave speeds in medium 1 and 2
-- $DT_0$: array center height above interface (mm)
+- $DT0$: array center height above interface (mm)
 - $DF$: focal depth in medium 2 (mm)
 
 ### **2.1 Snell’s Law**
 
 To relate the angles:
+
 $$
 \frac{\sin(\theta_1)}{c_1} = \frac{\sin(\Phi)}{c_2}
 $$
@@ -118,7 +118,7 @@ python src/interface/delay_laws2D_int_interface.py --M 32 --s 1.0 --angt 0 --ang
 **Analysis:**
 
 - The rays are seen converging at a focal point 15 mm into medium 2.
-- The delay profile has a convex parabolic shape, as predicted by Eq. C.19.
+- The delay profile has a convex parabolic shape.
 - Sharp focusing is achieved with an effective aperture synchronization.
 
 ### **(C) Steering + Focusing (DF = 35 mm)**
