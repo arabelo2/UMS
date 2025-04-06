@@ -18,9 +18,9 @@ The pressure field is computed by approximating the Rayleigh-Sommerfeld integral
 
 ### 2.1 Wave Number Calculation
 
-```latex
+$$
 k = \frac{2000 \pi f}{c}
-```
+$$
 
 - **Dependencies:**
   - `f`: Frequency in MHz  
@@ -29,9 +29,9 @@ k = \frac{2000 \pi f}{c}
 
 ### 2.2 Segmentation of the Piston Surface
 
-```latex
+$$
 P = \left\lceil \frac{1000 f l_x}{c} \right\rceil, \quad Q = \left\lceil \frac{1000 f l_y}{c} \right\rceil
-```
+$$
 
 - **Dependencies:**  
   - `l_x`, `l_y`: Element dimensions in mm  
@@ -39,9 +39,9 @@ P = \left\lceil \frac{1000 f l_x}{c} \right\rceil, \quad Q = \left\lceil \frac{1
 
 ### 2.3 Sub-element Centroid Calculation
 
-```latex
+$$
 x_c^{(p)} = -\frac{l_x}{2} + \frac{l_x}{P}\left(p - \frac{1}{2}\right), \quad y_c^{(q)} = -\frac{l_y}{2} + \frac{l_y}{Q}\left(q - \frac{1}{2}\right)
-```
+$$
 
 - **Dependencies:**  
   - Element dimensions `l_x`, `l_y`  
@@ -51,35 +51,35 @@ x_c^{(p)} = -\frac{l_x}{2} + \frac{l_x}{P}\left(p - \frac{1}{2}\right), \quad y_
 
 1. **Distance Calculation:**
 
-```latex
+$$
 r_{pq} = \sqrt{(x - x_c^{(p)} - e_x)^2 + (y - y_c^{(q)} - e_y)^2 + z^2}
-```
+$$
 
 2. **Directivity (Sinc) Functions:**
 
-```latex
+$$
 \text{arg}_x = \frac{k\, u_x\, l_x}{2P}, \quad D_x = \frac{\sin(\text{arg}_x)}{\text{arg}_x}
-```
+$$
 
-```latex
+$$
 \text{arg}_y = \frac{k\, u_y\, l_y}{2Q}, \quad D_y = \frac{\sin(\text{arg}_y)}{\text{arg}_y}
-```
+$$
 
-```latex
+$$
 u_x = \frac{x - x_c^{(p)} - e_x}{r_{pq}}, \quad u_y = \frac{y - y_c^{(q)} - e_y}{r_{pq}}
-```
+$$
 
 3. **Sub-element Pressure Contribution:**
 
-```latex
+$$
 p_{pq} = D_x \cdot D_y \cdot \frac{e^{i k r_{pq}}}{r_{pq}}
-```
+$$
 
 4. **Overall Pressure Calculation:**
 
-```latex
+$$
 \text{factor} = \frac{-i k (\frac{l_x}{P})(\frac{l_y}{Q})}{2\pi}, \quad p = \text{factor} \cdot \sum_{p,q} p_{pq}
-```
+$$
 
 ## 3. Implementation Details
 
@@ -97,13 +97,13 @@ python src/interface/ps_3Dv_interface.py --lx=6 --ly=12 --f=5 --c=1480 --ex=0 --
 
 ## 4. Wavelength and Resolution Considerations
 
-```latex
+$$
 \lambda = \frac{c}{f} = \frac{1480}{5 \times 10^6} = 2.96 \times 10^{-4}~\text{m} = 0.296~\text{mm}
-```
+$$
 
-```latex
+$$
 \text{Resolution} = \frac{\lambda}{10} = 0.0296~\text{mm}
-```
+$$
 
 This resolution was applied in the examples for spatial sampling along the lateral directions.
 
@@ -178,24 +178,24 @@ This study presents a robust implementation of the 3D Rayleigh–Sommerfeld inte
 - **Wavelength & Resolution**  
   For the test setup:
 
-  ```latex
+  $$
   \lambda = \frac{c}{f} = \frac{1480}{5 \times 10^6} = 0.296~\text{mm}
-  ```
+  $$
 
   A lateral resolution of `λ / 10 = 0.0296 mm` was applied in `x` and `y` directions to maintain spatial fidelity in accordance with array design rules from Section 7.1.
 
 - **Near-Field to Far-Field Transition**  
   The transition depth is defined by:
 
-  ```latex
+  $$
   z_{\text{far}} \approx \frac{2b^2}{\lambda}
-  ```
+  $$
 
   where `b = 6 mm` (half of the largest dimension). This yields:
 
-  ```latex
+  $$
   z_{\text{far}} \approx 243~\text{mm}
-  ```
+  $$
 
   which effectively guided the interpretation of pressure field patterns at different `z` locations.
 
@@ -234,8 +234,6 @@ This study presents a robust implementation of the 3D Rayleigh–Sommerfeld inte
 ### Final Remarks
 
 This tool provides an accurate, flexible, and extensible way to model rectangular piston fields, supporting analysis in both near- and far-field regions with direct application in ultrasonic inspection and medical imaging. The layered CLI design enables deep user control over geometry and resolution.
-
-Let me know if you'd like this appended directly into the documentation!
 
 ## References
 
