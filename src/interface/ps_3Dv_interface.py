@@ -11,6 +11,33 @@ import matplotlib.pyplot as plt
 from application.ps_3Dv_service import run_ps_3Dv_service
 from interface.cli_utils import safe_float, parse_array
 
+def apply_plot_style(ax=None, title=None, xlabel=None, ylabel=None, zlabel=None, colorbar_obj=None):
+    """
+    Applies consistent font sizes and styles to matplotlib plots.
+    
+    Parameters:
+        ax            : matplotlib Axes object (if None, current axes will be used)
+        title         : str, plot title
+        xlabel        : str, x-axis label
+        ylabel        : str, y-axis label
+        zlabel        : str, z-axis label (for 3D plots)
+        colorbar_obj  : Colorbar object, if provided its label and tick label sizes will be set.
+    """
+    if ax is None:
+        ax = plt.gca()
+    if title:
+        ax.set_title(title, fontsize=18)
+    if xlabel:
+        ax.set_xlabel(xlabel, fontsize=16)
+    if ylabel:
+        ax.set_ylabel(ylabel, fontsize=16)
+    if zlabel and hasattr(ax, 'set_zlabel'):
+        ax.set_zlabel(zlabel, fontsize=16)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    if colorbar_obj:
+        colorbar_obj.set_label("Normalized pressure magnitude", fontsize=16)
+        colorbar_obj.ax.tick_params(labelsize=14)
+
 def main():
     parser = argparse.ArgumentParser(
         description="Compute normalized pressure for a rectangular piston using the 3D Rayleigh-Sommerfeld integral.",
@@ -148,10 +175,11 @@ def main():
             independent = z_vals
             xlabel = "z (mm)"
         plt.plot(independent, np.abs(p), 'b-', lw=2)
-        plt.xlabel(xlabel)
-        plt.ylabel("Normalized Pressure Magnitude")
-        plt.title("1D Rayleigh-Sommerfeld Simulation for Rectangular Piston")
-        plt.grid(True)
+        ax = plt.gca()
+        apply_plot_style(ax, title="1D Rayleigh-Sommerfeld Simulation for Rectangular Piston", xlabel=xlabel, ylabel="Normalized pressure magnitude")
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.minorticks_on()
+        plt.tight_layout()
     elif mode == "2D":
         if args.plot_3dfield:
             # 3D field plotting for a 2D simulation:
@@ -161,57 +189,79 @@ def main():
             if not x_is_vec:
                 # x is scalar; independent axes: y and z.
                 Y_grid, Z_grid = np.meshgrid(np.atleast_1d(y_vals), np.atleast_1d(z_vals))
-                ax.scatter(Y_grid.flatten(), Z_grid.flatten(), np.abs(p.flatten()), c=np.abs(p.flatten()), cmap="jet", s=5)
+                sc = ax.scatter(Y_grid.flatten(), Z_grid.flatten(), np.abs(p.flatten()), c=np.abs(p.flatten()), cmap="jet", s=5)
                 ax.set_xlabel("y (mm)")
                 ax.set_ylabel("z (mm)")
                 ax.set_zlabel("Pressure")
                 ax.set_title(f"3D Simulation (Ultrasound Pressure Field) at x = {x_vals}")
+                apply_plot_style(ax, title=f"3D Simulation (Ultrasound Pressure Field) at x = {x_vals}", xlabel="y (mm)", ylabel="z (mm)", zlabel="Pressure")
             elif not y_is_vec:
                 # y is scalar; independent axes: x and z.
                 X_grid, Z_grid = np.meshgrid(np.atleast_1d(x_vals), np.atleast_1d(z_vals))
-                ax.scatter(X_grid.flatten(), Z_grid.flatten(), np.abs(p.flatten()), c=np.abs(p.flatten()), cmap="jet", s=5)
+                sc = ax.scatter(X_grid.flatten(), Z_grid.flatten(), np.abs(p.flatten()), c=np.abs(p.flatten()), cmap="jet", s=5)
                 ax.set_xlabel("x (mm)")
                 ax.set_ylabel("z (mm)")
                 ax.set_zlabel("Pressure")
                 ax.set_title(f"3D Simulation (Ultrasound Pressure Field) at y = {y_vals}")
+                apply_plot_style(ax, title=f"3D Simulation (Ultrasound Pressure Field) at y = {y_vals}", xlabel="x (mm)", ylabel="z (mm)", zlabel="Pressure")
             elif not z_is_vec:
                 # z is scalar; independent axes: x and y.
                 X_grid, Y_grid = np.meshgrid(np.atleast_1d(x_vals), np.atleast_1d(y_vals))
-                ax.scatter(X_grid.flatten(), Y_grid.flatten(), np.abs(p.flatten()), c=np.abs(p.flatten()), cmap="jet", s=5)
+                sc = ax.scatter(X_grid.flatten(), Y_grid.flatten(), np.abs(p.flatten()), c=np.abs(p.flatten()), cmap="jet", s=5)
                 ax.set_xlabel("x (mm)")
                 ax.set_ylabel("y (mm)")
                 ax.set_zlabel("Pressure")
                 ax.set_title(f"3D Simulation (Ultrasound Pressure Field) at z = {z_vals}")
-            fig.colorbar(ax.collections[0], ax=ax, label="Pressure Magnitude")
+                apply_plot_style(ax, title=f"3D Simulation (Ultrasound Pressure Field) at z = {z_vals}", xlabel="x (mm)", ylabel="y (mm)", zlabel="Pressure")
+            cb = fig.colorbar(ax.collections[0], ax=ax, label="Normalized pressure magnitude")
+            apply_plot_style(ax, colorbar_obj=cb)
         else:
             if not x_is_vec:
                 independent1 = np.atleast_1d(y_vals)
                 independent2 = np.atleast_1d(z_vals)
                 extent = [independent1.min(), independent1.max(), independent2.max(), independent2.min()]
                 plt.figure(figsize=(8,6))
-                plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
-                plt.xlabel("y (mm)")
-                plt.ylabel("z (mm)")
-                plt.title(f"2D Simulation at x = {x_vals}")
+                im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
+                plt.xlabel("y (mm)", fontsize=16)
+                plt.ylabel("z (mm)", fontsize=16)
+                plt.title(f"2D Simulation at x = {x_vals}", fontsize=16, linespacing=1.2)
+                ax = plt.gca()
+                apply_plot_style(ax, title=f"2D Simulation at x = {x_vals}", xlabel="y (mm)", ylabel="z (mm)")
+                plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+                plt.minorticks_on()
+                plt.tight_layout()
             elif not y_is_vec:
                 independent1 = np.atleast_1d(x_vals)
                 independent2 = np.atleast_1d(z_vals)
                 extent = [independent1.min(), independent1.max(), independent2.max(), independent2.min()]
                 plt.figure(figsize=(8,6))
-                plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
-                plt.xlabel("x (mm)")
-                plt.ylabel("z (mm)")
-                plt.title(f"2D Simulation at y = {y_vals}")
+                im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
+                plt.xlabel("x (mm)", fontsize=16)
+                plt.ylabel("z (mm)", fontsize=16)
+                plt.title(f"2D Simulation at y = {y_vals}", fontsize=16, linespacing=1.2)
+                ax = plt.gca()
+                apply_plot_style(ax, title=f"2D Simulation at y = {y_vals}", xlabel="x (mm)", ylabel="z (mm)")
+                plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+                plt.minorticks_on()
+                plt.tight_layout()
             elif not z_is_vec:
                 independent1 = np.atleast_1d(x_vals)
                 independent2 = np.atleast_1d(y_vals)
                 extent = [independent1.min(), independent1.max(), independent2.max(), independent2.min()]
                 plt.figure(figsize=(8,6))
-                plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
-                plt.xlabel("x (mm)")
-                plt.ylabel("y (mm)")
-                plt.title(f"2D Simulation at z = {z_vals}")
-            plt.colorbar(label="Pressure Magnitude")
+                im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
+                plt.xlabel("x (mm)", fontsize=16)
+                plt.ylabel("y (mm)", fontsize=16)
+                plt.title(f"2D Simulation at z = {z_vals}", fontsize=16, linespacing=1.2)
+                ax = plt.gca()
+                apply_plot_style(ax, title=f"2D Simulation at z = {z_vals}", xlabel="x (mm)", ylabel="y (mm)")
+                plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+                plt.minorticks_on()
+                plt.tight_layout()
+            cb = plt.colorbar(label="Normalized pressure magnitude")
+            # Apply style to colorbar (using its axis)
+            cb.ax.tick_params(labelsize=14)
+            cb.set_label("Normalized pressure magnitude", fontsize=16)
     else:  # mode == "3D"
         from mpl_toolkits.mplot3d import Axes3D
         fig = plt.figure(figsize=(10,8))
@@ -222,7 +272,9 @@ def main():
         ax.set_ylabel("y (mm)")
         ax.set_zlabel("z (mm)")
         ax.set_title("3D Rayleigh-Sommerfeld Simulation for Rectangular Piston")
-        fig.colorbar(ax.collections[0], ax=ax, label="Pressure Magnitude")
+        apply_plot_style(ax, title="3D Rayleigh-Sommerfeld Simulation for Rectangular Piston", xlabel="x (mm)", ylabel="y (mm)", zlabel="z (mm)")
+        cb = fig.colorbar(ax.collections[0], ax=ax, label="Normalized pressure magnitude")
+        apply_plot_style(ax, colorbar_obj=cb)
     
     plt.show()
 
