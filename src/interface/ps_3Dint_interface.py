@@ -35,6 +35,30 @@ import matplotlib.pyplot as plt
 from application.ps_3Dint_service import run_ps_3Dint_service
 from interface.cli_utils import safe_eval, safe_float, parse_array
 
+def apply_plot_style(ax=None, title=None, xlabel=None, ylabel=None, colorbar_obj=None):
+    """
+    Applies consistent font sizes and styles to matplotlib plots.
+
+    Parameters:
+        ax            : matplotlib Axes object (if None, current axes will be used)
+        title         : str, plot title
+        xlabel        : str, x-axis label
+        ylabel        : str, y-axis label
+        colorbar_obj  : Colorbar object, if provided its label and tick label sizes will be set.
+    """
+    if ax is None:
+        ax = plt.gca()
+    if title:
+        ax.set_title(title, fontsize=18)
+    if xlabel:
+        ax.set_xlabel(xlabel, fontsize=16)
+    if ylabel:
+        ax.set_ylabel(ylabel, fontsize=16)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    if colorbar_obj:
+        colorbar_obj.set_label("Normalized velocity magnitude", fontsize=16)
+        colorbar_obj.ax.tick_params(labelsize=14)
+
 def main():
     parser = argparse.ArgumentParser(
         description="Compute velocity components (vx, vy, vz) using the ps_3Dint algorithm.",
@@ -57,32 +81,20 @@ def main():
     )
 
     # Define default values
-    parser.add_argument("--lx", type=safe_float, default=6.0,
-                        help="Length of the array element in the x-direction (mm). Default: 6.0")
-    parser.add_argument("--ly", type=safe_float, default=12.0,
-                        help="Length of the array element in the y-direction (mm). Default: 12.0")
-    parser.add_argument("--f", type=safe_float, default=5.0,
-                        help="Frequency (MHz). Default: 5.0")
-    parser.add_argument("--mat", type=str, default="1,1480,7.9,5900,3200,p",
-                        help="Material properties as comma-separated values: d1,cp1,d2,cp2,cs2,wave_type. Default: '1,1480,7.9,5900,3200,p'")
-    parser.add_argument("--angt", type=safe_float, default=10.217,
-                        help="Angle of the array with respect to the interface (degrees). Default: 10.217")
-    parser.add_argument("--Dt0", type=safe_float, default=50.8,
-                        help="Distance from the array center to the interface (mm). Default: 50.8")
-    parser.add_argument("--x", type=str, default="0,30,100",
-                        help="x-coordinates (mm). If exactly three numbers are provided, they are interpreted as start, stop, and number of points. Default: '0,30,100'")
-    parser.add_argument("--z", type=str, default="1,20,100",
-                        help="z-coordinates (mm). If exactly three numbers are provided, they are interpreted as start, stop, and number of points. Default: '1,20,100'")
-    parser.add_argument("--y", type=safe_float, default=0.0,
-                        help="y-coordinate (fixed value). Default: 0.0")
-    parser.add_argument("--outfile", type=str, default="velocity_output.txt",
-                        help="Output file to save the velocity magnitude matrix. Default: velocity_output.txt")
-    parser.add_argument("--plotfile", type=str, default=None,
-                        help="If provided, the plot will be saved to this file (e.g., 'plot.png').")
+    parser.add_argument("--lx", type=safe_float, default=6.0)
+    parser.add_argument("--ly", type=safe_float, default=12.0)
+    parser.add_argument("--f", type=safe_float, default=5.0)
+    parser.add_argument("--mat", type=str, default="1,1480,7.9,5900,3200,p")
+    parser.add_argument("--angt", type=safe_float, default=10.217)
+    parser.add_argument("--Dt0", type=safe_float, default=50.8)
+    parser.add_argument("--x", type=str, default="0,30,100")
+    parser.add_argument("--z", type=str, default="1,20,100")
+    parser.add_argument("--y", type=safe_float, default=0.0)
+    parser.add_argument("--outfile", type=str, default="velocity_output.txt")
+    parser.add_argument("--plotfile", type=str, default=None)
 
     args = parser.parse_args()
 
-    # Parse material properties
     try:
         mat_values = [float(item.strip()) if item.strip().replace('.', '', 1).isdigit() else item.strip() for item in args.mat.split(",")]
         if len(mat_values) != 6:
@@ -90,37 +102,31 @@ def main():
     except ValueError:
         parser.error("mat must contain exactly six comma-separated values: d1,cp1,d2,cp2,cs2,wave_type (e.g., '1,1480,7.9,5900,3200,p').")
 
-    # Parse x and z coordinates
     try:
         x = parse_array(args.x)
         z = parse_array(args.z)
     except Exception as e:
         parser.error(str(e))
 
-    # Create meshgrid for 2D simulation
     xx, zz = np.meshgrid(x, z)
 
-    # Call the service layer
     vx, vy, vz = run_ps_3Dint_service(args.lx, args.ly, args.f, mat_values, 0, 0, args.angt, args.Dt0, xx, args.y, zz)
-
-    # Compute magnitude of velocity
     v = np.sqrt(np.abs(vx)**2 + np.abs(vy)**2 + np.abs(vz)**2)
 
-    # Plot the result
-    plt.imshow(v, cmap="jet", extent=[x.min(), x.max(), z.max(), z.min()], aspect='auto')
-    plt.colorbar(label='Velocity Magnitude')
-    plt.xlabel('x (mm)')
-    plt.ylabel('z (mm)')
-    plt.title('Velocity Magnitude in the Second Medium')
+    fig, ax = plt.subplots(figsize=(8, 6))
+    im = ax.imshow(v, cmap="jet", extent=[x.min(), x.max(), z.max(), z.min()], aspect='auto')
+    cb = fig.colorbar(im, ax=ax)
+    apply_plot_style(ax, title="Velocity Magnitude in the Second Medium", xlabel="x (mm)", ylabel="z (mm)", colorbar_obj=cb)
+    plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+    plt.minorticks_on()
+    plt.tight_layout()
 
-    # Save the plot if a filename is provided
     if args.plotfile:
         plt.savefig(args.plotfile, dpi=300, bbox_inches='tight')
         print(f"Plot saved to {args.plotfile}")
 
     plt.show()
 
-    # Save the velocity magnitude matrix to a file
     try:
         with open(args.outfile, "w") as f:
             for row in v:
