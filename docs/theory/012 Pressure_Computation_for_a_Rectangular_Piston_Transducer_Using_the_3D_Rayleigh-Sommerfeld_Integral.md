@@ -129,7 +129,7 @@ python src/interface/ps_3Dv_interface.py --lx=6 --ly=12 --f=5 --c=1480 --ex=0 --
 python src/interface/ps_3Dv_interface.py --lx=6 --ly=12 --f=5 --c=1480 --ex=0 --ey=0 --x="-5.5204,5.5204,373" --y="-5.5204,5.5204,373" --z=243.243
 ```
 
-![2D Near-Field](../../examples/figures/2D_RS_simulation_for_rectangular_piston_transducer_znear-field_regime.png)
+![2D Near-Field](../../examples/figures/2D_RS_simulation_for_rectangular_piston_transducer_znear‑field_regime.png)
 
 ```bash
 python src/interface/ps_3Dv_interface.py --lx=6 --ly=12 --f=5 --c=1480 --ex=0 --ey=0 --x="-5.5204,5.5204,373" --y="-5.5204,5.5204,373" --z=301
@@ -167,9 +167,7 @@ python src/interface/ps_3Dv_interface.py --lx=6 --ly=12 --f=5 --c=1480 --ex=0 --
 python src/interface/ps_3Dv_interface.py --lx=6 --ly=12 --f=5 --c=1480 --ex=0 --ey=0 --x="-5.5204,5.5204,373" --y="-5.5204,5.5204,373" --z=50 --plot-3dfield
 ```
 
-![3D z=50](../../examples/3D_Visualization_of_Ultrasound_Pressure_Field_for_rectangular_piston_transducer_z50.png)
-
-Here is the improved **conclusion** section in **Markdown format** with figure references and enriched analysis from the theoretical chapters:
+![3D z=50](../../examples/figures/3D_Visualization_of_Ultrasound_Pressure_Field_for_rectangular_piston_transducer_z50.png)
 
 ## 6. Conclusion
 
