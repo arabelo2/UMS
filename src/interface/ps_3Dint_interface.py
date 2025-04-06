@@ -113,10 +113,22 @@ def main():
     vx, vy, vz = run_ps_3Dint_service(args.lx, args.ly, args.f, mat_values, 0, 0, args.angt, args.Dt0, xx, args.y, zz)
     v = np.sqrt(np.abs(vx)**2 + np.abs(vy)**2 + np.abs(vz)**2)
 
+    # Dynamic title generation
+    medium1 = "Fluid" if mat_values[0] < 2.0 else "Solid"
+    medium2 = "Fluid" if mat_values[2] < 2.0 else "Solid"
+    title = (
+        f"Velocity Field at {medium1}/{medium2} Interface – ps_3Dint Model\n"
+        f"(f = {args.f:.2f} MHz, lx = {args.lx:.1f} mm, ly = {args.ly:.1f} mm,\n"
+        f"d1 = {mat_values[0]:.2f} g/cm³, cp1 = {mat_values[1]:.0f} m/s, "
+        f"d2 = {mat_values[2]:.2f} g/cm³, cp2 = {mat_values[3]:.0f} m/s, "
+        f"cs2 = {mat_values[4]:.0f} m/s,\n"
+        f"θ = {args.angt:.1f}°, Dt0 = {args.Dt0:.1f} mm, wave = {mat_values[5]})"
+    )
+
     fig, ax = plt.subplots(figsize=(8, 6))
     im = ax.imshow(v, cmap="jet", extent=[x.min(), x.max(), z.max(), z.min()], aspect='auto')
     cb = fig.colorbar(im, ax=ax)
-    apply_plot_style(ax, title="Velocity Magnitude in the Second Medium", xlabel="x (mm)", ylabel="z (mm)", colorbar_obj=cb)
+    apply_plot_style(ax, title=title, xlabel="x (mm)", ylabel="z (mm)", colorbar_obj=cb)
     plt.grid(True, which='both', linestyle='--', linewidth=0.5)
     plt.minorticks_on()
     plt.tight_layout()
