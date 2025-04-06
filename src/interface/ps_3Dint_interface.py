@@ -117,12 +117,12 @@ def main():
     medium1 = "Fluid" if mat_values[0] < 2.0 else "Solid"
     medium2 = "Fluid" if mat_values[2] < 2.0 else "Solid"
     title = (
-        f"Velocity Field at {medium1}/{medium2} Interface – ps_3Dint Model\n"
-        f"(f = {args.f:.2f} MHz, lx = {args.lx:.1f} mm, ly = {args.ly:.1f} mm,\n"
+        f"Velocity Field at {medium1}/{medium2} Interface\n"
+        f"f = {args.f:.2f} MHz, lx = {args.lx:.1f} mm, ly = {args.ly:.1f} mm,\n"
         f"d1 = {mat_values[0]:.2f} g/cm³, cp1 = {mat_values[1]:.0f} m/s, "
         f"d2 = {mat_values[2]:.2f} g/cm³, cp2 = {mat_values[3]:.0f} m/s, "
         f"cs2 = {mat_values[4]:.0f} m/s,\n"
-        f"θ = {args.angt:.1f}°, Dt0 = {args.Dt0:.1f} mm, wave = {mat_values[5]})"
+        f"θ = {args.angt:.1f}°, Dt0 = {args.Dt0:.1f} mm, wave = {mat_values[5]}"
     )
 
     fig, ax = plt.subplots(figsize=(8, 6))
