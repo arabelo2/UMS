@@ -179,7 +179,9 @@ This study presents a robust implementation of the 3D Rayleigh–Sommerfeld inte
   For the test setup:
 
   $$
+  \begin{align*}
   \lambda = \frac{c}{f} = \frac{1480}{5 \times 10^6} = 0.296~\text{mm}
+  \end{align*}
   $$
 
   A lateral resolution of `λ / 10 = 0.0296 mm` was applied in `x` and `y` directions to maintain spatial fidelity in accordance with array design rules from Section 7.1.
@@ -188,13 +190,17 @@ This study presents a robust implementation of the 3D Rayleigh–Sommerfeld inte
   The transition depth is defined by:
 
   $$
+  \begin{align*}
   z_{\text{far}} \approx \frac{2b^2}{\lambda}
+  \end{align*}
   $$
 
   where `b = 6 mm` (half of the largest dimension). This yields:
 
   $$
+  \begin{align*}
   z_{\text{far}} \approx 243~\text{mm}
+  \end{align*}
   $$
 
   which effectively guided the interpretation of pressure field patterns at different `z` locations.
