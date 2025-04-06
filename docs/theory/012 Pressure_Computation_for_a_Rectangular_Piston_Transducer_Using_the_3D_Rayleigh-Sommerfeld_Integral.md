@@ -224,7 +224,7 @@ $$
 
 ### Theoretical Validation
 
-- **Amplitude and Phase Behavior**: Matches the expected \(\frac{1}{r}\) decay and phase curvature described in **Code Listing C.20**.
+- **Amplitude and Phase Behavior**: Matches the expected $\(\frac{1}{r}\)$ decay and phase curvature described in **Code Listing C.20**.
 - **Directivity Effects**: The sinc-like directivity patterns are accurately modeled using analytical approximations of the directional cosines, as emphasized in **Chapter 6**.
 - **Beam Evolution**: Visual transitions from multi-lobe near-field to focused far-field are consistent with beam evolution descriptions in **Sections 6.3 and 7.1**.
 
