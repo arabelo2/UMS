@@ -59,21 +59,23 @@ def main():
     if args.plt.lower() == 'y':
         # Plot delay vs element index
         element_indices = np.arange(1, args.M + 1)
-        plt.figure(figsize=(8, 5))
+        plt.figure(figsize=(10, 6))
 
         if args.plot_type == "stem":
             plt.stem(element_indices, delays, linefmt='b-', markerfmt='bo', basefmt=" ", label="Delay Laws")
         else:
             plt.plot(element_indices, delays, 'bo-', label="Delay Laws")
 
-        plt.xlabel("Element Index")
-        plt.ylabel("Delay (µs)")
+        plt.xlabel("Element Index", fontsize=16)
+        plt.ylabel("Delay (µs)", fontsize=16)
         if np.isinf(args.DF):
             plot_title = "Delay Laws - Steering-only case"
         else:
             plot_title = "Delay Laws - Steering and focusing case"
-        plt.title(plot_title)
-        plt.grid(True)
+        plt.title(plot_title, fontsize=16, linespacing=1.2)
+        plt.tick_params(axis='both', labelsize=16)
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.minorticks_on()
         if any(line.get_label() != "_nolegend_" for line in plt.gca().get_lines()):
             plt.legend()
         plt.tight_layout()
@@ -81,17 +83,19 @@ def main():
         
         # Now, plot the ray geometry using the new service method
         delays2, (xp, yp) = run_delay_laws2D_int_service_with_rays(args.M, args.s, args.angt, args.ang20, args.DT0, args.DF, args.c1, args.c2, args.plt)
-        plt.figure(figsize=(8, 5))
+        plt.figure(figsize=(10, 6))
         for i in range(args.M):
             plt.plot(xp[:, i], yp[:, i], 'b-')
-        plt.xlabel("X (mm)")
-        plt.ylabel("Y (mm)")
+        plt.xlabel("x (mm)", fontsize=16)
+        plt.ylabel("y (mm)", fontsize=16)
         if np.isinf(args.DF):
             ray_title = "Ray Geometry - Steering-only case"
         else:
             ray_title = "Ray Geometry - Steering and focusing case"
-        plt.title(ray_title)
-        plt.grid(True)
+        plt.title(ray_title, fontsize=16, linespacing=1.2)
+        plt.tick_params(axis='both', labelsize=16)
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.minorticks_on()
         plt.tight_layout()
         plt.show()
 
