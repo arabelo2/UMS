@@ -1,4 +1,4 @@
-# **Documentation: Comparison of mps\_array\_modeling and mls\_array\_modeling in Ultrasonic Phased Arrays**
+# **Comparison of mps\_array\_modeling and mls\_array\_modeling in Ultrasonic Phased Arrays**
 
 ## 1. Introduction
 
@@ -35,7 +35,7 @@ $$
 p(x,z) \propto \frac{\sin\left(\frac{k b \sin\theta}{2}\right)}{\frac{k b \sin\theta}{2}} \, e^{-ikz},
 $$
 
-where $\(2b\)$ is the element length, $\(\theta\)$ is the observation angle, and the sinc function (defined as $\(\mathrm{sinc}(x) = \frac{\sin(x)}{x}\)$) arises from the Fourier transform of a constant (piston-like) source distribution.
+where $\(2b\)$ is the element length, $\(\theta\)$ is the observation angle, and the sinc function (defined as $$\(\mathrm{sinc}(x) = \frac{\sin(x)}{x}\)$$) arises from the Fourier transform of a constant (piston-like) source distribution.
 
 ### 2.2 Delay Laws and Apodization
 
