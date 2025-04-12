@@ -31,9 +31,9 @@ with $\( f \)$ the frequency and $\( c \)$ the wave speed.
 
 For a piston transducer model (a common assumption in phased array modeling), the far-field pressure is often approximated by an expression such as:
 
-$\[
+$$
 p(x,z) \propto \operatorname{sinc}\!\left(\frac{k b \sin\theta}{2}\right) e^{-ikz},
-\]$
+$$
 
 where $\( 2b \)$ is the element length, $\( \theta \)$ is the observation angle, and the $\(\operatorname{sinc}\)$ function arises from the Fourier transform of a constant (piston-like) source distribution.
 
@@ -41,15 +41,15 @@ where $\( 2b \)$ is the element length, $\( \theta \)$ is the observation angle,
 
 Beam steering and focusing are achieved by applying appropriate time delays and amplitude weights (apodization) to individual array elements. In the frequency domain, a delay $\( \Delta t \)$ corresponds to a phase shift of:
 
-$\[
+$$
 \exp(-i\omega \Delta t),
-\]$
+$$
 
 and the overall array response is modeled by summing the contributions:
 
-$\[
+$$
 p_{\text{array}}(x,z) = \sum_{n=1}^{N} C_n \, e^{-i\omega\Delta t_n} \, p_n(x,z),
-\]$
+$$
 
 where:
 
@@ -69,9 +69,9 @@ The **mps\_array\_modeling** approach models the overall pressure field by perfo
 
 In **mps\_array\_modeling**, each array element is modeled as a discrete source with a piston response. The total pressure field is computed as:
 
-$\[
+$$
 p(x,z) = \sum_{n=1}^{L_1} \sum_{m=1}^{L_2} w_{nm} \, e^{-i\omega\Delta t_{nm}} \, p_{nm}(x,z),
-\]$
+$$
 
 where:
 
@@ -93,7 +93,7 @@ Simulation results using **mps\_array\_modeling** have produced the following fi
   With a finite focal distance $\( F \)$ (e.g., $\( F = 10 \)$ mm), the figure ([MPS_steered_n_focused_beam_f10.png](../../examples/figures/MPS_steered_n_focused_beam_f10.png)) displays a beam that is both steered and focused. The title updates accordingly to “MPS Steered + Focused Beam”.
 
 - **Steered and Focused Beam with Ham Window**  
-  When a Ham window is used ([MPS_steered_beam_wham_f10.png](../../examples/figures/MPS_steered_beam_wham_f10.png)), the beam profile shows further modification, with changes in side lobe levels and main lobe width, all of which are reflected in the title.
+  When a Ham window is used ([MPS_steered_n_focused_beam_wham_f10.png](../../examples/figures/MPS_steered_n_focused_beam_wham_f10.png)), the beam profile shows further modification, with changes in side lobe levels and main lobe width, all of which are reflected in the title.
 
 ## 4. mls\_array\_modeling
 
@@ -108,15 +108,15 @@ The **mls\_array\_modeling** approach decomposes each transducer element into mu
 
 For **mls\_array\_modeling**, the pressure for an individual element of length $\(2b\)$ is represented as:
 
-$\[
+$$
 p(x,z) \approx \int_{-b}^{b} p(x,z;x')\,dx',
-\]$
+$$
 
 or equivalently through a discrete summation:
 
-$\[
+$$
 p(x,z) = \sum_{n=1}^{N} p_n(x,z),
-\]$
+$$
 
 where $\( p_n(x,z) \)$ is the contribution from the $\( n \)$th line source. This method yields a more refined simulation of the beam, especially in the near field and for large element sizes.
 
@@ -200,7 +200,7 @@ python src/interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.
 
 This command uses Ham windows, which further modify the beam’s profile. The simulation displays a focus with a slightly altered beam shape:
 
-![MPS Steered + Focused Beam with Ham](../../examples/figures/MPS_steered_beam_wham_f10.png)
+![MPS Steered + Focused Beam with Ham](../../examples/figures/MPS_steered_n_focused_beam_wham_f10.png)
 
 ## 7. Conclusion
 
