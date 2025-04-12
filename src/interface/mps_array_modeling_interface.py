@@ -27,7 +27,7 @@ Default values:
   plot      = 'y' (plot the pressure field)
 
 Example usage:
-  python mps_array_model_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 --L1=11 --L2=11 \
+  python interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 --L1=11 --L2=11 \
        --theta=20 --phi=0 --F=inf --ampx_type=rect --ampy_type=rect --xs="-15,15,300" --zs="1,20,200" --y=0 --plot=y
 """
 
@@ -48,7 +48,7 @@ def main():
         description="Compute the normalized pressure field for a 2D array of rectangular elements.",
         epilog=(
             "Example usage:\n"
-            "  python mps_array_model_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 "
+            "  python interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 "
             "--L1=11 --L2=11 --theta=20 --phi=0 --F=inf --ampx_type=rect --ampy_type=rect --xs=\"-15,15,300\" "
             "--zs=\"1,20,200\" --y=0 --plot=y"
         ),
