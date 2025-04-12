@@ -130,9 +130,9 @@ def main():
          plt.xlabel("x (mm)", fontsize=16)
          plt.ylabel("z (mm)", fontsize=16)
          if np.isinf(args.F):
-             title = f"MPS Steered Beam\n(θ={args.theta}°, F=∞, L$_1$={args.L1}, L$_2$={args.L2}, f={args.f} MHz, Window$_x$={args.ampx_type}, Window$_y$={args.ampy_type})"
+             title = f"MPS Steered Beam\n($\\Theta$={args.theta}°, $\\Phi$={args.phi}°, F=∞, L$_1$={args.L1}, L$_2$={args.L2}, f={args.f} MHz, Window$_x$={args.ampx_type}, Window$_y$={args.ampy_type})"
          else:
-             title = f"MPS Steered + Focused Beam\n(θ={args.theta}°, F={args.F} mm, L$_1$={args.L1}, L$_2$={args.L2}, f={args.f} MHz, Window$_x$={args.ampx_type}, Window$_y$={args.ampy_type})"
+             title = f"MPS Steered + Focused Beam\n($\\Theta$={args.theta}°, $\\Phi$={args.phi}°, F={args.F} mm, L$_1$={args.L1}, L$_2$={args.L2}, f={args.f} MHz, Window$_x$={args.ampx_type}, Window$_y$={args.ampy_type})"
          plt.title(title, fontsize=18, linespacing=1.2)
          cbar = plt.colorbar()
          cbar.set_label("Normalized Pressure Magnitude", fontsize=16, linespacing=1.2)
