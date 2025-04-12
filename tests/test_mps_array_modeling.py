@@ -47,7 +47,7 @@ def cleanup_output_file():
     """
     Fixture to remove the output file before and after each test.
     """
-    outfile = "mps_array_modeling_output.txt"
+    outfile = "mps_array_model_output.txt"
     if os.path.exists(outfile):
         os.remove(outfile)
     yield
@@ -113,19 +113,20 @@ def test_interface_default_run():
     Test running the CLI with default parameters (plot disabled).
     Expect exit code 0 and the output file to be created.
     """
-    stdout, stderr, code = run_cli(["--plot=n"])
+    stdout, stderr, code = run_cli(["--plot=N"])
     assert code == 0, f"CLI exited with code {code}. stderr: {stderr}"
-    assert "Pressure field magnitude saved to" in stdout
-    assert os.path.exists("mps_array_model_int_output.txt")
+    # Check for the expected output message.
+    assert "Pressure field saved to" in stdout
+    assert os.path.exists("mps_array_model_output.txt")
 
 def test_interface_focusing_mode():
     """
-    Test the CLI with a focusing scenario (DF finite).
+    Test the CLI with a focusing scenario (F finite).
     """
-    stdout, stderr, code = run_cli(["--DF=15", "--plot=n"])
+    stdout, stderr, code = run_cli(["--F=15", "--plot=N"])
     assert code == 0, f"Focusing mode failed with exit code {code}. stderr: {stderr}"
-    assert "Pressure field magnitude saved to" in stdout
-    assert os.path.exists("mps_array_model_int_output.txt")
+    assert "Pressure field saved to" in stdout
+    assert os.path.exists("mps_array_model_output.txt")
 
 def test_interface_custom_parameters():
     """
@@ -133,19 +134,18 @@ def test_interface_custom_parameters():
     """
     stdout, stderr, code = run_cli([
         "--lx=0.2", "--ly=0.2", "--gx=0.1", "--gy=0.1",
-        "--f=5", "--c1=1480", "--c2=1480", "--L1=10", "--L2=12",
-        "--theta=30", "--phi=15", "--DF=inf",
+        "--f=5", "--c=1480", "--L1=10", "--L2=12",
+        "--theta=30", "--phi=15", "--F=inf",
         "--ampx_type=rect", "--ampy_type=rect",
-        '--xs="-10,10,40"', '--zs="2,12,50"', "--plot=n"
+        '--xs="-10,10,40"', '--zs="2,12,50"', "--plot=N"
     ])
     assert code == 0, f"CLI failed with custom parameters. stderr: {stderr}"
-    assert "Pressure field magnitude saved to" in stdout
-    assert os.path.exists("mps_array_model_int_output.txt")
+    assert "Pressure field saved to" in stdout
+    assert os.path.exists("mps_array_model_output.txt")
 
 # ---------------------------
 # Main Runner to Execute All Tests
 # ---------------------------
 if __name__ == "__main__":
     import pytest
-    # Run all tests in the tests directory
     pytest.main(["tests"])
