@@ -32,31 +32,34 @@ def discrete_windows(M: int, wtype: str) -> np.ndarray:
     """
     if M < 1:
         raise ValueError("Number of elements M must be >= 1.")
-
-    # element indices (MATLAB code uses m=1:M)
+    
+    # Handle single element: simply return 1 for the only element.
+    if M == 1:
+        return np.ones(1)
+    
+    # Element indices (MATLAB code uses m=1:M)
     m = np.arange(1, M+1)
-
-    # We'll create an amplitude array in a pythonic style:
+    
+    # Generate the amplitude array using the specified window type.
     if wtype == 'cos':
         # amp = sin(pi*(m-1)/(M-1))
         amp = np.sin(np.pi * (m - 1) / (M - 1))
     elif wtype == 'Han':
-        # amp =(sin(pi*(m-1)/(M-1)))^2
+        # amp = (sin(pi*(m-1)/(M-1)))^2
         amp = np.sin(np.pi * (m - 1) / (M - 1))**2
     elif wtype == 'Ham':
-        # amp= 0.54 -0.46*cos(2*pi*(m-1)/(M-1))
-        amp = 0.54 - 0.46 * np.cos(2*np.pi*(m - 1)/(M - 1))
+        # amp = 0.54 - 0.46*cos(2*pi*(m-1)/(M-1))
+        amp = 0.54 - 0.46 * np.cos(2 * np.pi * (m - 1) / (M - 1))
     elif wtype == 'Blk':
-        # amp=0.42 -0.5*cos(2*pi*(m-1)/(M-1)) + ...
-        #       0.08*cos(4*pi*(m-1)/(M-1))
+        # amp = 0.42 - 0.5*cos(2*pi*(m-1)/(M-1)) + 0.08*cos(4*pi*(m-1)/(M-1))
         amp = (0.42
-               - 0.5  * np.cos(2*np.pi*(m - 1)/(M - 1))
-               + 0.08 * np.cos(4*np.pi*(m - 1)/(M - 1)))
+               - 0.5  * np.cos(2 * np.pi * (m - 1) / (M - 1))
+               + 0.08 * np.cos(4 * np.pi * (m - 1) / (M - 1)))
     elif wtype == 'tri':
-        # amp =1 - abs(2*(m-1)/(M-1) -1)
-        amp = 1.0 - np.abs(2*(m - 1)/(M - 1) - 1)
+        # amp = 1 - |2*(m-1)/(M-1) - 1|
+        amp = 1.0 - np.abs(2 * (m - 1) / (M - 1) - 1)
     elif wtype == 'rect':
-        # amp = ones(1,M)
+        # amp = ones(1, M)
         amp = np.ones(M)
     else:
         # If type is invalid
