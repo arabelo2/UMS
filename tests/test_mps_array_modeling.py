@@ -143,6 +143,41 @@ def test_interface_custom_parameters():
     assert "Pressure field saved to" in stdout
     assert os.path.exists("mps_array_model_output.txt")
 
+def test_phi_effect():
+    """
+    Test that the computed pressure field changes when the phi parameter is varied.
+    """
+    from application.mps_array_modeling_service import run_mps_array_modeling_service
+
+    xs = np.linspace(-10, 10, 50)
+    zs = np.linspace(1, 15, 30)
+    
+    # Compute pressure field with phi = 0
+    p_phi0, xs_out, zs_out = run_mps_array_modeling_service(
+        lx=0.15, ly=0.15, gx=0.05, gy=0.05,
+        f=5, c=1480, L1=11, L2=11,
+        theta=0, phi=0, F=float('inf'),
+        ampx_type="rect", ampy_type="rect",
+        xs=xs, zs=zs, y=0
+    )
+    
+    # Compute pressure field with phi = 20
+    p_phi20, xs_out, zs_out = run_mps_array_modeling_service(
+        lx=0.15, ly=0.15, gx=0.05, gy=0.05,
+        f=5, c=1480, L1=11, L2=11,
+        theta=0, phi=20, F=float('inf'),
+        ampx_type="rect", ampy_type="rect",
+        xs=xs, zs=zs, y=0
+    )
+    
+    # Verify that the pressure fields are not identical (allowing for a small numerical tolerance).
+    # If they are almost equal, it indicates that phi is not affecting the calculation.
+    assert not np.allclose(p_phi0, p_phi20, atol=1e-6), (
+        "Pressure fields for phi=0 and phi=20 are nearly identical. "
+        "This suggests that the phi parameter is not affecting the delay calculations."
+    )
+
+
 # ---------------------------
 # Main Runner to Execute All Tests
 # ---------------------------
