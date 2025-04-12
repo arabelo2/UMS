@@ -41,6 +41,8 @@ When wave_type is `'s'`, the model activates **mode conversion** at the interfac
 
 This choice enables precise simulation of shear-dominated inspection scenarios.
 
+⚠️ *Note:* Shear waves require a solid medium to propagate. Attempting to simulate shear wave propagation through a fluid/fluid interface is physically invalid and not supported by the `ps_3Dint` model.
+
 ## 3. Simulation Parameters
 
 | Parameter     | Description                        | Units | Default         |
@@ -148,6 +150,8 @@ CLI → Application → Domain → Result + Plot
   - **Fluid/Solid (p-wave)**: Beam refraction, transmission reduction, and possible shear conversion
   - **Fluid/Solid (s-wave)**: Clear conversion to shear waves, demonstrating slower propagation and broader angle distribution, ideal for flaw detection
 - Setting `wave_type='s'` enables shear wave modeling, particularly useful in **non-destructive evaluation (NDE)** where detection of fine cracks or inclusions is essential.
+
+- ⚠️ *Important:* Shear waves do not propagate in fluids. Attempting to use `wave_type='s'` in a fluid/fluid configuration is physically invalid.
 
 This model aligns with Schmerr’s theory and provides a practical, modular, and extendable Python interface for advanced ultrasonic simulation and phased array inspection design.
 
