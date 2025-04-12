@@ -32,10 +32,10 @@ with $\( f \)$ the frequency and $\( c \)$ the wave speed.
 For a piston transducer model (a common assumption in phased array modeling), the far-field pressure is often approximated by an expression such as:
 
 $$
-p(x,z) \propto \operatorname{sinc}\!\left(\frac{k b \sin\theta}{2}\right) e^{-ikz},
+p(x,z) \propto \frac{\sin\left(\frac{k b \sin\theta}{2}\right)}{\frac{k b \sin\theta}{2}} \, e^{-ikz},
 $$
 
-where $\( 2b \)$ is the element length, $\( \theta \)$ is the observation angle, and the $\(\operatorname{sinc}\)$ function arises from the Fourier transform of a constant (piston-like) source distribution.
+where $\(2b\)$ is the element length, $\(\theta\)$ is the observation angle, and the sinc function (defined as $\(\mathrm{sinc}(x) = \frac{\sin(x)}{x}\)$) arises from the Fourier transform of a constant (piston-like) source distribution.
 
 ### 2.2 Delay Laws and Apodization
 
@@ -158,7 +158,7 @@ This section highlights example CLI commands and includes the figures generated 
 ### Example 1: Steered Beam (Unfocused)
 
 ```bash
-python src/interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 --L1=11 --L2=11 --theta=20 --phi=0 --F=inf --ampx_type=rect --ampy_type=rect --xs="-15,15,300" --zs="1,20,200" --y=0 --plot=Y
+python src/interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 --L1=11 --L2=11 --theta=20 --phi=0 --F=inf --ampx_type=rect --ampy_type=rect --xs="-8.6,19.6,1000" --zs="1,30.6,1000" --y=0 --plot=Y
 ```
 
 **Explanation:**  
@@ -169,7 +169,7 @@ This command simulates a steered beam (with $\( F = \infty \)$, hence no focusin
 ### Example 2: Steered Beam with Cosine Windows
 
 ```bash
-python src/interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 --L1=11 --L2=11 --theta=15 --phi=0 --F=inf --ampx_type=cos --ampy_type=cos --xs="-15,15,300" --zs="1,20,200" --y=0 --plot=Y
+python src/interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 --L1=11 --L2=11 --theta=15 --phi=0 --F=inf --ampx_type=cos --ampy_type=cos --xs="-8.6,19.6,1000" --zs="1,30.6,1000" --y=0 --plot=Y
 ```
 
 **Explanation:**  
@@ -181,7 +181,7 @@ This simulation uses cosine apodization in both $\( x \)$ and $\( y \)$ directio
 ### Example 3: Steered and Focused Beam
 
 ```bash
-python src/interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 --L1=11 --L2=11 --theta=20 --phi=0 --F=10 --ampx_type=rect --ampy_type=rect --xs="-15,15,300" --zs="1,20,200" --y=0 --plot=Y
+python src/interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 --L1=11 --L2=11 --theta=20 --phi=0 --F=10 --ampx_type=rect --ampy_type=rect --xs="-8.6,19.6,1000" --zs="1,30.6,1000" --y=0 --plot=Y
 ```
 
 **Explanation:**  
@@ -193,7 +193,7 @@ Here, a finite focal distance $\( F = 10 \)$ mm is used, resulting in both steer
 ### Example 4: Steered and Focused Beam with Ham Windows
 
 ```bash
-python src/interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 --L1=11 --L2=11 --theta=15 --phi=0 --F=10 --ampx_type=Ham --ampy_type=Ham --xs="-15,15,300" --zs="1,20,200" --y=0 --plot=Y
+python src/interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 --L1=11 --L2=11 --theta=15 --phi=0 --F=10 --ampx_type=Ham --ampy_type=Ham --xs="-8.6,19.6,1000" --zs="1,30.6,1000" --y=0 --plot=Y
 ```
 
 **Explanation:**  
