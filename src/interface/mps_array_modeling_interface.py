@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Module: mps_array_model_interface.py
+Module: mps_array_modeling_interface.py
 Layer: Interface
 
 Provides a CLI to compute the normalized pressure field for a 2D array of rectangular elements 
-radiating waves in a fluid using the ps_3Dv algorithm. It utilizes the 
+radiating waves in a fluid using the ps_3Dv algorithm. It utilizes the
 mps_array_modeling_service to compute the field, then saves and optionally plots the results.
 
 Default values:
@@ -24,16 +24,16 @@ Default values:
   xs        = linspace(-15,15,300)
   zs        = linspace(1,20,200)
   y         = 0 (fixed y-coordinate)
-  plot      = 'y' (plot the pressure field)
+  plot      = 'Y' (plot the pressure field)
 
 Example usage:
-  python interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 --L1=11 --L2=11 \
-       --theta=20 --phi=0 --F=inf --ampx_type=rect --ampy_type=rect --xs="-15,15,300" --zs="1,20,200" --y=0 --plot=y
+  python interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 \
+         --L1=11 --L2=11 --theta=20 --phi=0 --F=inf --ampx_type=rect --ampy_type=rect \
+         --xs="-15,15,300" --zs="1,20,200" --y=0 --plot=Y
 """
 
 import sys
 import os
-import math
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import argparse
@@ -50,7 +50,7 @@ def main():
             "Example usage:\n"
             "  python interface/mps_array_modeling_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 --c=1480 "
             "--L1=11 --L2=11 --theta=20 --phi=0 --F=inf --ampx_type=rect --ampy_type=rect --xs=\"-15,15,300\" "
-            "--zs=\"1,20,200\" --y=0 --plot=y"
+            "--zs=\"1,20,200\" --y=0 --plot=Y"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -77,9 +77,11 @@ def main():
                         help="Steering angle in phi direction (deg). Default: 0")
     parser.add_argument("--F", type=safe_float, default=float('inf'),
                         help="Focal distance (mm). Use inf for steering-only. Default: inf")
-    parser.add_argument("--ampx_type", type=str, default="rect", choices=["rect", "cos", "Han", "Ham", "Blk", "tri"],
+    parser.add_argument("--ampx_type", type=str, default="rect",
+                        choices=["rect", "cos", "Han", "Ham", "Blk", "tri"],
                         help="Window type in x-direction. Default: rect")
-    parser.add_argument("--ampy_type", type=str, default="rect", choices=["rect", "cos", "Han", "Ham", "Blk", "tri"],
+    parser.add_argument("--ampy_type", type=str, default="rect",
+                        choices=["rect", "cos", "Han", "Ham", "Blk", "tri"],
                         help="Window type in y-direction. Default: rect")
     parser.add_argument("--xs", type=str, default="-15,15,300",
                         help="x-coordinates as a comma-separated list or start,stop,num_points. Default: \"-15,15,300\"")
@@ -87,8 +89,8 @@ def main():
                         help="z-coordinates as a comma-separated list or start,stop,num_points. Default: \"1,20,200\"")
     parser.add_argument("--y", type=safe_float, default=0.0,
                         help="Fixed y-coordinate for evaluation. Default: 0")
-    parser.add_argument("--plot", type=lambda s: s.lower(), choices=["y", "n"], default="y",
-                        help="Plot the pressure field? (y/n). Default: y")
+    parser.add_argument("--plot", type=lambda s: s.upper(), choices=["Y", "N"], default="Y",
+                        help="Plot the pressure field? (Y/N). Default: Y")
     
     args = parser.parse_args()
     
@@ -102,7 +104,7 @@ def main():
     except Exception as e:
         parser.error(str(e))
     
-    # Call the application service (which internally calls the domain layer)
+    # Call the application service to compute the pressure field.
     p, xs_result, zs_result = run_mps_array_modeling_service(
          args.lx, args.ly, args.gx, args.gy,
          args.f, args.c, args.L1, args.L2,
@@ -120,15 +122,24 @@ def main():
     print(f"Pressure field saved to {outfile}")
     
     # Optionally, plot the pressure magnitude.
-    if args.plot == "y":
+    if args.plot == "Y":
          plt.figure(figsize=(10, 6))
-         plt.imshow(np.abs(p), cmap="jet", extent=[xs_result.min(), xs_result.max(),
-                                                     zs_result.max(), zs_result.min()],
+         plt.imshow(np.abs(p), cmap="jet",
+                    extent=[xs_result.min(), xs_result.max(), zs_result.max(), zs_result.min()],
                     aspect='auto')
-         plt.xlabel("x (mm)")
-         plt.ylabel("z (mm)")
-         plt.title("Normalized Pressure Field")
-         plt.colorbar(label="Pressure Magnitude")
+         plt.xlabel("x (mm)", fontsize=16)
+         plt.ylabel("z (mm)", fontsize=16)
+         if np.isinf(args.F):
+             title = f"MPS Steered Beam\n(θ={args.theta}°, F=∞, L$_1$={args.L1}, L$_2$={args.L2}, f={args.f} MHz, Window$_x$={args.ampx_type}, Window$_y$={args.ampy_type})"
+         else:
+             title = f"MPS Steered + Focused Beam\n(θ={args.theta}°, F={args.F} mm, L$_1$={args.L1}, L$_2$={args.L2}, f={args.f} MHz, Window$_x$={args.ampx_type}, Window$_y$={args.ampy_type})"
+         plt.title(title, fontsize=18, linespacing=1.2)
+         cbar = plt.colorbar()
+         cbar.set_label("Normalized Pressure Magnitude", fontsize=16, linespacing=1.2)
+         cbar.ax.tick_params(labelsize=14)
+         plt.tick_params(axis='both', labelsize=16)
+         plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+         plt.minorticks_on()
          plt.tight_layout()
          plt.show()
 
