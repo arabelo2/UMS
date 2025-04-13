@@ -51,6 +51,21 @@ def test_pts_3Dintf_invalid_cases(ex, ey, xn, yn, angt, Dt0, c1, c2, x, y, z):
     """ Ensure invalid input values raise ValueError. """
     with pytest.raises(ValueError):
         run_pts_3Dintf_service(ex, ey, xn, yn, angt, Dt0, c1, c2, x, y, z)
+        
+def test_pts_3Dintf_3d_input():
+    """Test that run_pts_3Dintf_service correctly handles a full 3D grid."""
+    # Create a 3D grid using meshgrid
+    x = np.linspace(50, 60, 3)  # 3 points
+    y = np.linspace(70, 80, 4)  # 4 points
+    z = np.linspace(80, 90, 5)  # 5 points
+    X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
+    
+    xi = run_pts_3Dintf_service(0, 0, 1, 1, 30, 100, 1480, 5900, X, Y, Z)
+    
+    # The expected shape should match the grid shape: (3, 4, 5)
+    expected_shape = (3, 4, 5)
+    np.testing.assert_equal(xi.shape, expected_shape,
+                            err_msg=f"Expected xi shape {expected_shape}, but got {xi.shape}")
 
 if __name__ == "__main__":
     pytest.main()

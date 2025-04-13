@@ -127,6 +127,18 @@ class TestInitXi3D(unittest.TestCase):
         z = 3
         with self.assertRaises(ValueError):
             InitXi3D(x, y, z)
+    def test_3d_input_flattening(self):
+        # Create a full 3D grid using np.meshgrid for x, y, and z.
+        x = np.linspace(1, 3, 3)  # For example: 3 points
+        y = np.linspace(4, 6, 3)  # 3 points
+        z = np.linspace(7, 9, 3)  # 3 points
+        X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
+        init_obj = InitXi3D(X, Y, Z)
+        xi, P, Q = init_obj.create_zero_array()
+        # Expect N = 3 * 3 * 3 = 27 evaluation points, so xi should have shape (27, 1)
+        self.assertEqual(xi.shape, (27, 1))
+        self.assertEqual(P, 27)
+        self.assertEqual(Q, 1)
 
 if __name__ == '__main__':
     unittest.main()

@@ -101,9 +101,11 @@ def test_domain_field_nonnegative():
     assert np.all(p >= 0), "Pressure field should be non-negative."
 
 def test_domain_invalid_parameters():
+    
     """
     Test that invalid parameters (e.g., negative lx) raise a ValueError.
     """
+    
     from domain.mps_array_model_int import MPSArrayModelInt
     xs = np.linspace(-5, 20, 50)
     zs = np.linspace(1, 20, 50)
@@ -116,6 +118,51 @@ def test_domain_invalid_parameters():
             ampx_type="rect", ampy_type="rect",
             xs=xs, zs=zs, y=0
         )
+
+def test_3d_evaluation_field_shape():
+    """
+    Test that compute_field() from MPSArrayModelInt returns a 3D field when all three inputs are vectors.
+    Expected grid shape is (len(xs), len(y), len(zs)).
+    """
+    from domain.mps_array_model_int import MPSArrayModelInt
+    xs = np.linspace(-5, 5, 11)    # 11 points in x
+    y  = np.linspace(-2, 2, 5)      # 5 points in y
+    zs = np.linspace(10, 20, 7)      # 7 points in z
+    model = MPSArrayModelInt(
+        lx=0.15, ly=0.15, gx=0.05, gy=0.05,
+        f=5, d1=1.0, cp1=1480, d2=7.9, cp2=5900, cs2=3200, wave_type="p",
+        L1=11, L2=11, angt=10.217, Dt0=50.8,
+        theta20=20, phi=0, DF=float('inf'),
+        ampx_type="rect", ampy_type="rect",
+        xs=xs, zs=zs, y=y
+    )
+    result = model.compute_field()
+    p = result['p']
+    expected_shape = (len(xs), len(y), len(zs))
+    np.testing.assert_equal(p.shape, expected_shape, 
+                            err_msg=f"Expected field shape {expected_shape}, but got {p.shape}.")
+    # Check that the returned x and z values match the provided arrays.
+    np.testing.assert_allclose(result['x'], xs)
+    np.testing.assert_allclose(result['z'], zs)
+    # Optionally, verify that all computed field values are finite and non-negative.
+    assert np.all(np.isfinite(p)), "All field values must be finite."
+    assert np.all(p >= 0), "The field should be non-negative."
+
+
+def test_cli_3d_simulation():
+    """
+    Test that the CLI runs in 3D simulation mode when vector inputs are provided for all coordinates.
+    This test calls the interface with --xs, --zs, and --y as vectors and plot disabled.
+    """
+    stdout, stderr, code = run_cli([
+        '--xs=-5,5,11',
+        '--zs=10,20,7',
+        '--y=-2,2,5',
+        '--plot=n'
+    ])
+    assert code == 0, f"CLI 3D simulation failed with code {code}. stderr: {stderr}"
+    assert "Results saved to" in stdout
+    assert os.path.exists("mps_array_model_int_output.txt")
 
 # ---------------------------
 # Application Layer Tests
