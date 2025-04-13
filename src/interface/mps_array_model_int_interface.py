@@ -48,6 +48,11 @@ Example usage:
      python interface/mps_array_model_int_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 \
 --d1=1.0 --c1=1480 --d2=7.9 --c2=5900 --cs2=3200 --type=p --L1=11 --L2=11 --angt=10.217 --Dt0=50.8 \
 --theta20=20 --phi=0 --DF=inf --ampx_type=rect --ampy_type=rect --xs="-5,20,100" --zs="1,20,100" --y=0 --plot=n
+
+  4) With both 2D and additional 3D visualization (for 2D simulation):
+     python interface/mps_array_model_int_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 \
+--d1=1.0 --c1=1480 --d2=7.9 --c2=5900 --cs2=3200 --type=p --L1=11 --L2=11 --angt=10.217 --Dt0=50.8 \
+--theta20=20 --phi=0 --DF=inf --ampx_type=rect --ampy_type=rect --xs="-5,20,100" --zs="1,20,100" --y=0 --plot=y --plot-3dfield
 """
 
 import sys
@@ -97,7 +102,12 @@ def main():
             "     python interface/mps_array_model_int_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 "
             "--d1=1.0 --c1=1480 --d2=7.9 --c2=5900 --cs2=3200 --type=p --L1=11 --L2=11 --angt=10.217 --Dt0=50.8 "
             "--theta20=20 --phi=0 --DF=inf --ampx_type=rect --ampy_type=rect --xs=\"-5,20,100\" --zs=\"1,20,100\" "
-            "--y=0 --plot=n"
+            "--y=0 --plot=n\n\n"
+            "  4) With both 2D and additional 3D visualization (for 2D simulation):\n"
+            "     python interface/mps_array_model_int_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 "
+            "--d1=1.0 --c1=1480 --d2=7.9 --c2=5900 --cs2=3200 --type=p --L1=11 --L2=11 --angt=10.217 --Dt0=50.8 "
+            "--theta20=20 --phi=0 --DF=inf --ampx_type=rect --ampy_type=rect --xs=\"-5,20,100\" --zs=\"1,20,100\" "
+            "--y=0 --plot=y --plot-3dfield\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -247,8 +257,44 @@ def main():
         plt.minorticks_on()
         plt.tight_layout()
     elif mode == "2D":
+        # If both plot and plot-3dfield options are provided, produce both.
+        if args.plot == "y":
+            plt.figure(figsize=(8,6))
+            if not x_is_vec:
+                independent1 = np.atleast_1d(y_vals)
+                independent2 = np.atleast_1d(z_vals)
+                extent = [independent1.min(), independent1.max(), independent2.max(), independent2.min()]
+                im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
+                plt.xlabel("y (mm)")
+                plt.ylabel("z (mm)")
+                plt.title(f"2D Simulation at x = {x_vals} mm\n{title_info}")
+                ax = plt.gca()
+                apply_plot_style(ax, title=f"2D Simulation at x = {x_vals} mm\n{title_info}", xlabel="y (mm)", ylabel="z (mm)")
+            elif not y_is_vec:
+                independent1 = np.atleast_1d(x_vals)
+                independent2 = np.atleast_1d(z_vals)
+                extent = [independent1.min(), independent1.max(), independent2.max(), independent2.min()]
+                im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
+                plt.xlabel("x (mm)")
+                plt.ylabel("z (mm)")
+                plt.title(f"2D Simulation at y = {y_vals} mm\n{title_info}")
+                ax = plt.gca()
+                apply_plot_style(ax, title=f"2D Simulation at y = {y_vals} mm\n{title_info}", xlabel="x (mm)", ylabel="z (mm)")
+            elif not z_is_vec:
+                independent1 = np.atleast_1d(x_vals)
+                independent2 = np.atleast_1d(y_vals)
+                extent = [independent1.min(), independent1.max(), independent2.max(), independent2.min()]
+                im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
+                plt.xlabel("x (mm)")
+                plt.ylabel("y (mm)")
+                plt.title(f"2D Simulation at z = {z_vals} mm\n{title_info}")
+                ax = plt.gca()
+                apply_plot_style(ax, title=f"2D Simulation at z = {z_vals} mm\n{title_info}", xlabel="x (mm)", ylabel="y (mm)")
+            cb = plt.colorbar(label="Normalized velocity magnitude")
+            cb.ax.tick_params(labelsize=14)
+            cb.set_label("Normalized velocity magnitude", fontsize=16)
         if args.plot_3dfield:
-            # 3D visualization for a 2D simulation.
+            # Additional 3D visualization for 2D simulation.
             from mpl_toolkits.mplot3d import Axes3D
             fig = plt.figure(figsize=(10,8))
             ax = fig.add_subplot(111, projection='3d')
@@ -278,52 +324,6 @@ def main():
                 apply_plot_style(ax, title=f"3D Visualization at z = {z_vals}\n{title_info}", xlabel="x (mm)", ylabel="y (mm)", zlabel="Velocity")
             cb = fig.colorbar(ax.collections[0], ax=ax, label="Normalized velocity magnitude")
             apply_plot_style(ax, colorbar_obj=cb)
-        else:
-            if not x_is_vec:
-                independent1 = np.atleast_1d(y_vals)
-                independent2 = np.atleast_1d(z_vals)
-                extent = [independent1.min(), independent1.max(), independent2.max(), independent2.min()]
-                plt.figure(figsize=(8,6))
-                im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
-                plt.xlabel("y (mm)")
-                plt.ylabel("z (mm)")
-                plt.title(f"2D Simulation at x = {x_vals} mm\n{title_info}")
-                ax = plt.gca()
-                apply_plot_style(ax, title=f"2D Simulation at x = {x_vals} mm\n{title_info}", xlabel="y (mm)", ylabel="z (mm)")
-                plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-                plt.minorticks_on()
-                plt.tight_layout()
-            elif not y_is_vec:
-                independent1 = np.atleast_1d(x_vals)
-                independent2 = np.atleast_1d(z_vals)
-                extent = [independent1.min(), independent1.max(), independent2.max(), independent2.min()]
-                plt.figure(figsize=(8,6))
-                im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
-                plt.xlabel("x (mm)")
-                plt.ylabel("z (mm)")
-                plt.title(f"2D Simulation at y = {y_vals} mm\n{title_info}")
-                ax = plt.gca()
-                apply_plot_style(ax, title=f"2D Simulation at y = {y_vals} mm\n{title_info}", xlabel="x (mm)", ylabel="z (mm)")
-                plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-                plt.minorticks_on()
-                plt.tight_layout()
-            elif not z_is_vec:
-                independent1 = np.atleast_1d(x_vals)
-                independent2 = np.atleast_1d(y_vals)
-                extent = [independent1.min(), independent1.max(), independent2.max(), independent2.min()]
-                plt.figure(figsize=(8,6))
-                im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
-                plt.xlabel("x (mm)")
-                plt.ylabel("y (mm)")
-                plt.title(f"2D Simulation at z = {z_vals} mm\n{title_info}")
-                ax = plt.gca()
-                apply_plot_style(ax, title=f"2D Simulation at z = {z_vals} mm\n{title_info}", xlabel="x (mm)", ylabel="y (mm)")
-                plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-                plt.minorticks_on()
-                plt.tight_layout()
-            cb = plt.colorbar(label="Normalized velocity magnitude")
-            cb.ax.tick_params(labelsize=14)
-            cb.set_label("Normalized velocity magnitude", fontsize=16)
     else:  # mode == "3D"
         from mpl_toolkits.mplot3d import Axes3D
         fig = plt.figure(figsize=(10,8))
