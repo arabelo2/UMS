@@ -95,8 +95,16 @@ def main():
     
     # Plot a 3D stem plot if requested
     if args.plot.upper() == "Y":
-        plot_title = "Delay Laws 3D - 3D Stem Plot"
-        fig = plt.figure(figsize=(8, 6))
+        # Determine the mode and build a detailed title string with all variables
+        mode = "Steering Only" if math.isinf(args.F) else "Steering + Focusing"
+        F_val = "inf" if math.isinf(args.F) else f"{args.F} mm"
+        title_str = (
+            f"Delay Laws 3D - {mode}\n"
+            f"M={args.M}, N={args.N}, sx={args.sx} mm, sy={args.sy} mm, "
+            f"theta={args.theta}°, phi={args.phi}°, F={F_val}, c={args.c} m/s"
+        )
+            
+        fig = plt.figure(figsize=(10, 6))
         ax = fig.add_subplot(111, projection='3d')
 
         # Generate grid indices for plotting
@@ -106,21 +114,27 @@ def main():
         for i in range(args.M):
             for j in range(args.N):
                 ax.plot(
-                    [j, j],     # x-axis (column index)
-                    [i, i],     # y-axis (row index)
+                    [j, j],         # x-axis (column index)
+                    [i, i],         # y-axis (row index)
                     [0, td[i, j]],  # z-axis from 0 to delay value
                     marker='o',
                     color='b'
                 )
 
-        ax.set_xlabel("Element index (y-direction)")
-        ax.set_ylabel("Element index (x-direction)")
-        ax.set_zlabel("Time Delay (µs)")
-        ax.set_title(plot_title)
+        # Set axis labels with specified font sizes
+        ax.set_xlabel("Element index (y-direction)", fontsize=16)
+        ax.set_ylabel("Element index (x-direction)", fontsize=16)
+        ax.set_zlabel("Time Delay (µs)", fontsize=16)
+        ax.set_title(title_str, fontsize=18)
 
         # Use CLI parameters for camera viewing angle
         ax.view_init(elev=args.elev, azim=args.azim)
+        
+        # Adjust tick label font sizes for the 3D axes
+        ax.tick_params(axis='both', which='major', labelsize=14)
+        ax.tick_params(axis='both', which='minor', labelsize=14)
 
+        plt.grid(True)
         plt.tight_layout()
         plt.show()
 
