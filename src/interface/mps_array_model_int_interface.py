@@ -223,6 +223,11 @@ def main():
             f.write(f"{val.real:.6f}+{val.imag:.6f}j\n")
     print(f"Results saved to {outfile}")
     
+    # Build detailed plot title with medium information.
+    medium1 = "Fluid" if args.d1 < 2.0 else "Solid"
+    medium2 = "Fluid" if args.d2 < 2.0 else "Solid"
+    title_info = f"Interface: {medium1}/{medium2} | d1={args.d1}, c1={args.c1} m/s | d2={args.d2}, c2={args.c2} m/s"
+
     # Plotting.
     if mode == "1D":
         plt.figure(figsize=(8,5))
@@ -237,7 +242,7 @@ def main():
             xlabel = "z (mm)"
         plt.plot(independent, np.abs(p), 'b-', lw=2)
         ax = plt.gca()
-        apply_plot_style(ax, title="1D Simulation", xlabel=xlabel, ylabel="Normalized velocity magnitude")
+        apply_plot_style(ax, title=f"1D Simulation\n{title_info}", xlabel=xlabel, ylabel="Normalized velocity magnitude")
         plt.grid(True, which='both', linestyle='--', linewidth=0.5)
         plt.minorticks_on()
         plt.tight_layout()
@@ -253,24 +258,24 @@ def main():
                 ax.set_xlabel("y (mm)")
                 ax.set_ylabel("z (mm)")
                 ax.set_zlabel("Velocity")
-                ax.set_title(f"3D Visualization at x = {x_vals}")
-                apply_plot_style(ax, title=f"3D Visualization at x = {x_vals}", xlabel="y (mm)", ylabel="z (mm)", zlabel="Velocity")
+                ax.set_title(f"3D Visualization at x = {x_vals}\n{title_info}")
+                apply_plot_style(ax, title=f"3D Visualization at x = {x_vals}\n{title_info}", xlabel="y (mm)", ylabel="z (mm)", zlabel="Velocity")
             elif not y_is_vec:
                 X_grid, Z_grid = np.meshgrid(np.atleast_1d(x_vals), np.atleast_1d(z_vals))
                 sc = ax.scatter(X_grid.flatten(), Z_grid.flatten(), np.abs(p.flatten()), c=np.abs(p.flatten()), cmap="jet", s=5)
                 ax.set_xlabel("x (mm)")
                 ax.set_ylabel("z (mm)")
                 ax.set_zlabel("Velocity")
-                ax.set_title(f"3D Visualization at y = {y_vals}")
-                apply_plot_style(ax, title=f"3D Visualization at y = {y_vals}", xlabel="x (mm)", ylabel="z (mm)", zlabel="Velocity")
+                ax.set_title(f"3D Visualization at y = {y_vals}\n{title_info}")
+                apply_plot_style(ax, title=f"3D Visualization at y = {y_vals}\n{title_info}", xlabel="x (mm)", ylabel="z (mm)", zlabel="Velocity")
             elif not z_is_vec:
                 X_grid, Y_grid = np.meshgrid(np.atleast_1d(x_vals), np.atleast_1d(y_vals))
                 sc = ax.scatter(X_grid.flatten(), Y_grid.flatten(), np.abs(p.flatten()), c=np.abs(p.flatten()), cmap="jet", s=5)
                 ax.set_xlabel("x (mm)")
                 ax.set_ylabel("y (mm)")
                 ax.set_zlabel("Velocity")
-                ax.set_title(f"3D Visualization at z = {z_vals}")
-                apply_plot_style(ax, title=f"3D Visualization at z = {z_vals}", xlabel="x (mm)", ylabel="y (mm)", zlabel="Velocity")
+                ax.set_title(f"3D Visualization at z = {z_vals}\n{title_info}")
+                apply_plot_style(ax, title=f"3D Visualization at z = {z_vals}\n{title_info}", xlabel="x (mm)", ylabel="y (mm)", zlabel="Velocity")
             cb = fig.colorbar(ax.collections[0], ax=ax, label="Normalized velocity magnitude")
             apply_plot_style(ax, colorbar_obj=cb)
         else:
@@ -282,9 +287,9 @@ def main():
                 im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
                 plt.xlabel("y (mm)")
                 plt.ylabel("z (mm)")
-                plt.title(f"2D Simulation at x = {x_vals} mm")
+                plt.title(f"2D Simulation at x = {x_vals} mm\n{title_info}")
                 ax = plt.gca()
-                apply_plot_style(ax, title=f"2D Simulation at x = {x_vals} mm", xlabel="y (mm)", ylabel="z (mm)")
+                apply_plot_style(ax, title=f"2D Simulation at x = {x_vals} mm\n{title_info}", xlabel="y (mm)", ylabel="z (mm)")
                 plt.grid(True, which='both', linestyle='--', linewidth=0.5)
                 plt.minorticks_on()
                 plt.tight_layout()
@@ -296,9 +301,9 @@ def main():
                 im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
                 plt.xlabel("x (mm)")
                 plt.ylabel("z (mm)")
-                plt.title(f"2D Simulation at y = {y_vals} mm")
+                plt.title(f"2D Simulation at y = {y_vals} mm\n{title_info}")
                 ax = plt.gca()
-                apply_plot_style(ax, title=f"2D Simulation at y = {y_vals} mm", xlabel="x (mm)", ylabel="z (mm)")
+                apply_plot_style(ax, title=f"2D Simulation at y = {y_vals} mm\n{title_info}", xlabel="x (mm)", ylabel="z (mm)")
                 plt.grid(True, which='both', linestyle='--', linewidth=0.5)
                 plt.minorticks_on()
                 plt.tight_layout()
@@ -310,9 +315,9 @@ def main():
                 im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
                 plt.xlabel("x (mm)")
                 plt.ylabel("y (mm)")
-                plt.title(f"2D Simulation at z = {z_vals} mm")
+                plt.title(f"2D Simulation at z = {z_vals} mm\n{title_info}")
                 ax = plt.gca()
-                apply_plot_style(ax, title=f"2D Simulation at z = {z_vals} mm", xlabel="x (mm)", ylabel="y (mm)")
+                apply_plot_style(ax, title=f"2D Simulation at z = {z_vals} mm\n{title_info}", xlabel="x (mm)", ylabel="y (mm)")
                 plt.grid(True, which='both', linestyle='--', linewidth=0.5)
                 plt.minorticks_on()
                 plt.tight_layout()
@@ -328,8 +333,8 @@ def main():
         ax.set_xlabel("x (mm)")
         ax.set_ylabel("y (mm)")
         ax.set_zlabel("z (mm)")
-        ax.set_title("3D Simulation for Array Velocity Field")
-        apply_plot_style(ax, title="3D Simulation for Array Velocity Field", xlabel="x (mm)", ylabel="y (mm)", zlabel="z (mm)")
+        ax.set_title(f"3D Simulation for Array Velocity Field\n{title_info}")
+        apply_plot_style(ax, title=f"3D Simulation for Array Velocity Field\n{title_info}", xlabel="x (mm)", ylabel="y (mm)", zlabel="z (mm)")
         cb = fig.colorbar(ax.collections[0], ax=ax, label="Normalized velocity magnitude")
         apply_plot_style(ax, colorbar_obj=cb)
 
