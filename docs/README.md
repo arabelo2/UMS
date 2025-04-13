@@ -33,7 +33,7 @@ UMS is designed to simulate ultrasonic pressure fields using various methods suc
 - **Application Layer:** Manages input validation, data handling, and orchestrates calls to domain logic.  
 - **Interface Layer:** Provides command-line interfaces (CLIs) for invoking simulations, visualizing results, and managing output.
 
-The theoretical foundations for these implementations are documented in the [`docs/theory`](../../UMS/docs/theory) folder.
+The theoretical foundations for these implementations are documented in the [`docs/theory`](../docs/theory/) folder.
 
 ---
 
