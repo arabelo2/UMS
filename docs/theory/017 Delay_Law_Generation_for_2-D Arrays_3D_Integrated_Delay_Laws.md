@@ -73,48 +73,79 @@ Available options include:
 
 ## 3. Example Usage and Figures
 
-Below are several example commands and the corresponding figures that illustrate different modes of operation.
+Below are several example commands along with the corresponding figures that demonstrate different modes of operation.
 
 ### Steering-Only Examples
 
 #### Example 1: Default Steering-Only Mode
 
 ```bash
-python src/interface/delay_laws3Dint_interface.py --Mx 8 --My 16 --sx 0.5 --sy 0.5 --theta 0 --phi 0 --theta20 30 --DT0 25.4 --DF inf --c1 1480 --c2 5900 --z_scale 1.0 --outfile delay_laws3Dint_output.txt --plot Y --elev 25 --azim 20
+python src/interface/delay_laws3Dint_interface.py --Mx 16 --My 1 --sx 0.5 --sy 0.5 --theta 0 --phi 0 --theta20 0 --DT0 10 --DF 25 --c1 1480 --c2 5900 --outfile delay_laws3Dint_output.txt --plot Y --elev 25 --azim 20
 ```
 
-*Output Figure:*  
-![Steering Only](../../examples/figures/Delay_Laws_3D_Ray_geometry_steering_only_DT010_DFinf_M16_theta0_phi0_theta2_0_interface.png)
+*Output Figures:*  
+The following figures illustrate the ray geometry and delay laws computed in this configuration:
+
+- **3D Ray Geometry:**  
+  ![3D Ray geometry steering with focusing](../../examples/figures/3D_Ray_geometry_steering_w_focusing_DT010_DF25_M16x1_theta0_phi0_theta2_0_interface.png)
+- **Delay Laws Visualization:**  
+  ![Delay laws 3D Ray geometry steering with focusing](../../examples/figures/Delay_laws_3D_Ray_geometry_steering_w_focusing_DT010_DF25_M16x1_theta0_phi0_theta2_0_interface.png)
 
 #### Example 2: Steering-Only with Non-Zero Theta
 
 ```bash
-python src/interface/delay_laws3Dint_interface.py --Mx 8 --My 16 --sx 0.5 --sy 0.5 --theta 20 --phi 0 --theta20 30 --DT0 25.4 --DF inf --c1 1480 --c2 5900 --z_scale 1.0 --outfile delay_laws3Dint_output.txt --plot Y --elev 25 --azim 20
+python src/interface/delay_laws3Dint_interface.py --Mx 16 --My 1 --sx 0.5 --sy 0.5 --theta 0 --phi 0 --theta20 15 --DT0 10 --DF 25 --c1 1480 --c2 5900 --outfile delay_laws3Dint_output.txt --plot Y --elev 25 --azim 20
 ```
 
-*Output Figure:*  
-![Steering Only with Theta 20](../../examples/figures/Delay_Laws_3D_Ray_geometry_steering_w_focusing_DT025_DF25_M8x8_theta0_phi0_theta2_0_interface.png)
+*Output Figures:*  
+The figures below show the adjusted delay law profile when a non-zero theta20 is applied:
+
+- **3D Ray Geometry:**  
+  ![3D Ray geometry steering with focusing](../../examples/figures/3D_Ray_geometry_steering_w_focusing_DT010_DF25_M16x1_theta0_phi0_theta2_15_interface.png)
+- **Delay Laws Visualization:**  
+  ![Delay laws 3D Ray geometry steering with focusing](../../examples/figures/Delay_Laws_3D_Ray_geometry_steering_w_focusing_DT010_DF25_M16x1_theta0_phi0_theta2_15_interface.png)
 
 ### Steering with Focusing Examples
 
 #### Example 3: Focusing Mode with F = 10 mm
 
 ```bash
-python src/interface/delay_laws3Dint_interface.py --Mx 8 --My 16 --sx 0.5 --sy 0.5 --theta 0 --phi 0 --theta20 30 --DT0 25.4 --DF 10 --c1 1480 --c2 5900 --z_scale 1.0 --outfile delay_laws3Dint_output.txt --plot Y --elev 25 --azim 20
-```
-
-*Output Figure:*  
-![Focusing Mode](../../examples/figures/Delay_Laws_3D_Ray_geometry_steering_w_focusing_DT025_DF25_M8x8_theta0_phi0_theta2_0_interface.png)
-
-#### Example 4: Steering with Focusing and Non-Zero Theta and Theta20
-
-```bash
-python src/interface/delay_laws3Dint_interface.py --Mx 16 --My 1 --sx 0.5 --sy 0.5 --theta 20 --phi 0 --theta20 15 --DT0 10 --DF 25 --c1 1480 --c2 5900 --z_scale 1.0 --outfile delay_laws3Dint_output.txt --plot Y --elev 25 --azim 20
+python src/interface/delay_laws3Dint_interface.py --Mx 16 --My 1 --sx 0.5 --sy 0.5 --theta 20 --phi 0 --theta20 15 --DT0 10 --DF 25 --c1 1480 --c2 5900 --outfile delay_laws3Dint_output.txt --plot Y --elev 25 --azim 20
 ```
 
 *Output Figures:*  
-![Focusing with Steering - Theta20=15](../../examples/figures/Delay_Laws_3D_Ray_geometry_steering_w_focusing_DT010_DF25_M16x1_theta0_phi0_theta2_15_interface.png)  
-![3D Visualization](../../examples/figures/3D_Ray_geometry_steering_w_focusing_DT010_DF25_M16x1_theta20_phi0_theta2_15_interface.png)
+This configuration demonstrates the combined effect of steering and focusing:
+
+- **3D Ray Geometry:**  
+  ![3D Ray geometry steering with focusing](../../examples/figures/3D_Ray_geometry_steering_w_focusing_DT010_DF25_M16x1_theta20_phi0_theta2_15_interface.png)
+- **Delay Laws Visualization:**  
+  ![Delay laws 3D Ray geometry steering with focusing](../../examples/figures/Delay_Laws_3D_Ray_geometry_steering_w_focusing_DT010_DF25_M16x1_theta20_phi0_theta2_15_interface.png)
+
+#### Example 4: Steering-Only Mode with Full 2-D Array
+
+```bash
+python src/interface/delay_laws3Dint_interface.py --Mx 16 --My 16 --sx 0.5 --sy 0.5 --theta 0 --phi 0 --theta20 0 --DT0 10 --DF inf --c1 1480 --c2 5900 --outfile delay_laws3Dint_output.txt --plot Y --elev 25 --azim 20
+```
+
+*Output Figure:*  
+This example uses a full 2-D array in steering-only mode. The figure below shows the delay profile without focusing:
+
+- **Delay Laws Visualization:**  
+  ![Delay laws 3D Ray geometry steering with focusing](../../examples/figures/Delay_Laws_3D_Ray_geometry_steering_only_DT010_DFinf_M16_theta0_phi0_theta2_0_interface.png)
+
+#### Example 5: Steering with Focusing for a Square Array
+
+```bash
+python src/interface/delay_laws3Dint_interface.py --Mx 8 --My 8 --sx 0.5 --sy 0.5 --theta 0 --phi 0 --theta20 0 --DT0 25 --DF 25 --c1 1480 --c2 5900 --outfile delay_laws3Dint_output.txt --plot Y --elev 25 --azim 20
+```
+
+*Output Figures:*  
+For a square array configuration, the following figures display the 3D ray geometry and delay laws:
+
+- **3D Ray Geometry:**
+  ![3D Ray geometry steering with focusing](../../examples/figures/3D_Ray_geometry_steering_w_focusing_DT025_DF25_M8x8_theta0_phi0_theta2_0_interface.png)
+- **Delay Laws Visualization:**  
+  ![Delay laws 3D Ray geometry steering with focusing](../../examples/figures/Delay_Laws_3D_Ray_geometry_steering_w_focusing_DT025_DF25_M8x8_theta0_phi0_theta2_0_interface.png)
 
 ## 4. Output Files and Visualizations
 
