@@ -35,29 +35,49 @@ class Pts3DIntf:
         """
         Compute the intersection distance xi.
         """
+        # Convert inputs to arrays (ensuring at least 2D)
+        x_arr = np.atleast_2d(x)
+        y_arr = np.atleast_2d(y)
+        z_arr = np.atleast_2d(z)
 
-        # Convert inputs to NumPy arrays
-        x = np.atleast_2d(x)  # Ensures a minimum of 2D
-        y = np.atleast_2d(y)
-        z = np.atleast_2d(z)
+        # Check if any input is higher-dimensional (e.g., full 3D grid)
+        if x_arr.ndim > 2 or y_arr.ndim > 2 or z_arr.ndim > 2:
+            orig_shape = x_arr.shape  # e.g., (81, 810) from meshgrid of x and y
+            # Flatten the arrays
+            x_proc = x_arr.flatten()
+            y_proc = y_arr.flatten()
+            z_proc = z_arr.flatten()
+        else:
+            orig_shape = x_arr.shape
+            x_proc = x_arr
+            y_proc = y_arr
+            z_proc = z_arr
 
-        # Initialize intersection matrix
-        init_xi = InitXi3D(x, y, z)
+        # Compute initial xi using the InitXi3D helper.
+        init_xi = InitXi3D(x_proc, y_proc, z_proc)
         xi, P, Q = init_xi.compute()
 
-        # Compute effective distances
-        De = self.Dt0 + (self.ex + self.xn) * np.sin(self.angt)  # Effective height
-        Dx = x - (self.ex + self.xn) * np.cos(self.angt)         # Horizontal distance
-        Dy = y - (self.ey + self.yn)                             # Lateral distance
-        Db = np.sqrt(Dx**2 + Dy**2)                              # Total in-plane distance
+        # If we flattened for a high-dimensional grid, reshape xi back to the original grid shape.
+        if x_arr.ndim > 2 or y_arr.ndim > 2 or z_arr.ndim > 2:
+            xi = xi.reshape(orig_shape)
 
-        # Ensure `z` is positive
-        z = np.where(z <= 0, 1e-6, z)  # Avoid zero depth issues
+        # Compute effective distances:
+        De = self.Dt0 + (self.ex + self.xn) * np.sin(self.angt)  # scalar
+        Dx = x_proc - (self.ex + self.xn) * np.cos(self.angt)
+        Dy = y_proc - (self.ey + self.yn)
+        Db_flat = np.sqrt(Dx**2 + Dy**2)
+        Db = Db_flat.reshape(orig_shape)
 
-        # Iterate through the matrix dimensions
-        for pp in range(P):
-            for qq in range(Q):
-                xi[pp, qq] = ferrari2(self.cr, z[pp, qq], De, Db[pp, qq])
+        # Process z: avoid division by zero.
+        z_safe_flat = np.where(np.array(z_proc) <= 0, 1e-6, np.array(z_proc))
+        # If the constant z value was provided (size 1), broadcast it over the grid.
+        if z_safe_flat.size == 1:
+            z_safe = np.full(orig_shape, z_safe_flat[0])
+        else:
+            z_safe = z_safe_flat.reshape(orig_shape)
 
-        # Fix shape issues: remove unnecessary dimensions
+        # Iterate over each evaluation point and compute xi.
+        for idx, _ in np.ndenumerate(xi):
+            xi[idx] = ferrari2(self.cr, z_safe[idx], De, Db[idx])
+
         return xi.squeeze()
