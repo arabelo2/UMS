@@ -1,170 +1,208 @@
-# UMS  
-Ultrasonic Measurements Simulator
+# **Ultrasonic Measurements Simulator (UMS)**
 
-"These programs are based on the methodologies presented in the book by Schmerr (2014)."
-
-### Reference:
-
-SCHMERR, L. W. Fundamentals of Ultrasonic Phased Arrays. Cham: Springer International Publishing, 2014. (Solid Mechanics and Its Applications). ISBN 9783319072722. Available at: https://books.google.com.br/books?id=_H1HBAAAQBAJ. Accessed on: 25 Jan. 2025.
-
-### **Overview of Programs**
-
-The programs follow **Clean Architecture**, **Object-Oriented Programming (OOP) principles**, and **best coding practices**. They are broken down into **domain, application, and interface layers**, ensuring modularity, maintainability, and scalability.
+UMS is an advanced Ultrasonic Measurements Simulator built using Object-Oriented Programming (OOP), Clean Architecture, and Clean Code principles. Its modular design—divided into domain, application, and interface layers—ensures maintainability, scalability, and ease of extension. The project bases its methodologies on the theories presented in Schmerr’s _Fundamentals of Ultrasonic Phased Arrays_ (2014) and other supporting literature available in the repository.
 
 ---
 
-## **1. Fresnel 2D**
-### **Purpose:**
-Computes the normalized pressure field for a **1D focused piston transducer** using the **Fresnel integral approximation**.
+## Table of Contents
 
-### **Implementation in Python:**
-- **Domain:** `fresnel_2D.py` - Implements the mathematical logic for Fresnel integral computation.
-- **Application:** `fresnel_2D_service.py` - Calls the domain function and ensures input validity.
-- **Interface:** `fresnel_2D_interface.py` - CLI for running the Fresnel 2D computation with plotting support.
-
-### **Key Features:**
-✅ Fully object-oriented implementation.  
-✅ Applied edge-case handling (e.g., division by zero).  
-✅ Integrated **NumPy** and **Matplotlib** for efficient computation and visualization.
-
----
-
-## **2. On-Axis Focused 2D**
-### **Purpose:**
-Computes the **on-axis pressure field** of a **focused piston transducer** using **Fresnel integral methods**.
-
-### **Implementation in Python:**
-- **Domain:** `on_axis_foc2D.py` - Handles the core computation using the Fresnel integral.
-- **Application:** `on_axis_foc2D_service.py` - Calls the domain function and prepares data.
-- **Interface:** `on_axis_foc2D_interface.py` - CLI interface allowing users to compute and visualize pressure fields.
-
-### **Key Features:**
-✅ Edge-case handling for **z = 0** (division by zero).  
-✅ Supports complex number operations for **pressure calculations**.  
-✅ Unit-tested with multiple edge cases.
+- [Overview](#overview)
+- [Architecture & Design](#architecture--design)
+  - [Code Dependency Tree](#code-dependency-tree)
+  - [Theory Document Tree](#theory-document-tree)
+- [Modules](#modules)
+  - [Fresnel 2D](#fresnel-2d)
+  - [Gaussian Beam 2D](#gaussian-beam-2d)
+  - [Non-Paraxial Gaussian 2D](#non-paraxial-gaussian-2d)
+  - [Delay Laws 2D](#delay-laws-2d)
+  - [Discrete Windows](#discrete-windows)
+  - [Elements](#elements)
+  - [MLS Array Modeling at Fluid/Fluid Interface](#mls-array-modeling-at-fluidfluid-interface)
+  - [Delay Laws 2D for Interface](#delay-laws-2d-for-interface)
+- [Usage Instructions](#usage-instructions)
+- [Development Guidelines](#development-guidelines)
+- [References](#references)
 
 ---
 
-## **3. Gaussian Beam 2D**
-### **Purpose:**
-Computes the **Gaussian beam approximation** of the pressure field for a **1D transducer**.
+## Overview
 
-### **Implementation in Python:**
-- **Domain:** `gauss_2D.py` - Uses **Wen & Breazeale's 15-coefficient Gaussian model**.
-- **Application:** `gauss_2D_service.py` - Provides input validation and prepares data.
-- **Interface:** `gauss_2D_interface.py` - CLI to compute, visualize, and save pressure field results.
+UMS is designed to simulate ultrasonic pressure fields using various methods such as Fresnel integration, Gaussian beam approximations, and advanced delay law computations. The project is structured into a well-defined layered architecture:
+  
+- **Domain Layer:** Contains core computational logic and implements the mathematical foundations (e.g., integrals, beam models, and delay laws).  
+- **Application Layer:** Manages input validation, data handling, and orchestrates calls to domain logic.  
+- **Interface Layer:** Provides command-line interfaces (CLIs) for invoking simulations, visualizing results, and managing output.
 
-### **Key Features:**
-✅ Uses **NumPy arrays** for efficient Gaussian calculations.  
-✅ Includes **Gauss coefficient retrieval** from `gauss_c15.py`.  
-✅ Supports **plotting** and **file-based outputs**.
+The theoretical foundations for these implementations are documented in the [`docs/theory`](docs/theory) folder.
 
 ---
 
-## **4. Non-Paraxial Gaussian 2D**
-### **Purpose:**
-Computes the **non-paraxial Gaussian beam pressure field** using **Wen & Breazeale’s 10-coefficient model**.
+## Architecture & Design
 
-### **Implementation in Python:**
-- **Domain:** `np_gauss_2D.py` - Implements the **non-paraxial expansion model**.
-- **Application:** `np_gauss_2D_service.py` - Manages input validation and execution.
-- **Interface:** `np_gauss_2D_interface.py` - CLI tool for computation, visualization, and output file storage.
+### Code Dependency Tree
 
-### **Key Features:**
-✅ Fully modularized using **OOP principles**.  
-✅ Retrieves **10 Gaussian coefficients** from `gauss_c10.py`.  
-✅ Efficient implementation using **NumPy vectorized operations**.
+The **src** folder implements the main business logic of the project. Below is a simplified tree diagram showing the dependency relationships among its subdirectories:
 
----
+```
+src/
+├── application/
+│   ├── fresnel_2D_service.py
+│   ├── gauss_2D_service.py
+│   ├── np_gauss_2D_service.py
+│   ├── delay_laws2D_service.py
+│   ├── mls_array_model_int_service.py
+│   └── delay_laws2D_int_service.py
+├── domain/
+│   ├── fresnel_2D.py
+│   ├── on_axis_foc2D.py
+│   ├── gauss_2D.py
+│   ├── np_gauss_2D.py
+│   ├── delay_laws2D.py
+│   ├── discrete_windows.py
+│   ├── elements.py
+│   ├── mls_array_model_int.py
+│   └── delay_laws2D_int.py
+└── interface/
+    ├── fresnel_2D_interface.py
+    ├── on_axis_foc2D_interface.py
+    ├── gauss_2D_interface.py
+    ├── np_gauss_2D_interface.py
+    ├── delay_laws2D_interface.py
+    ├── mls_array_model_int_interface.py
+    └── delay_laws2D_int_interface.py
+```
 
-## **5. Delay Laws 2D**
-### **Purpose:**
-Computes **time delays** for an **M-element transducer array** using a combination of steering and focusing laws.
+> **Note:** The layered design enforces a clear separation of concerns: **Interface → Application → Domain**. Each CLI interface calls a corresponding service in the Application layer, which in turn executes the core logic from the Domain layer.
 
-### **Implementation in Python:**
-- **Domain:** `delay_laws2D.py` - Implements mathematical logic for computing **time delays**.
-- **Application:** `delay_laws2D_service.py` - Ensures correct function calls and input validation.
-- **Interface:** `delay_laws2D_interface.py` - CLI tool for computation and visualization.
+### Theory Document Tree
 
-### **Key Features:**
-✅ Uses **steering angle and focal distance** for accurate delay calculations.  
-✅ Handles **infinity (`inf`) cases** for steering-only scenarios.  
-✅ Robust error handling for **invalid element configurations**.
+The theoretical principles behind the implementations are documented in the [`docs/theory`](docs/theory) folder. A simplified diagram of its structure is as follows:
 
----
+```
+docs/theory/
+├── Fresnel_Integral.md
+├── Gaussian_Beam_Theory.md
+├── Non_Paraxial_Gaussian.md
+├── Delay_Laws.md
+└── Window_Functions.md
+```
 
-## **6. Discrete Windows**
-### **Purpose:**
-Generates **windowing functions** (Hanning, Hamming, Blackman, Triangular, Cosine, and Rectangular) for **array apodization**.
+> **Mapping:**  
 
-### **Implementation in Python:**
-- **Domain:** `discrete_windows.py` - Implements window function calculations.
-- **Application:** `discrete_windows_service.py` - Provides an interface for retrieving the amplitude values.
-- **Interface:** `discrete_windows_interface.py` - CLI for generating and visualizing window functions.
-
-### **Key Features:**
-✅ Supports **six standard apodization methods**.  
-✅ Implements **efficient NumPy vectorized operations**.  
-✅ Includes **visualization support** via **Matplotlib**.
-
----
-
-## **7. Elements**
-### **Purpose:**
-Computes **array element size, gap size, total array length, and centroid locations**.
-
-### **Implementation in Python:**
-- **Domain:** `elements.py` - Implements an **OOP-based calculator** for transducer array elements.
-- **Application:** (No separate layer needed, called directly from the domain).
-- **Interface:** (Handled via higher-level modules like `mls_array_model_int.py`).
-
-### **Key Features:**
-✅ **Validated input parameters** (frequency, wave speed, element count).  
-✅ Uses **OOP encapsulation** for modularity.  
-✅ Dynamically generates **centroid locations** for any array size.
+> - **Fresnel_Integral.md:** Supports the Fresnel 2D module.  
+> - **Gaussian_Beam_Theory.md:** Provides details for the Gaussian Beam 2D module.  
+> - **Non_Paraxial_Gaussian.md:** Details the model behind Non-Paraxial Gaussian 2D.  
+> - **Delay_Laws.md:** Explains the derivation of delay laws used in both steering/focusing modules.  
+> - **Window_Functions.md:** Contains theory behind the discrete windowing functions.
 
 ---
 
-## **8. MLS Array Modeling at Fluid/Fluid Interface**
-### **Purpose:**
-Simulates the normalized pressure wave field for an array of 1-D elements radiating waves through a fluid/fluid interface.  
-This module allows for both steering and focusing in the second medium using the ls_2Dint approach.
+## Modules
 
-### **Implementation in Python:**
-- **Domain:** `mls_array_model_int.py`  
-  - Implements the `MLSArrayModelInt` class using OOP principles.
-  - Computes element centroids and generates a default 2D grid (x: linspace(-25,25,255), z: linspace(1,52,255)) unless custom coordinates are provided.
-  - Integrates delay law and windowing services to compute the pressure field.
-- **Application:** `mls_array_model_int_service.py`  
-  - Provides the `MLSArrayModelIntService` class and the helper function `run_mls_array_model_int_service()` for easy invocation.
-- **Interface:** `mls_array_model_int_interface.py`  
-  - A command-line interface (CLI) that accepts parameters such as --f, --d1, --c1, --d2, --c2, --M, --d, --g, --angt, --ang20, --DF, --DT0, --wtype, and --plot.
-  - Includes optional --x and --z parameters to allow users to specify custom coordinate grids (with guidance to enclose values in double quotes, e.g., --x "-5,15,200").
-  - Saves the computed pressure field to a text file and plots the result.
-- **Key Features:**
-  ✅ Fully OOP-based design with modular separation (Domain, Application, Interface).  
-  ✅ Supports default and custom grid inputs.  
-  ✅ Integrates with delay laws and discrete window services for robust computation.
+Each simulation module in UMS has a clear division into three layers. Here is an overview of the primary modules:
+
+### Fresnel 2D
+
+- **Purpose:** Computes the normalized pressure field for a focused piston transducer using the Fresnel integral approximation.
+- **Layers:**
+  - *Domain:* `fresnel_2D.py`
+  - *Application:* `fresnel_2D_service.py`
+  - *Interface:* `fresnel_2D_interface.py`
+- **Reference:** See [`Fresnel_Integral.md`](docs/theory/Fresnel_Integral.md) for theoretical background.
+
+### Gaussian Beam 2D
+
+- **Purpose:** Simulates the Gaussian beam pressure field using a 15-coefficient model.
+- **Layers:**
+  - *Domain:* `gauss_2D.py`
+  - *Application:* `gauss_2D_service.py`
+  - *Interface:* `gauss_2D_interface.py`
+- **Reference:** See [`Gaussian_Beam_Theory.md`](docs/theory/Gaussian_Beam_Theory.md).
+
+### Non-Paraxial Gaussian 2D
+
+- **Purpose:** Provides pressure field computations using a non-paraxial model based on a 10-coefficient system.
+- **Layers:**
+  - *Domain:* `np_gauss_2D.py`
+  - *Application:* `np_gauss_2D_service.py`
+  - *Interface:* `np_gauss_2D_interface.py`
+- **Reference:** See [`Non_Paraxial_Gaussian.md`](docs/theory/Non_Paraxial_Gaussian.md).
+
+### Delay Laws 2D
+
+- **Purpose:** Computes time delays for an M-element transducer array for both steering and focusing.
+- **Layers:**
+  - *Domain:* `delay_laws2D.py`
+  - *Application:* `delay_laws2D_service.py`
+  - *Interface:* `delay_laws2D_interface.py`
+- **Reference:** See [`Delay_Laws.md`](docs/theory/Delay_Laws.md).
+
+### Discrete Windows
+
+- **Purpose:** Generates various windowing functions (Hanning, Hamming, etc.) for array apodization.
+- **Layers:**
+  - *Domain:* `discrete_windows.py`
+  - *Application:* `discrete_windows_service.py`
+  - *Interface:* `discrete_windows_interface.py`
+- **Reference:** See [`Window_Functions.md`](docs/theory/Window_Functions.md).
+
+### Elements
+
+- **Purpose:** Calculates array element parameters such as size, gap, total array length, and centroid positions.
+- **Layer:** Implemented in `elements.py` (invoked directly by other modules).
+
+### MLS Array Modeling at Fluid/Fluid Interface
+
+- **Purpose:** Simulates the pressure field for an array propagating waves through a fluid/fluid interface.
+- **Layers:**
+  - *Domain:* `mls_array_model_int.py`
+  - *Application:* `mls_array_model_int_service.py`
+  - *Interface:* `mls_array_model_int_interface.py`
+
+### Delay Laws 2D for Interface
+
+- **Purpose:** Computes delay laws for arrays across a two-media interface, handling both steering-only and steering-and-focusing cases.
+- **Layers:**
+  - *Domain:* `delay_laws2D_int.py`
+  - *Application:* `delay_laws2D_int_service.py`
+  - *Interface:* `delay_laws2D_int_interface.py`
 
 ---
 
-## **9. Delay Laws 2D for Interface**
-### **Purpose:**
-Computes time delays for steering and focusing an array of 1-D elements through a planar interface between two media.  
-This module supports both steering-only (DF = inf) and steering-and-focusing (finite DF) scenarios.
+## Usage Instructions
 
-### **Implementation in Python:**
-- **Domain:** `delay_laws2D_int.py`  
-  - Implements the `DelayLaws2DInt` class that encapsulates the computation of delay laws using geometrical relationships and Ferrari’s method.
-  - All plotting is removed from the domain layer to maintain separation of concerns.
-- **Application:** `delay_laws2D_int_service.py`  
-  - Provides the `DelayLaws2DIntService` class and the function `run_delay_laws2D_int_service()` for standardized access.
-- **Interface:** `delay_laws2D_int_interface.py`  
-  - A CLI tool that accepts parameters such as --M, --s, --angt, --ang20, --DT0, --DF, --c1, --c2, and --plt.
-  - Optionally plots the computed delay curves.
-- **Key Features:**
-  ✅ Supports both steering-only and focusing cases with robust error handling.
-  ✅ Validates input parameters (e.g., ensuring M > 0).
-  ✅ Provides clear and separate handling of computation (domain) and visualization (interface).
+Each module comes with its own Command Line Interface (CLI). For example:
+
+- To run the **Fresnel 2D** simulation:
+
+  ```bash
+  python src/interface/fresnel_2D_interface.py --options
+  ```
+
+- To simulate the **MLS Array Model**:
+
+  ```bash
+  python src/interface/mls_array_model_int_interface.py --f 1e6 --d1 20 --c1 1500 --... [other parameters]
+  ```
+  
+Check the help command (`--help`) for detailed usage instructions on each CLI tool.
 
 ---
+
+## Development Guidelines
+
+- **Object-Oriented Design:** All modules are implemented using OOP principles to ensure modularity and reusability.
+- **Clean Architecture:** The clear separation of domain, application, and interface layers provides a robust, testable codebase.
+- **Testing & Validation:** Modules include edge-case handling (e.g., division by zero) and are designed to support unit tests.
+
+---
+
+## References
+
+- Schmerr, L. W. (2014). *Fundamentals of Ultrasonic Phased Arrays*. Springer International Publishing. ISBN: 9783319072722.
+- Additional theoretical documents are available in the [`docs/theory`](docs/theory) folder.
+
+---
+
+Feel free to contribute, report issues, or suggest improvements. Enjoy simulating ultrasonic measurements with UMS!
+```
