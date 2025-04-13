@@ -33,7 +33,7 @@ UMS is designed to simulate ultrasonic pressure fields using various methods suc
 - **Application Layer:** Manages input validation, data handling, and orchestrates calls to domain logic.  
 - **Interface Layer:** Provides command-line interfaces (CLIs) for invoking simulations, visualizing results, and managing output.
 
-The theoretical foundations for these implementations are documented in the [`docs/theory`](docs/theory) folder.
+The theoretical foundations for these implementations are documented in the [`docs/theory`](../../UMS/docs/theory) folder.
 
 ---
 
@@ -76,7 +76,7 @@ src/
 
 ### Theory Document Tree
 
-The theoretical principles behind the implementations are documented in the [`docs/theory`](docs/theory) folder. A simplified diagram of its structure is as follows:
+The theoretical principles behind the implementations are documented in the [`docs/theory`](../../UMS/docs/theory) folder. A simplified diagram of its structure is as follows:
 
 ```
 docs/theory/
@@ -108,7 +108,7 @@ Each simulation module in UMS has a clear division into three layers. Here is an
   - *Domain:* `fresnel_2D.py`
   - *Application:* `fresnel_2D_service.py`
   - *Interface:* `fresnel_2D_interface.py`
-- **Reference:** See [`Fresnel_Integral.md`](docs/theory/Fresnel_Integral.md) for theoretical background.
+- **Reference:** See [`Fresnel_Integral.md`](../../UMS/docs/theory/004%20Fresnel_Integral_Model_Lateral_and_On_Axis_Pressure_Field_Simulation.md) for theoretical background.
 
 ### Gaussian Beam 2D
 
@@ -117,7 +117,7 @@ Each simulation module in UMS has a clear division into three layers. Here is an
   - *Domain:* `gauss_2D.py`
   - *Application:* `gauss_2D_service.py`
   - *Interface:* `gauss_2D_interface.py`
-- **Reference:** See [`Gaussian_Beam_Theory.md`](docs/theory/Gaussian_Beam_Theory.md).
+- **Reference:** See [`Gaussian_Beam_Theory.md`](../../UMS/docs/theory/009%20Gaussian_MLS_Array_Modeling.md).
 
 ### Non-Paraxial Gaussian 2D
 
@@ -126,7 +126,7 @@ Each simulation module in UMS has a clear division into three layers. Here is an
   - *Domain:* `np_gauss_2D.py`
   - *Application:* `np_gauss_2D_service.py`
   - *Interface:* `np_gauss_2D_interface.py`
-- **Reference:** See [`Non_Paraxial_Gaussian.md`](docs/theory/Non_Paraxial_Gaussian.md).
+- **Reference:** See [`Non_Paraxial_Gaussian.md`](../../UMS/docs/theory/005%20Gauss_Integral_Model_Lateral_Pressure_Field_Simulation.md).
 
 ### Delay Laws 2D
 
@@ -135,7 +135,7 @@ Each simulation module in UMS has a clear division into three layers. Here is an
   - *Domain:* `delay_laws2D.py`
   - *Application:* `delay_laws2D_service.py`
   - *Interface:* `delay_laws2D_interface.py`
-- **Reference:** See [`Delay_Laws.md`](docs/theory/Delay_Laws.md).
+- **Reference:** See [`Delay_Laws.md`](../../UMS/docs/theory/011%20Delay_Laws_1D_Array_2D_Interface_Model.md).
 
 ### Discrete Windows
 
@@ -144,7 +144,7 @@ Each simulation module in UMS has a clear division into three layers. Here is an
   - *Domain:* `discrete_windows.py`
   - *Application:* `discrete_windows_service.py`
   - *Interface:* `discrete_windows_interface.py`
-- **Reference:** See [`Window_Functions.md`](docs/theory/Window_Functions.md).
+- **Reference:** See [`Window_Functions.md`](../../UMS/docs/theory/007%20Discrete_Windows.md).
 
 ### Elements
 
@@ -200,7 +200,7 @@ Check the help command (`--help`) for detailed usage instructions on each CLI to
 ## References
 
 - Schmerr, L. W. (2014). *Fundamentals of Ultrasonic Phased Arrays*. Springer International Publishing. ISBN: 9783319072722.
-- Additional theoretical documents are available in the [`docs/theory`](docs/theory) folder.
+- Additional theoretical documents are available in the [`docs/theory`](../../UMS/docs/theory) folder.
 
 ---
 
