@@ -117,10 +117,10 @@ def delay_laws3Dint(Mx: int, My: int, sx: float, sy: float,
                     yp[2] = y_val
                     zp[2] = -DF
                     ax.plot(xp, yp, zp, 'b-')
-            ax.set_xlabel("X (mm)")
-            ax.set_ylabel("Y (mm)")
-            ax.set_zlabel("Z (mm)")
-            ax.set_title("Ray Geometry - Steering and Focusing Case")
+            ax.set_xlabel("X (mm)", fontsize=16)
+            ax.set_ylabel("Y (mm)", fontsize=16)
+            ax.set_zlabel("Z (mm)", fontsize=16)
+            ax.set_title("Ray Geometry - Steering and Focusing Case", fontsize=18)
             # Set view using provided CLI parameters
             ax.view_init(elev=view_elev, azim=view_azim)
             plt.show()
