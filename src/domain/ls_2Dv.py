@@ -59,7 +59,8 @@ class LS2Dv:
         eps = np.finfo(float).eps
         for kk in range(N):
             # Calculate angle for the directivity factor
-            ang = np.arctan((xb - xc[kk] - eb) / zb)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                ang = np.arctan((xb - xc[kk] - eb) / zb)
             # Add a tiny epsilon to avoid division by zero when ang is zero
             ang = ang + eps * (ang == 0)
             denom = self.kb * np.sin(ang) / N
