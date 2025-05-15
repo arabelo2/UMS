@@ -149,7 +149,7 @@ class MPSArrayModelInt:
         ey = (Ny - 1 - Mby) * sy_total  # shape (L2,)
 
         # Compute time delays using the delay_laws3Dint service.
-        td, _ = run_delay_laws3Dint_service(
+        td = run_delay_laws3Dint_service(
             Mx=self.L1, My=self.L2, sx=sx_total, sy=sy_total,
             theta=self.angt, phi=self.phi, theta20=self.theta20,
             DT0=self.Dt0, DF=self.DF, c1=self.cp1, c2=(self.cp2 if self.wave_type=='p' else self.cs2),

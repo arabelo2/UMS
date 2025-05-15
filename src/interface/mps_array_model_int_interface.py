@@ -237,6 +237,17 @@ def main():
     medium1 = "Fluid" if args.d1 < 2.0 else "Solid"
     medium2 = "Fluid" if args.d2 < 2.0 else "Solid"
     title_info = f"Interface: {medium1}/{medium2} | d1={args.d1}, c1={args.c1} m/s | d2={args.d2}, c2={args.c2} m/s"
+    
+    Nx, Ny = args.L1, args.L2
+    elem_size_ratio = args.lx/((args.c1/1e3)/args.f)    # element length in λ-units --> λ_mm = (c1_mm_per_us / args.f) --> e.g. 1.480 mm/μs ÷ 5 MHz = 0.296 mm
+    wave = "P" if args.type=="p" else "S"
+    title_info = (
+        f"Normalized velocity magnitude in steel for an "
+        f"{Nx}×{Ny} 2-D phased-array\n"
+        f"(element size ≈ {elem_size_ratio:.2f} λ) "
+        f"normal to the interface at Dt₀ = {args.Dt0} mm,\n"
+        f"radiating a {wave}-wave through a water–steel interface."
+    )
 
     # Plotting.
     if mode == "1D":
