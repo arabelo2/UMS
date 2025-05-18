@@ -20,3 +20,9 @@ pressure_output.txt
 
 # Backup copy of a file
 *.bak
+
+*.png
+*.npy
+*.csv
+*.bk
+*.npz
