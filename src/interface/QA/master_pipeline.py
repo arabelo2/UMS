@@ -9,6 +9,7 @@ import sys
 import os
 import numpy as np
 import argparse
+import json
 from scipy.signal import hilbert
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -20,6 +21,14 @@ from interface.cli_utils import safe_float
 
 def ensure_dir(path):
     os.makedirs(path, exist_ok=True)
+
+def save_run_params(params, out_root):
+    """Save runtime parameters to JSON file for later use in plotting"""
+    param_dict = vars(params)
+    out_path = os.path.join(out_root, "run_params.json")
+    with open(out_path, 'w') as f:
+        json.dump(param_dict, f, indent=4)
+    print(f"Saved run parameters to {out_path}")
 
 def parse_scan_vector(input_val, default_start, default_stop, default_num):
     if input_val is None:
@@ -128,17 +137,16 @@ def run_fmc_tfm(params, z_mm, out_root, fmt):
     
     for tx in range(M):
         for rx in range(N):
-            # Handle all possible delay array shapes
             if td.ndim == 3:
                 delays = td[tx, rx, :]
             elif td.ndim == 2:
                 delays = np.full(len(z_vals), td[tx, rx])
             elif td.ndim == 1:
-                if M == 1:  # Single transmitter
+                if M == 1:
                     delays = np.full(len(z_vals), td[rx])
-                elif N == 1:  # Single receiver
+                elif N == 1:
                     delays = np.full(len(z_vals), td[tx])
-                else:  # M == N
+                else:
                     delays = np.full(len(z_vals), td[tx])
             
             shifted_real = np.interp(
@@ -213,8 +221,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     ensure_dir(args.out_root)
-
-    # Execute pipeline
+    save_run_params(args, args.out_root)
+    
     run_digital_twin_field(args, args.out_root, args.save_fmt)
     if args.z_mm:
         run_fmc_tfm(args, args.z_mm, args.out_root, args.save_fmt)

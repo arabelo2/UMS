@@ -5,11 +5,56 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import hilbert
+import json
 
 def ensure_dir(path):
     os.makedirs(path, exist_ok=True)
 
+def parse_scan_vector(input_val, default_start, default_stop, default_num):
+    """Parse scan vector specification (copied from master_pipeline)"""
+    if input_val is None:
+        return np.linspace(default_start, default_stop, default_num)
+    if not isinstance(input_val, str):
+        return np.array(input_val, dtype=float)
+    
+    s = input_val.strip()
+    if ':' in s:
+        parts = [float(x) for x in s.split(':')]
+        return np.arange(parts[0], parts[2] + parts[1], parts[1])
+    parts = [p for p in s.split(',') if p]
+    nums = [float(p) for p in parts]
+    return np.linspace(nums[0], nums[1], int(nums[2])) if len(nums) == 3 else np.array(nums)
+
 def main():
+    # -- Load Parameters --
+    param_file = os.path.join("results", "run_params.json")
+    try:
+        with open(param_file) as f:
+            params = json.load(f)
+        print("Loaded parameters from run_params.json")
+        
+        # Calculate theoretical FWHM using loaded params
+        theoretical_fwhm = (params['c2'] * 1000 / (params['f'] * 1e6)) * params['DF']
+        
+        # Get actual scan ranges
+        x_scan = parse_scan_vector(params['xs'], -5, 20, 100)
+        z_scan = parse_scan_vector(params['zs'], 1, 20, 100)
+        focal_depth = z_scan[len(z_scan)//2]  # Midpoint of scan range
+        
+    except Exception as e:
+        print(f"Warning: Could not load parameters ({str(e)}), using defaults")
+        params = {
+            'f': 5.0,  # MHz
+            'c2': 5900, # m/s
+            'DF': 45,   # F-number
+            'L1': 11,   # elements x
+            'L2': 11    # elements y
+        }
+        theoretical_fwhm = (params['c2'] * 1000 / (params['f'] * 1e6)) * params['DF']
+        x_scan = np.linspace(-25, 25, 100)
+        z_scan = np.linspace(0, 60, 100)
+        focal_depth = 45  # mm
+    
     # -- Configuration --
     plt.style.use('seaborn-v0_8-poster')
     plt.rcParams.update({
@@ -32,15 +77,12 @@ def main():
         z_vals = np.loadtxt(os.path.join(dt_dir, "field_z_vals.csv"), delimiter=',')
         p_field = np.loadtxt(os.path.join(dt_dir, "field_p_field.csv"), delimiter=',')
         
-        # Normalize and convert to dB
         p_field_norm = p_field / np.max(p_field)
         p_field_db = 20 * np.log10(p_field_norm + 1e-6)
 
-        # Main field plot
         X, Z = np.meshgrid(x_vals, z_vals)
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
         
-        # Full field view
         im1 = ax1.pcolormesh(X, Z, p_field_db, 
                            cmap='jet', 
                            shading='auto',
@@ -48,28 +90,28 @@ def main():
         ax1.set(xlabel="x (mm)", ylabel="z (mm)", 
                title="Digital Twin Field (dB)",
                aspect='equal',
-               xlim=(-25, 25), ylim=(0, 60))
+               xlim=(x_scan.min(), x_scan.max()),
+               ylim=(z_scan.min(), z_scan.max()))
         fig.colorbar(im1, ax=ax1, label="Amplitude (dB)")
 
-        # Zoomed view
+        zoom_width = theoretical_fwhm * 3
         im2 = ax2.pcolormesh(X, Z, p_field_db,
                            cmap='jet',
                            shading='auto',
                            vmin=-20, vmax=0)
-        ax2.set(xlabel="x (mm)", title="Zoomed View (-20dB cutoff)",
+        ax2.set(xlabel="x (mm)", title=f"Zoomed View (-20dB cutoff, {zoom_width:.1f}mm width)",
                aspect='equal',
-               xlim=(-10, 10), ylim=(20, 40))
+               xlim=(-zoom_width/2, zoom_width/2),
+               ylim=(focal_depth - zoom_width/2, focal_depth + zoom_width/2))
         fig.colorbar(im2, ax=ax2, label="Amplitude (dB)")
         plt.tight_layout()
         plt.savefig("plots/digital_twin_field.png", dpi=300, bbox_inches='tight')
         plt.close()
         
-        # Additional beam profile plot
-        focal_depth = 45  # mm
-        focal_idx = np.argmin(np.abs(z_vals - focal_depth))
         plt.figure(figsize=(10, 5))
+        focal_idx = np.argmin(np.abs(z_vals - focal_depth))
         plt.plot(x_vals, p_field_db[focal_idx, :], lw=2)
-        plt.title(f"Beam Profile at z={focal_depth}mm")
+        plt.title(f"Beam Profile at z={focal_depth:.1f}mm")
         plt.xlabel("x (mm)"); plt.ylabel("Amplitude (dB)")
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
@@ -86,23 +128,20 @@ def main():
     try:
         delays = np.loadtxt(os.path.join(ft_dir, "results_delays.csv"), delimiter=',')
         
-        # Reshape if needed
         if delays.ndim == 1:
             delays = delays.reshape(-1, 1)
 
-        # Calculate statistics
         print(f"Delay Statistics:")
         print(f"Max: {delays.max():.4f} samples")
         print(f"Min: {delays.min():.4f} samples") 
         print(f"Range: {delays.max()-delays.min():.4f} samples")
         print(f"Sampling Check: {'OK' if delays.max() < 0.25 else 'WARNING'} (should be <0.25 samples)")
 
-        # 2a) Heatmap
         plt.figure(figsize=(10, 8))
         im = plt.imshow(delays, aspect='auto', cmap='viridis', origin='lower')
         plt.xlabel("Rx Element Index")
         plt.ylabel("Tx Element Index")
-        plt.title(f"Delay Laws (Array: {delays.shape[0]}x{delays.shape[1]})")
+        plt.title(f"Delay Laws (Array: {params['L1']}x{params['L2']})")
         cb = plt.colorbar(im, label="Delay (samples)")
         plt.xticks(np.arange(0, delays.shape[1], max(1, delays.shape[1]//8)))
         plt.yticks(np.arange(0, delays.shape[0], max(1, delays.shape[0]//8)))
@@ -110,7 +149,6 @@ def main():
         plt.savefig("plots/delay_laws_heatmap.png", dpi=300)
         plt.close()
 
-        # 2b) Stem Plot
         center_tx = delays.shape[0] // 2
         tx_delay = delays[center_tx, :] if delays.shape[1] > 1 else delays.flatten()
         
@@ -121,7 +159,6 @@ def main():
                                           basefmt=' ')
         plt.setp(stemlines, 'linewidth', 1)
         
-        # Annotations
         thresh = 0.06
         plt.axhline(thresh, color='gray', ls='--', label='Max Allowable Delay')
         if delays.shape[1] > 1:
@@ -146,18 +183,15 @@ def main():
         envelope = np.loadtxt(os.path.join(ft_dir, "results_envelope.csv"), delimiter=',')
         z_tfm = np.loadtxt(os.path.join(ft_dir, "results_z_vals.csv"), delimiter=',')
 
-        # Normalize and ensure non-zero
         envelope = envelope / np.max(envelope)
-        envelope[envelope < 1e-6] = 1e-6  # Prevent log(0)
+        envelope[envelope < 1e-6] = 1e-6
         
-        # Enhanced FWHM Calculation
         peak_idx = np.argmax(envelope)
         half_max = 0.5
         above = envelope > half_max
         crossings = np.where(np.diff(above.astype(int)) != 0)[0]
         
         if len(crossings) >= 2:
-            # Quadratic interpolation for better accuracy
             def quad_interp(x, y, y0):
                 coeffs = np.polyfit(x, y - y0, 2)
                 roots = np.roots(coeffs)
@@ -174,24 +208,17 @@ def main():
                     envelope[crossings[-1]-1:crossings[-1]+2],
                     half_max
                 )
-                fwhm = max(0, z_right - z_left)  # Ensure non-negative
+                fwhm = max(0, z_right - z_left)
             except:
                 z_left = z_right = fwhm = 0
         else:
             z_left = z_right = fwhm = 0
 
-        # Theoretical FWHM
-        c2 = 5900  # Steel longitudinal speed (m/s)
-        f = 5e6    # Frequency (Hz)
-        lambda_steel = c2 / f * 1000  # wavelength in mm
-        theoretical_fwhm = lambda_steel * 45  # Using your F=45
-        
         print(f"FWHM Analysis:")
         print(f"Theoretical: {theoretical_fwhm:.2f} mm")
         print(f"Measured: {fwhm:.2f} mm")
         print(f"Relative Error: {abs(fwhm-theoretical_fwhm)/theoretical_fwhm*100:.1f}%")
 
-        # Plot with enhanced features
         plt.figure(figsize=(12, 6))
         plt.plot(z_tfm, envelope, lw=2, label='Envelope')
         plt.axhline(half_max, ls='--', color='gray', label='Half Max')
@@ -211,7 +238,6 @@ def main():
         plt.savefig("plots/tfm_envelope.png", dpi=300)
         plt.close()
         
-        # Additional diagnostic plot
         plt.figure()
         plt.plot(z_tfm, envelope, label='Raw Envelope')
         if fwhm > 0:
