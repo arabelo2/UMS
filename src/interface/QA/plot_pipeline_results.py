@@ -185,51 +185,72 @@ def main():
 
         envelope = envelope / np.max(envelope)
         envelope[envelope < 1e-6] = 1e-6
-        
+
+        peak_val = np.max(envelope)
+        half_max = 0.5 * peak_val
+        print(f"Envelope peak: {peak_val:.6f}, Half-max threshold: {half_max:.6f}")
+
+        # Find the index of the peak (focal point)
         peak_idx = np.argmax(envelope)
-        half_max = 0.5
-        above = envelope > half_max
+        # Find where the envelope crosses the half-max
+        above = envelope >= half_max
         crossings = np.where(np.diff(above.astype(int)) != 0)[0]
-        
+        print(f"Half-max crossings found: {len(crossings)}")
+
+        fwhm = np.nan
+        z_left = z_right = np.nan
+
         if len(crossings) >= 2:
+            # Boundary checks for interpolation
+            if crossings[0] > 0:
+                z_left_slice = z_tfm[crossings[0]-1:crossings[0]+2]
+                env_left_slice = envelope[crossings[0]-1:crossings[0]+2]
+            else:
+                z_left_slice = z_tfm[0:3]
+                env_left_slice = envelope[0:3]
+
+            if crossings[-1] < len(z_tfm) - 1:
+                z_right_slice = z_tfm[crossings[-1]-1:crossings[-1]+2]
+                env_right_slice = envelope[crossings[-1]-1:crossings[-1]+2]
+            else:
+                z_right_slice = z_tfm[-3:]
+                env_right_slice = envelope[-3:]
+
             def quad_interp(x, y, y0):
                 coeffs = np.polyfit(x, y - y0, 2)
                 roots = np.roots(coeffs)
-                return roots[np.isreal(roots)].real[0] + x[1]
-            
+                return roots[np.isreal(roots)].real[0] + x[0]
+
             try:
-                z_left = quad_interp(
-                    z_tfm[crossings[0]-1:crossings[0]+2],
-                    envelope[crossings[0]-1:crossings[0]+2],
-                    half_max
-                )
-                z_right = quad_interp(
-                    z_tfm[crossings[-1]-1:crossings[-1]+2],
-                    envelope[crossings[-1]-1:crossings[-1]+2],
-                    half_max
-                )
+                z_left = quad_interp(z_left_slice, env_left_slice, half_max)
+                z_right = quad_interp(z_right_slice, env_right_slice, half_max)
                 fwhm = max(0, z_right - z_left)
-            except:
-                z_left = z_right = fwhm = 0
+            except Exception as e:
+                print(f"Warning: Failed to interpolate FWHM: {e}")
+                fwhm = np.nan
         else:
-            z_left = z_right = fwhm = 0
+            print("Warning: Could not find sufficient half-max crossings to calculate FWHM.")
 
         print(f"FWHM Analysis:")
         print(f"Theoretical: {theoretical_fwhm:.2f} mm")
-        print(f"Measured: {fwhm:.2f} mm")
-        print(f"Relative Error: {abs(fwhm-theoretical_fwhm)/theoretical_fwhm*100:.1f}%")
+        if np.isnan(fwhm):
+            print("Measured: N/A")
+            print("Relative Error: N/A")
+        else:
+            print(f"Measured: {fwhm:.2f} mm")
+            print(f"Relative Error: {abs(fwhm - theoretical_fwhm) / theoretical_fwhm * 100:.1f}%")
 
         plt.figure(figsize=(12, 6))
         plt.plot(z_tfm, envelope, lw=2, label='Envelope')
         plt.axhline(half_max, ls='--', color='gray', label='Half Max')
-        
-        if fwhm > 0:
+
+        if not np.isnan(fwhm):
             plt.axvline(z_left, ls=':', color='red', alpha=0.7)
             plt.axvline(z_right, ls=':', color='red', alpha=0.7)
-            plt.fill_betweenx([0, 1], z_left, z_right, 
-                            color='red', alpha=0.1,
-                            label=f'FWHM={fwhm:.2f}mm')
-        
+            plt.fill_betweenx([0, 1], z_left, z_right,
+                              color='red', alpha=0.1,
+                              label=f'FWHM={fwhm:.2f}mm')
+
         plt.xlabel("Depth z (mm)")
         plt.ylabel("Normalized Amplitude")
         plt.title(f"TFM Envelope (Theory FWHM={theoretical_fwhm:.2f}mm)")
@@ -237,10 +258,10 @@ def main():
         plt.tight_layout()
         plt.savefig("plots/tfm_envelope.png", dpi=300)
         plt.close()
-        
+
         plt.figure()
         plt.plot(z_tfm, envelope, label='Raw Envelope')
-        if fwhm > 0:
+        if not np.isnan(fwhm):
             plt.axvspan(z_left, z_right, color='red', alpha=0.1)
         plt.axhline(half_max, ls='--', color='gray')
         plt.title("Envelope Diagnostic View")
@@ -248,7 +269,7 @@ def main():
         plt.legend()
         plt.savefig("plots/envelope_diagnostic.png")
         plt.close()
-        
+
     except Exception as e:
         print(f"Error processing TFM envelope: {str(e)}")
 
