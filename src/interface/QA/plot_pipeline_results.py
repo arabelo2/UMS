@@ -6,6 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import hilbert
 import json
+from fwhm_methods_addon import estimate_all_fwhm_methods
+from scipy.ndimage import gaussian_filter1d
 
 def ensure_dir(path):
     os.makedirs(path, exist_ok=True)
@@ -239,7 +241,20 @@ def main():
         else:
             print(f"Measured: {fwhm:.2f} mm")
             print(f"Relative Error: {abs(fwhm - theoretical_fwhm) / theoretical_fwhm * 100:.1f}%")
+        
+        # Smooth envelope        
+        envelope_smooth = gaussian_filter1d(envelope, sigma=2.0)
 
+        # Extract ±20 mm window around peak        
+        peak_idx = np.argmax(envelope_smooth)        
+        peak_z = z_tfm[peak_idx]
+        mask = (z_tfm >= peak_z - 20) & (z_tfm <= peak_z + 20)
+        z_clip = z_tfm[mask]
+        env_clip = envelope_smooth[mask]
+
+        # Run all FWHM estimators on the clean window
+        results = estimate_all_fwhm_methods(z_clip, env_clip, fwhm_f1=fwhm, save_csv=True, csv_path="plots/fwhm_comparison.csv", show_plot=True)        
+        
         plt.figure(figsize=(12, 6))
         plt.plot(z_tfm, envelope, lw=2, label='Envelope')
         plt.axhline(half_max, ls='--', color='gray', label='Half Max')
