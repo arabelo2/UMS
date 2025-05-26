@@ -26,3 +26,4 @@ pressure_output.txt
 *.csv
 *.bk
 *.npz
+results*
