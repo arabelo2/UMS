@@ -33,51 +33,58 @@ class Pts3DIntf:
 
     def compute_intersection(self, x, y, z):
         """
-        Compute the intersection distance xi.
+        Compute the intersection distance xi, handling all combinations of scalar/vector inputs.
         """
-        # Convert inputs to arrays (ensuring at least 2D)
-        x_arr = np.atleast_2d(x)
-        y_arr = np.atleast_2d(y)
-        z_arr = np.atleast_2d(z)
-
-        # Check if any input is higher-dimensional (e.g., full 3D grid)
-        if x_arr.ndim > 2 or y_arr.ndim > 2 or z_arr.ndim > 2:
-            orig_shape = x_arr.shape  # e.g., (81, 810) from meshgrid of x and y
-            # Flatten the arrays
-            x_proc = x_arr.flatten()
-            y_proc = y_arr.flatten()
-            z_proc = z_arr.flatten()
-        else:
-            orig_shape = x_arr.shape
-            x_proc = x_arr
-            y_proc = y_arr
-            z_proc = z_arr
-
-        # Compute initial xi using the InitXi3D helper.
-        init_xi = InitXi3D(x_proc, y_proc, z_proc)
-        xi, P, Q = init_xi.compute()
-
-        # If we flattened for a high-dimensional grid, reshape xi back to the original grid shape.
-        if x_arr.ndim > 2 or y_arr.ndim > 2 or z_arr.ndim > 2:
-            xi = xi.reshape(orig_shape)
-
+        # Convert inputs to numpy arrays
+        x_arr = np.asarray(x)
+        y_arr = np.asarray(y)
+        z_arr = np.asarray(z)
+        
+        # Determine input shapes and dimensionality
+        x_scalar = x_arr.ndim == 0
+        y_scalar = y_arr.ndim == 0
+        z_scalar = z_arr.ndim == 0
+        
+        # Get broadcast shape for all inputs
+        try:
+            # This will raise ValueError if shapes are incompatible
+            broadcast_shape = np.broadcast_shapes(
+                np.shape(x),
+                np.shape(y),
+                np.shape(z)
+            )
+        except ValueError as e:
+            raise ValueError(f"Input shapes incompatible for broadcasting: {np.shape(x)}, {np.shape(y)}, {np.shape(z)}") from e
+        
+        # Broadcast all inputs to common shape
+        x_bc = np.broadcast_to(x_arr, broadcast_shape)
+        y_bc = np.broadcast_to(y_arr, broadcast_shape)
+        z_bc = np.broadcast_to(z_arr, broadcast_shape)
+        
+        # Initialize xi array with broadcast shape
+        xi = np.zeros(broadcast_shape)
+        
+        # Compute initial xi using the InitXi3D helper
+        init_xi = InitXi3D(x_bc.ravel(), y_bc.ravel(), z_bc.ravel())
+        xi_flat, P, Q = init_xi.compute()
+        xi = xi_flat.reshape(broadcast_shape)
+        
         # Compute effective distances:
         De = self.Dt0 + (self.ex + self.xn) * np.sin(self.angt)  # scalar
-        Dx = x_proc - (self.ex + self.xn) * np.cos(self.angt)
-        Dy = y_proc - (self.ey + self.yn)
-        Db_flat = np.sqrt(Dx**2 + Dy**2)
-        Db = Db_flat.reshape(orig_shape)
-
-        # Process z: avoid division by zero.
-        z_safe_flat = np.where(np.array(z_proc) <= 0, 1e-6, np.array(z_proc))
-        # If the constant z value was provided (size 1), broadcast it over the grid.
-        if z_safe_flat.size == 1:
-            z_safe = np.full(orig_shape, z_safe_flat[0])
-        else:
-            z_safe = z_safe_flat.reshape(orig_shape)
-
-        # Iterate over each evaluation point and compute xi.
-        for idx, _ in np.ndenumerate(xi):
+        
+        # Process z values safely (avoid division by zero)
+        z_safe = np.where(z_bc <= 0, 1e-6, z_bc)
+        
+        # Compute Dx and Dy with broadcasting
+        Dx = x_bc - (self.ex + self.xn) * np.cos(self.angt)
+        Dy = y_bc - (self.ey + self.yn)
+        Db = np.sqrt(Dx**2 + Dy**2)
+        
+        # Iterate over each evaluation point and compute xi
+        for idx in np.ndindex(*broadcast_shape):
             xi[idx] = ferrari2(self.cr, z_safe[idx], De, Db[idx])
-
-        return xi.squeeze()
+        
+        # Return with original scalar/vector shape
+        if x_scalar and y_scalar and z_scalar:
+            return xi.item()  # return as scalar if all inputs were scalar
+        return xi
