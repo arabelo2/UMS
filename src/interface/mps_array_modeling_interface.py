@@ -124,7 +124,7 @@ def main():
     # Optionally, plot the pressure magnitude.
     if args.plot == "Y":
          plt.figure(figsize=(10, 6))
-         plt.imshow(np.abs(p), cmap="jet",
+         plt.imshow(np.abs(p), cmap="gray",
                     extent=[xs_result.min(), xs_result.max(), zs_result.max(), zs_result.min()],
                     aspect='auto')
          plt.xlabel("x (mm)", fontsize=16)
