@@ -275,7 +275,7 @@ def main():
                 independent1 = np.atleast_1d(y_vals)
                 independent2 = np.atleast_1d(z_vals)
                 extent = [independent1.min(), independent1.max(), independent2.max(), independent2.min()]
-                im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
+                im = plt.imshow(np.abs(p), cmap="gray", extent=extent, aspect='auto')
                 plt.xlabel("y (mm)")
                 plt.ylabel("z (mm)")
                 plt.title(f"2D Simulation at x = {x_vals} mm\n{title_info}")
@@ -285,7 +285,7 @@ def main():
                 independent1 = np.atleast_1d(x_vals)
                 independent2 = np.atleast_1d(z_vals)
                 extent = [independent1.min(), independent1.max(), independent2.max(), independent2.min()]
-                im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
+                im = plt.imshow(np.abs(p), cmap="gray", extent=extent, aspect='auto')
                 plt.xlabel("x (mm)")
                 plt.ylabel("z (mm)")
                 plt.title(f"2D Simulation at y = {y_vals} mm\n{title_info}")
@@ -295,7 +295,7 @@ def main():
                 independent1 = np.atleast_1d(x_vals)
                 independent2 = np.atleast_1d(y_vals)
                 extent = [independent1.min(), independent1.max(), independent2.max(), independent2.min()]
-                im = plt.imshow(np.abs(p), cmap="jet", extent=extent, aspect='auto')
+                im = plt.imshow(np.abs(p), cmap="gray", extent=extent, aspect='auto')
                 plt.xlabel("x (mm)")
                 plt.ylabel("y (mm)")
                 plt.title(f"2D Simulation at z = {z_vals} mm\n{title_info}")
@@ -311,7 +311,7 @@ def main():
             ax = fig.add_subplot(111, projection='3d')
             if not x_is_vec:
                 Y_grid, Z_grid = np.meshgrid(np.atleast_1d(y_vals), np.atleast_1d(z_vals))
-                sc = ax.scatter(Y_grid.flatten(), Z_grid.flatten(), np.abs(p.flatten()), c=np.abs(p.flatten()), cmap="jet", s=5)
+                sc = ax.scatter(Y_grid.flatten(), Z_grid.flatten(), np.abs(p.flatten()), c=np.abs(p.flatten()), cmap="gray", s=5)
                 ax.set_xlabel("y (mm)")
                 ax.set_ylabel("z (mm)")
                 ax.set_zlabel("Velocity")
@@ -319,7 +319,7 @@ def main():
                 apply_plot_style(ax, title=f"3D Visualization at x = {x_vals}\n{title_info}", xlabel="y (mm)", ylabel="z (mm)", zlabel="Velocity")
             elif not y_is_vec:
                 X_grid, Z_grid = np.meshgrid(np.atleast_1d(x_vals), np.atleast_1d(z_vals))
-                sc = ax.scatter(X_grid.flatten(), Z_grid.flatten(), np.abs(p.flatten()), c=np.abs(p.flatten()), cmap="jet", s=5)
+                sc = ax.scatter(X_grid.flatten(), Z_grid.flatten(), np.abs(p.flatten()), c=np.abs(p.flatten()), cmap="gray", s=5)
                 ax.set_xlabel("x (mm)")
                 ax.set_ylabel("z (mm)")
                 ax.set_zlabel("Velocity")
@@ -327,7 +327,7 @@ def main():
                 apply_plot_style(ax, title=f"3D Visualization at y = {y_vals}\n{title_info}", xlabel="x (mm)", ylabel="z (mm)", zlabel="Velocity")
             elif not z_is_vec:
                 X_grid, Y_grid = np.meshgrid(np.atleast_1d(x_vals), np.atleast_1d(y_vals))
-                sc = ax.scatter(X_grid.flatten(), Y_grid.flatten(), np.abs(p.flatten()), c=np.abs(p.flatten()), cmap="jet", s=5)
+                sc = ax.scatter(X_grid.flatten(), Y_grid.flatten(), np.abs(p.flatten()), c=np.abs(p.flatten()), cmap="gray", s=5)
                 ax.set_xlabel("x (mm)")
                 ax.set_ylabel("y (mm)")
                 ax.set_zlabel("Velocity")
@@ -340,7 +340,7 @@ def main():
         fig = plt.figure(figsize=(10,8))
         ax = fig.add_subplot(111, projection='3d')
         ax.scatter(X_input.flatten(), Y_input.flatten(), Z_input.flatten(), 
-                   c=np.abs(p.flatten()), cmap="jet", marker='o', s=5)
+                   c=np.abs(p.flatten()), cmap="gray", marker='o', s=5)
         ax.set_xlabel("x (mm)")
         ax.set_ylabel("y (mm)")
         ax.set_zlabel("z (mm)")
