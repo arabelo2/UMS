@@ -20,6 +20,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from application.delay_laws3Dint_service import run_delay_laws3Dint_service
 from application.mps_array_model_int_service import run_mps_array_model_int_service
 from application.pts_3Dintf_service import run_pts_3Dintf_service   # interface-aware FMC
+from application.discrete_windows_service import run_discrete_windows_service  # <-- NEW
 from interface.cli_utils import safe_float
 # --------------------------------------------------------------------------
 
@@ -125,18 +126,29 @@ def run_fmc_tfm(params, z_mm: str, out_root: str, fmt: str):
     x_elem = (np.arange(M) - (M-1)/2) * (params.lx + params.gx)
     y_elem = (np.arange(N) - (N-1)/2) * (params.ly + params.gy)
 
+    # --- NEW: pre-compute apodisation vectors for imaging path -------------
+    ampx = run_discrete_windows_service(M, params.ampx_type)
+    ampy = run_discrete_windows_service(N, params.ampy_type)
+    # ----------------------------------------------------------------------
+
     FMC = np.zeros((M, N, len(z_vals)), dtype=complex)
 
     # Compute each Tx/Rx A-scan with full fluid–solid interface physics
     for tx in range(M):
         for rx in range(N):
-            FMC[tx, rx, :] = run_pts_3Dintf_service(
+            scan = run_pts_3Dintf_service(
                 ex=x_elem[tx], ey=y_elem[rx],   # element offsets (mm)
                 xn=tx, yn=rx,                  # indices (for apodisation)
                 angt=params.angt, Dt0=params.Dt0,
                 c1=params.c1, c2=params.c2,
                 x=0.0, y=0.0, z=z_vals         # field point on axis
             )
+
+            # --- NEW: apply apodisation weight ONCE to the A-scan ----------
+            scan *= ampx[tx] * ampy[rx]
+            # ----------------------------------------------------------------
+
+            FMC[tx, rx, :] = scan
 
     # ─── Delay-and-sum TFM back-projection ────────────────────────────────
     tfm_raw = np.zeros(len(z_vals), dtype=complex)

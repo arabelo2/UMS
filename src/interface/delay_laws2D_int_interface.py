@@ -66,14 +66,14 @@ def main():
         else:
             plt.plot(element_indices, delays, 'bo-', label="Delay Laws")
 
-        plt.xlabel("Element Index", fontsize=16)
-        plt.ylabel("Delay (µs)", fontsize=16)
+        plt.xlabel("Element Index", fontsize=20)
+        plt.ylabel("Delay (µs)", fontsize=20)
         if np.isinf(args.DF):
             plot_title = "Delay Laws - Steering-only case"
         else:
             plot_title = "Delay Laws - Steering and focusing case"
-        plt.title(plot_title, fontsize=16, linespacing=1.2)
-        plt.tick_params(axis='both', labelsize=16)
+        plt.title(plot_title, fontsize=24, linespacing=1.2)
+        plt.tick_params(axis='both', labelsize=20)
         plt.grid(True, which='both', linestyle='--', linewidth=0.5)
         plt.minorticks_on()
         if any(line.get_label() != "_nolegend_" for line in plt.gca().get_lines()):
@@ -86,14 +86,14 @@ def main():
         plt.figure(figsize=(10, 6))
         for i in range(args.M):
             plt.plot(xp[:, i], yp[:, i], 'b-')
-        plt.xlabel("x (mm)", fontsize=16)
-        plt.ylabel("y (mm)", fontsize=16)
+        plt.xlabel("x (mm)", fontsize=20)
+        plt.ylabel("y (mm)", fontsize=20)
         if np.isinf(args.DF):
             ray_title = "Ray Geometry - Steering-only case"
         else:
             ray_title = "Ray Geometry - Steering and focusing case"
-        plt.title(ray_title, fontsize=16, linespacing=1.2)
-        plt.tick_params(axis='both', labelsize=16)
+        plt.title(ray_title, fontsize=24, linespacing=1.2)
+        plt.tick_params(axis='both', labelsize=20)
         plt.grid(True, which='both', linestyle='--', linewidth=0.5)
         plt.minorticks_on()
         plt.tight_layout()

@@ -11,46 +11,59 @@ import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 from interface.cli_utils import parse_array
 
+
+# -----------------------------------------------------------------------------#
+# Helper styling
+# -----------------------------------------------------------------------------#
 def apply_plot_style(ax=None, title=None, xlabel=None, ylabel=None):
     if ax is None:
         ax = plt.gca()
     if title:
-        ax.set_title(title, fontsize=18)
+        ax.set_title(title, fontsize=24)
     if xlabel:
-        ax.set_xlabel(xlabel, fontsize=16)
+        ax.set_xlabel(xlabel, fontsize=20)
     if ylabel:
-        ax.set_ylabel(ylabel, fontsize=16)
-    ax.tick_params(axis='both', which='major', labelsize=14)
+        ax.set_ylabel(ylabelc)
+    ax.tick_params(axis='both', which='major', labelsize=20)
 
+
+# -----------------------------------------------------------------------------#
+# Small utility helpers
+# -----------------------------------------------------------------------------#
 def find_closest_value(array, target):
     array = np.asarray(array)
     idx = np.searchsorted(array, target, side="left")
-    if idx > 0 and (idx == len(array) or abs(target - array[idx-1]) <= abs(target - array[idx])):
-        return array[idx-1]
-    else:
-        return array[idx]
+    if idx > 0 and (idx == len(array) or abs(target - array[idx - 1]) <= abs(target - array[idx])):
+        return array[idx - 1]
+    return array[idx]
 
-def compute_directivity(v_slice, x, z_offset):
+
+def compute_directivity(v_slice, x, z_offset, global_max):
+    """
+    Return angle array (deg) and slice amplitudes
+    normalized w.r.t. the GLOBAL peak amplitude of the whole field.
+    """
     theta = np.arctan2(x, z_offset) * (180.0 / np.pi)
-    directivity = np.abs(v_slice)
-    directivity /= np.max(directivity)
+    directivity = np.abs(v_slice) / global_max
     return theta, directivity
+
 
 def secondary_analysis(theta, directivity, snell_angle, tolerance=2.0):
     """
     Detect and quantify any weaker lobes near the Snell-predicted angle.
     """
-    nearby_idx = np.where((theta >= snell_angle - tolerance) & (theta <= snell_angle + tolerance))[0]
-    if len(nearby_idx) == 0:
+    idx = np.where((theta >= snell_angle - tolerance) & (theta <= snell_angle + tolerance))[0]
+    if idx.size == 0:
         return None, None, None
-
-    # Find peak within tolerance window
-    peak_idx = nearby_idx[np.argmax(directivity[nearby_idx])]
+    peak_idx = idx[np.argmax(directivity[idx])]
     peak_amp = directivity[peak_idx]
-    relative_dB = 20 * np.log10(np.clip(peak_amp, 1e-12, None))
+    peak_dB = 20 * np.log10(np.clip(peak_amp, 1e-12, None))
+    return theta[peak_idx], peak_amp, peak_dB
 
-    return theta[peak_idx], peak_amp, relative_dB
 
+# -----------------------------------------------------------------------------#
+# CLI main
+# -----------------------------------------------------------------------------#
 def main():
     parser = argparse.ArgumentParser(
         description="Compute and plot directivity pattern with main & side lobes and Snell-angle analysis.",
@@ -61,85 +74,76 @@ def main():
             "      --freq 5.0 --z_offset 15 --mat \"1,1480,7.9,5900,3200,p\" \\\n"
             "      --snell_angle 22.5 --outfile \"directivity_output.txt\" --plotfile \"directivity.png\""
         ),
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    parser.add_argument("--infile", type=str, required=True,
-                        help="Path to velocity field matrix file.")
-    parser.add_argument("--x", type=str, required=True,
-                        help="Range or scalar for x (mm).")
-    parser.add_argument("--y", type=str, required=True,
-                        help="Range or scalar for y (mm).")
-    parser.add_argument("--z", type=str, required=True,
-                        help="Range or scalar for z (mm).")
-    parser.add_argument("--z_offset", type=float, required=True,
-                        help="Requested fixed z slice for angle calculation (mm).")
-    parser.add_argument("--freq", type=float, required=True,
-                        help="Operating frequency in MHz.")
-    parser.add_argument("--mat", type=str, required=True,
-                        help="Material parameters: d1,cp1,d2,cp2,cs2,wave (e.g., \"1,1480,7.9,5900,3200,p\").")
-    parser.add_argument("--snell_angle", type=float, default=None,
-                        help="Optional Snell-predicted angle to check for weaker lobes (degrees).")
-    parser.add_argument("--outfile", type=str, default="directivity_output.txt",
-                        help="Output file for directivity data.")
-    parser.add_argument("--plotfile", type=str, default=None,
-                        help="Optional filename to save directivity plot.")
-    parser.add_argument("--dB", action="store_true",
-                        help="Plot directivity in dB scale.")
+    # --- Required arguments -------------------------------------------------- #
+    parser.add_argument("--infile",     required=True,  type=str, help="Path to velocity-field matrix file.")
+    parser.add_argument("--x",          required=True,  type=str, help="Range or scalar for x (mm).")
+    parser.add_argument("--y",          required=True,  type=str, help="Range or scalar for y (mm).")
+    parser.add_argument("--z",          required=True,  type=str, help="Range or scalar for z (mm).")
+    parser.add_argument("--z_offset",   required=True,  type=float, help="z slice used for angle calc (mm).")
+    parser.add_argument("--freq",       required=True,  type=float, help="Operating frequency (MHz).")
+    parser.add_argument("--mat",        required=True,  type=str,
+                        help='Material params "d1,cp1,d2,cp2,cs2,wave" (e.g. "1,1480,7.9,5900,3200,p").')
 
+    # --- Optional arguments -------------------------------------------------- #
+    parser.add_argument("--snell_angle", type=float, default=None,
+                        help="Snell-predicted angle to highlight (deg).")
+    parser.add_argument("--outfile",  type=str, default="directivity_output.txt",
+                        help="File to save angle / amplitude / lobe-label.")
+    parser.add_argument("--plotfile", type=str, default=None,
+                        help="Optional filename to save PNG plot.")
+    parser.add_argument("--dB", action="store_true", help="Plot in dB instead of linear amplitude.")
     args = parser.parse_args()
 
-    # Parse grids
+    # -------------------------------------------------------------------------#
+    # Parse coordinate grids
     x = parse_array(args.x)
     y = parse_array(args.y)
     z = parse_array(args.z)
 
-    # Find closest z offset
+    # Resolve actual slice depth
     z_offset_actual = find_closest_value(z, args.z_offset)
     print(f"Requested z_offset: {args.z_offset} mm → Using closest z = {z_offset_actual:.6f} mm")
 
-    # Parse material parameters: d1, cp1, d2, cp2, cs2, wave
-    mat_params = args.mat.split(",")
-    cp1 = float(mat_params[1])  # speed of sound in medium 1 (mm/s)
-
-    # Compute Fraunhofer distance
-    wavelength = cp1 / (args.freq * 1e6)  # Convert MHz to Hz
-    aperture_D = max(x) - min(x)          # Aperture size (mm)
-    z_far = (2 * (aperture_D ** 2)) / wavelength
+    # Fraunhofer distance (for user info only)
+    cp1 = float(args.mat.split(",")[1])        # speed of sound in medium 1 (m/s) but value given in m/s
+    wavelength = cp1 / (args.freq * 1e6)       # MHz → Hz
+    aperture_D = max(x) - min(x)               # mm
+    z_far = (2 * aperture_D**2) / wavelength
     print(f"Fraunhofer distance z_far = {z_far:.3f} mm")
 
-    # Decide near-field or far-field
-    if z_offset_actual < z_far:
-        field_region = "Near-Field Directivity"
-    else:
-        field_region = "Far-Field Directivity"
+    field_region = "Near-Field Directivity" if z_offset_actual < z_far else "Far-Field Directivity"
 
-    # Load velocity field
+    # -------------------------------------------------------------------------#
+    # Read velocity field & reshape
     try:
-        v = np.loadtxt(args.infile)
-        v = v.reshape((len(z), len(y), len(x)))
-    except Exception as e:
-        sys.exit(f"Error loading or reshaping velocity data: {e}")
+        raw = np.loadtxt(args.infile)
+        v = raw.reshape((len(z), len(y), len(x)))
+    except Exception as exc:
+        sys.exit(f"Error loading / reshaping velocity data: {exc}")
 
-    # Slice at z_offset
+    # Global maximum amplitude for proper normalization
+    global_max = np.max(np.abs(v))
+
+    # Take requested z-slice
     idx_z = np.argmin(np.abs(z - z_offset_actual))
     v_slice = v[idx_z, :, :]
 
-    # Reduce to x-axis (if y is scalar)
-    if len(y) == 1:
-        v_slice = v_slice.flatten()
-    else:
-        v_slice = np.mean(v_slice, axis=0)
+    # Reduce to 1-D (x) if y is scalar, else average over y
+    v_slice = v_slice.flatten() if len(y) == 1 else np.mean(v_slice, axis=0)
 
-    # Compute directivity
-    theta, directivity = compute_directivity(v_slice, x, z_offset_actual)
+    # -------------------------------------------------------------------------#
+    # Compute directivity with GLOBAL normalization
+    theta, directivity = compute_directivity(v_slice, x, z_offset_actual, global_max)
 
-    # Find peaks
-    peaks, _ = find_peaks(directivity, height=0.01)  # Ignore tiny peaks
+    # Main & side lobe detection
+    peaks, _ = find_peaks(directivity, height=0.01)  # ignore tiny ripples
     main_idx = np.argmax(directivity)
     side_lobe_idxs = [p for p in peaks if p != main_idx]
 
-    # Check for Snell angle weaker lobe
+    # Snell analysis (optional)
     if args.snell_angle is not None:
         snell_theta, snell_amp, snell_dB = secondary_analysis(theta, directivity, args.snell_angle)
         if snell_theta is not None:
@@ -150,49 +154,50 @@ def main():
     else:
         snell_theta = snell_amp = snell_dB = None
 
-    # Save results
+    # -------------------------------------------------------------------------#
+    # Save text output
     try:
         with open(args.outfile, "w") as f:
-            for i, (angle, amp) in enumerate(zip(theta, directivity)):
-                lobe_type = "main" if i == main_idx else ("side" if i in side_lobe_idxs else "none")
-                f.write(f"{angle:.6f}\t{amp:.16f}\t{lobe_type}\n")
-        print(f"Directivity with lobes saved to {args.outfile}")
-    except Exception as e:
-        print(f"Error saving directivity to file: {e}")
+            for i, (ang, amp) in enumerate(zip(theta, directivity)):
+                label = "main" if i == main_idx else ("side" if i in side_lobe_idxs else "none")
+                f.write(f"{ang:.6f}\t{amp:.16f}\t{label}\n")
+        print(f"Directivity with lobe labels saved to {args.outfile}")
+    except Exception as exc:
+        print(f"Error saving directivity data: {exc}")
 
+    # -------------------------------------------------------------------------#
     # Plot
     fig, ax = plt.subplots(figsize=(8, 6))
-    title_str = f"{field_region}\n(z={z_offset_actual:.6f} mm)"
+    title = f"{field_region}\n(z = {z_offset_actual:.6f} mm)"
 
     if args.dB:
-        directivity_dB = 20 * np.log10(np.clip(directivity, 1e-12, None))
-        ax.plot(theta, directivity_dB, label="Directivity", color="black")
-        ax.plot(theta[main_idx], directivity_dB[main_idx], "ro", label="Main Lobe")
-        ax.plot(theta[side_lobe_idxs], directivity_dB[side_lobe_idxs], "bo", label="Side Lobes")
-        if snell_theta is not None:
-            ax.plot(snell_theta, snell_dB, "go", label="Snell Lobe")
-            ax.annotate(f"{snell_theta:.1f}°\n{snell_dB:.1f} dB", (snell_theta, snell_dB),
-                        textcoords="offset points", xytext=(5, 10), fontsize=20, color="green")
-        apply_plot_style(ax, title=title_str, xlabel="Angle (degrees)", ylabel="Amplitude (dB)")
+        yvals = 20 * np.log10(np.clip(directivity, 1e-12, None))
+        ax.set_ylabel("Amplitude (dB)")
     else:
-        ax.plot(theta, directivity, label="Directivity", color="black")
-        ax.plot(theta[main_idx], directivity[main_idx], "ro", label="Main Lobe")
-        ax.plot(theta[side_lobe_idxs], directivity[side_lobe_idxs], "bo", label="Side Lobes")
-        if snell_theta is not None:
-            ax.plot(snell_theta, snell_amp, "go", label="Snell Lobe")
-            ax.annotate(f"{snell_theta:.1f}°\n{snell_amp:.2f}", (snell_theta, snell_amp),
-                        textcoords="offset points", xytext=(5, 10), fontsize=20, color="green")
-        apply_plot_style(ax, title=title_str, xlabel="Angle (degrees)", ylabel="Normalized Amplitude")
+        yvals = directivity
+        ax.set_ylabel("Normalized Amplitude", fontsize=20)
 
-    ax.legend()
-    ax.grid(True, linestyle='--', linewidth=0.5)
+    ax.plot(theta, yvals, "k-", label="Directivity")
+    ax.plot(theta[main_idx], yvals[main_idx], "ro", label="Main Lobe")
+    ax.plot(theta[side_lobe_idxs], yvals[side_lobe_idxs], "bo", label="Side Lobes")
+    if snell_theta is not None:
+        marker_val = snell_dB if args.dB else snell_amp
+        ax.plot(snell_theta, marker_val, "go", label="Snell Lobe")
+        txt = f"{snell_theta:.1f}°\n{snell_dB:.1f} dB" if args.dB else f"{snell_theta:.1f}°\n{snell_amp:.2f}"
+        ax.annotate(txt, (snell_theta, marker_val), textcoords="offset points",
+                    xytext=(5, 10), fontsize=20, color="green")
+
+    apply_plot_style(ax, title=title, xlabel="Angle (degrees)")
+    ax.grid(True, ls="--", lw=0.5)
+    ax.legend(fontsize=20)
     plt.tight_layout()
 
     if args.plotfile:
-        plt.savefig(args.plotfile, dpi=300, bbox_inches='tight')
+        plt.savefig(args.plotfile, dpi=300, bbox_inches="tight")
         print(f"Directivity plot saved to {args.plotfile}")
 
     plt.show()
+
 
 if __name__ == "__main__":
     main()

@@ -131,9 +131,9 @@ class DelayLaws3DIntCLI:
         for i in range(Mx):
             for j in range(My):
                 ax.plot([Y[i, j], Y[i, j]], [X[i, j], X[i, j]], [0, delays[i, j]], 'b-o')
-        ax.set_xlabel("Element Index (y-direction)", fontsize=14)
-        ax.set_ylabel("Element Index (x-direction)", fontsize=14)
-        ax.set_zlabel("Time Delay (µs)", fontsize=14)
+        ax.set_xlabel("Element Index (y-direction)", fontsize=20)
+        ax.set_ylabel("Element Index (x-direction)", fontsize=20)
+        ax.set_zlabel("Time Delay (µs)", fontsize=20)
         mode = "Steering Only" if math.isinf(self.args.DF) else "Steering + Focusing"
         title_str = (
             f"Delay Laws 3D - {mode}\n"
@@ -142,9 +142,9 @@ class DelayLaws3DIntCLI:
             f"DT0={self.args.DT0} mm, DF={self.args.DF} mm,\n"
             f"c1={self.args.c1} m/s, c2={self.args.c2} m/s, z_scale={self.args.z_scale}"
         )
-        ax.set_title(title_str, fontsize=16)
+        ax.set_title(title_str, fontsize=20)
         ax.view_init(elev=elev, azim=azim)
-        ax.tick_params(axis="both", which="major", labelsize=12)
+        ax.tick_params(axis="both", which="major", labelsize=14)
         ax.grid(True)
         plt.tight_layout()
         plt.show()

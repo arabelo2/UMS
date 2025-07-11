@@ -34,10 +34,18 @@ def main():
         with open(param_file) as f:
             params = json.load(f)
         print("Loaded parameters from run_params.json")
-        
+    
         # Calculate theoretical FWHM using loaded params
         theoretical_fwhm = (params['c2'] * 1000 / (params['f'] * 1e6)) * params['DF']
-        
+    
+        # Debug info inside try
+        print("[DEBUG] Parameters loaded from run_params.json:")
+        for key, value in params.items():
+            print(f"  {key}: {value}")
+    
+        if 'DF' not in params or params['DF'] is None:
+            raise ValueError("DF parameter is missing in run_params.json!")
+    
         # Get actual scan ranges
         x_scan = parse_scan_vector(params['xs'], -5, 20, 100)
         z_scan = parse_scan_vector(params['zs'], 1, 20, 100)
@@ -96,7 +104,7 @@ def main():
                ylim=(z_scan.min(), z_scan.max()))
         fig.colorbar(im1, ax=ax1, label="Amplitude (dB)")
 
-        zoom_width = theoretical_fwhm * 3
+        zoom_width = theoretical_fwhm * 2
         im2 = ax2.pcolormesh(X, Z, p_field_db,
                            cmap='jet',
                            shading='auto',
@@ -185,44 +193,42 @@ def main():
         envelope = np.loadtxt(os.path.join(ft_dir, "results_envelope.csv"), delimiter=',')
         z_tfm = np.loadtxt(os.path.join(ft_dir, "results_z_vals.csv"), delimiter=',')
 
+        # Normalize and smooth envelope (Rainio recommends smoothing for F1)
         envelope = envelope / np.max(envelope)
-        envelope[envelope < 1e-6] = 1e-6
+        dz = z_tfm[1] - z_tfm[0]  # axial resolution in mm
+        sigma_mm = 0.2            # Gaussian sigma in mm (Rainio suggests 0.3–1.0 mm typical)
+        sigma_samples = sigma_mm / dz
+        envelope_smooth = gaussian_filter1d(envelope, sigma=sigma_samples)
 
-        peak_val = np.max(envelope)
+        # Compute F1 from smoothed envelope
+        peak_val = np.max(envelope_smooth)
         half_max = 0.5 * peak_val
-        print(f"Envelope peak: {peak_val:.6f}, Half-max threshold: {half_max:.6f}")
+        print(f"[DEBUG] Smoothed envelope: Peak={peak_val:.4f}, Half-max={half_max:.4f}")
 
-        # Find the index of the peak (focal point)
-        peak_idx = np.argmax(envelope)
         # Find where the envelope crosses the half-max
-        above = envelope >= half_max
+        above = envelope_smooth >= half_max
         crossings = np.where(np.diff(above.astype(int)) != 0)[0]
-        print(f"Half-max crossings found: {len(crossings)}")
+        print(f"[DEBUG] Half-max crossings found: {len(crossings)}")
+        print(f"[DEBUG] crossings: {crossings}")
 
         fwhm = np.nan
-        z_left = z_right = np.nan
-
         if len(crossings) >= 2:
             # Boundary checks for interpolation
-            if crossings[0] > 0:
-                z_left_slice = z_tfm[crossings[0]-1:crossings[0]+2]
-                env_left_slice = envelope[crossings[0]-1:crossings[0]+2]
-            else:
-                z_left_slice = z_tfm[0:3]
-                env_left_slice = envelope[0:3]
-
-            if crossings[-1] < len(z_tfm) - 1:
-                z_right_slice = z_tfm[crossings[-1]-1:crossings[-1]+2]
-                env_right_slice = envelope[crossings[-1]-1:crossings[-1]+2]
-            else:
-                z_right_slice = z_tfm[-3:]
-                env_right_slice = envelope[-3:]
+            z_left_slice = z_tfm[crossings[0]-1:crossings[0]+2]
+            env_left_slice = envelope_smooth[crossings[0]-1:crossings[0]+2]
+            z_right_slice = z_tfm[crossings[-1]-1:crossings[-1]+2]
+            env_right_slice = envelope_smooth[crossings[-1]-1:crossings[-1]+2]
 
             def quad_interp(x, y, y0):
                 coeffs = np.polyfit(x, y - y0, 2)
                 roots = np.roots(coeffs)
-                return roots[np.isreal(roots)].real[0] + x[0]
-
+                real_roots = roots[np.isreal(roots)].real
+                if len(real_roots) == 0:
+                    # fallback to linear interpolation
+                    slope = (y[-1] - y[0]) / (x[-1] - x[0])
+                    intercept = y[0] - slope * x[0]
+                    return (y0 - intercept) / slope
+                return real_roots[np.argmin(np.abs(real_roots - x[1]))]
             try:
                 z_left = quad_interp(z_left_slice, env_left_slice, half_max)
                 z_right = quad_interp(z_right_slice, env_right_slice, half_max)
@@ -230,9 +236,11 @@ def main():
             except Exception as e:
                 print(f"Warning: Failed to interpolate FWHM: {e}")
                 fwhm = np.nan
+            
         else:
             print("Warning: Could not find sufficient half-max crossings to calculate FWHM.")
 
+        # This block should be here, outside the if/else
         print(f"FWHM Analysis:")
         print(f"Theoretical: {theoretical_fwhm:.2f} mm")
         if np.isnan(fwhm):

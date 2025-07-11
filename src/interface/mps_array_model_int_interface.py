@@ -37,22 +37,26 @@ Example usage:
   1) With plot (2D evaluation using scalar y):
      python interface/mps_array_model_int_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 \
 --d1=1.0 --c1=1480 --d2=7.9 --c2=5900 --cs2=3200 --type=p --L1=11 --L2=11 --angt=10.217 --Dt0=50.8 \
---theta20=20 --phi=0 --DF=inf --ampx_type=rect --ampy_type=rect --xs="-5,20,100" --zs="1,20,100" --y=0 --plot=y
+--theta20=20 --phi=0 --DF=inf --ampx_type=rect --ampy_type=rect --xs="-5,20,100" --zs="1,20,100" --y=0 --plot=y \
+--outfile "mps_array_model_int_output.txt"
 
   2) With plot (3D evaluation using vector y):
      python interface/mps_array_model_int_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 \
 --d1=1.0 --c1=1480 --d2=7.9 --c2=5900 --cs2=3200 --type=p --L1=11 --L2=11 --angt=10.217 --Dt0=50.8 \
---theta20=20 --phi=0 --DF=inf --ampx_type=rect --ampy_type=rect --xs="-5,20,100" --zs="1,20,100" --y="-5,5,100" --plot=y
+--theta20=20 --phi=0 --DF=inf --ampx_type=rect --ampy_type=rect --xs="-5,20,100" --zs="1,20,100" --y="-5,5,100" --plot=y \
+--outfile "mps_array_model_int_output.txt"
 
   3) Without plot (using scalar y):
      python interface/mps_array_model_int_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 \
 --d1=1.0 --c1=1480 --d2=7.9 --c2=5900 --cs2=3200 --type=p --L1=11 --L2=11 --angt=10.217 --Dt0=50.8 \
---theta20=20 --phi=0 --DF=inf --ampx_type=rect --ampy_type=rect --xs="-5,20,100" --zs="1,20,100" --y=0 --plot=n
+--theta20=20 --phi=0 --DF=inf --ampx_type=rect --ampy_type=rect --xs="-5,20,100" --zs="1,20,100" --y=0 --plot=n \
+--outfile "mps_array_model_int_output.txt"
 
   4) With both 2D and additional 3D visualization (for 2D simulation):
      python interface/mps_array_model_int_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 \
 --d1=1.0 --c1=1480 --d2=7.9 --c2=5900 --cs2=3200 --type=p --L1=11 --L2=11 --angt=10.217 --Dt0=50.8 \
---theta20=20 --phi=0 --DF=inf --ampx_type=rect --ampy_type=rect --xs="-5,20,100" --zs="1,20,100" --y=0 --plot=y --plot-3dfield
+--theta20=20 --phi=0 --DF=inf --ampx_type=rect --ampy_type=rect --xs="-5,20,100" --zs="1,20,100" --y=0 --plot=y --plot-3dfield \
+--outfile "mps_array_model_int_output.txt"
 """
 
 import sys
@@ -107,7 +111,8 @@ def main():
             "     python interface/mps_array_model_int_interface.py --lx=0.15 --ly=0.15 --gx=0.05 --gy=0.05 --f=5 "
             "--d1=1.0 --c1=1480 --d2=7.9 --c2=5900 --cs2=3200 --type=p --L1=11 --L2=11 --angt=10.217 --Dt0=50.8 "
             "--theta20=20 --phi=0 --DF=inf --ampx_type=rect --ampy_type=rect --xs=\"-5,20,100\" --zs=\"1,20,100\" "
-            "--y=0 --plot=y --plot-3dfield\n"
+            "--y=0 --plot=y --plot-3dfield\" "
+            "--outfile \"mps_array_model_int_output.txt\"\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -141,6 +146,7 @@ def main():
     parser.add_argument("--z_scale", type=safe_float, default=10.0, help="Scale factor for z-axis (delay values) in stem plot. Default: 10")
     parser.add_argument("--elev", type=safe_float, default=25.0, help="Camera elevation for 3D plot. Default: 25")
     parser.add_argument("--azim", type=safe_float, default=20.0, help="Camera azimuth for 3D plot. Default: 20")
+    parser.add_argument("--outfile", type=str, default="mps_array_model_int_output.txt")
 
     args = parser.parse_args()
 
@@ -221,17 +227,24 @@ def main():
     
     p = result['p']
     x = result['x']
-    z = result['z']
+    z = result['z']    
     
-    outfile = "mps_array_model_int_output.txt"
-    with open(outfile, "w") as f:
-        for idx, val in np.ndenumerate(p):
-            # Ensure scalar value.
-            if isinstance(val, np.ndarray):
-                if val.size == 1:
-                    val = val.item()
-            f.write(f"{val.real:.6f}+{val.imag:.6f}j\n")
-    print(f"Results saved to {outfile}")
+    # ------------------------------------------------------------------
+    # Save the results to a file (matrix style, one row per grid row)
+    # ------------------------------------------------------------------
+    try:
+        with open(args.outfile, "w") as f:
+            for row in p:             # p is a 2-D numpy array
+                formatted_row = "\t".join(
+                    # f"{val.real:+.6e}{val.imag:+.6e}j"  # complex numbers
+                    f"{abs(val):.16e}"     # |p|
+                    for val in np.ravel(row)      # ensure scalar
+                )
+                f.write(formatted_row + "\n")
+        print(f"[OK] Complex matrix saved in '{args.outfile}'")
+    except Exception as exc:
+        print(f"[ERROR] Could not write '{args.outfile}': {exc}")
+
     
     # Build detailed plot title with medium information.
     medium1 = "Fluid" if args.d1 < 2.0 else "Solid"
@@ -245,7 +258,7 @@ def main():
         f"Normalized velocity magnitude in steel for an "
         f"{Nx}×{Ny} 2-D phased-array\n"
         f"(element size ≈ {elem_size_ratio:.2f} λ) "
-        f"normal to the interface at Dt₀ = {args.Dt0} mm,\n"
+        f"normal to the interface at Dt0 = {args.Dt0} mm,\n"
         f"radiating a {wave}-wave through a water–steel interface."
     )
 

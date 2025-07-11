@@ -50,13 +50,20 @@ def main():
         args.f, args.c, args.M, args.dl, args.gd, args.Phi, args.F, args.wtype, xx, zz
     )
 
-    # Save the results to a file
-    outfile = "mls_array_modeling_output.txt"
-    with open(outfile, "w") as f:
-        for i in range(p.shape[0]):
-            for j in range(p.shape[1]):
-                f.write(f"{p[i, j].real:.6f}+{p[i, j].imag:.6f}j\n")
-    print(f"Results saved to {outfile}")
+    # ------------------------------------------------------------------
+    # Save the results to a file (matrix-style: one row per grid-row)
+    # ------------------------------------------------------------------
+    outfile = args.outfile            # honour --outfile from the CLI
+    try:
+        with open(outfile, "w") as f:
+            for row in p:             # p is a 2-D array
+                formatted_row = "\t".join(
+                    f"{val.real:+.6e}{val.imag:+.6e}j" for val in row
+                )
+                f.write(formatted_row + "\n")
+        print(f"[OK] Complex pressure matrix saved in '{outfile}'")
+    except Exception as exc:
+        print(f"[ERROR] Could not write '{outfile}': {exc}")
 
     # Plot the results if requested
     if args.plot.upper() == "Y":
