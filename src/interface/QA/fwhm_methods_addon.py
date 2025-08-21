@@ -100,7 +100,7 @@ def estimate_fwhm_F7(z_vals, envelope):
     _, sigma = result.x
     return sigma * np.sqrt(LN2_8) if sigma > 0 else np.nan
 
-def estimate_all_fwhm_methods(z_vals, envelope, fwhm_f1=None, save_csv=False, csv_path="fwhm_comparison.csv", show_plot=False, theoretical_fwhm=29.5):
+def estimate_all_fwhm_methods(z_vals, envelope, theoretical_fwhm, fwhm_f1=None, save_csv=False, csv_path="fwhm_comparison.csv", show_plot=False):
     peak_idx = np.argmax(envelope)
     peak_z = z_vals[peak_idx]
 
