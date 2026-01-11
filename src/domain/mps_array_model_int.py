@@ -182,3 +182,4 @@ class MPSArrayModelInt:
         vmag = np.sqrt(np.abs(vx)**2 + np.abs(vy)**2 + np.abs(vz)**2)
         # Return keys 'p', 'x', and 'z' for consistency with the interface layer.
         return {'p': vmag, 'x': x_vals, 'z': z_vals}
+        # return {'p': vz, 'x': x_vals, 'z': z_vals}        
