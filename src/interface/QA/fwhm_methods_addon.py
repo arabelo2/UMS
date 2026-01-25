@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# src/interface/QA/fwhm_methods_addon.py
+
 # This module implements FWHM estimation methods F1 to F7 based on the paper:
 # "Methods for estimating full width at half maximum" by Rainio et al. (2025).
 # The input to all methods is a 1D envelope signal (assumed to be already normalized)

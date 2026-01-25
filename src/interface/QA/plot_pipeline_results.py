@@ -134,12 +134,17 @@ def load_data_2d(out_root):
         x_tfm = np.loadtxt(os.path.join(tfm_dir, "results_x_vals.csv"), delimiter=',')
         envelope_2d = np.loadtxt(os.path.join(tfm_dir, "results_envelope_2d.csv"), delimiter=',')
         
-        # Verificar dimensões - envelope_2d deve ser (x_tfm, z_tfm)
-        if envelope_2d.shape != (len(x_tfm), len(z_tfm)):
-            print(f"[WARNING] Shape mismatch: envelope_2d {envelope_2d.shape} vs x_tfm({len(x_tfm)}), z_tfm({len(z_tfm)})")
-            # Tentar transpor se necessário
-            if envelope_2d.shape == (len(z_tfm), len(x_tfm)):
-                envelope_2d = envelope_2d.T  # Transpor para (x, z)
+        # FIX: Check shape and transpose if necessary
+        # envelope_2d is likely (x_tfm, z_tfm) based on the provided script
+        if envelope_2d.shape[0] == len(x_tfm) and envelope_2d.shape[1] == len(z_tfm):
+            # Already in (x, z) format
+            pass
+        elif envelope_2d.shape[0] == len(z_tfm) and envelope_2d.shape[1] == len(x_tfm):
+            # Needs transpose to (x, z)
+            envelope_2d = envelope_2d.T
+        else:
+            print(f"Warning: envelope_2d shape {envelope_2d.shape} doesn't match x_tfm({len(x_tfm)}) and z_tfm({len(z_tfm)})")
+            # Don't modify envelope_2d
         
         # Extrair perfis centrais
         ix_center_dt = np.argmin(np.abs(x_dt - 0.0))
@@ -171,8 +176,8 @@ def plot_field_maps_2d(data, params, output_dir="plots"):
     """
     print(f"[PLOT] Generating 2D Field Maps...")
     
-    Dt0 = params.get('Dt0', 59.2)
-    target_z = Dt0 + params.get('DF', 23.6)
+    Dt0 = float(params.get('Dt0', 59.2))
+    target_z = float(params.get('DF', 23.6))
     
     # Criar figura com 4 subplots
     fig = plt.figure(figsize=(20, 12))
@@ -276,20 +281,56 @@ def plot_profiles_comparison(data, params, output_dir="plots"):
     """
     print(f"[PLOT] Generating Profile Comparisons...")
     
-    Dt0 = params.get('Dt0', 59.2)
-    target_z = Dt0 + params.get('DF', 23.6)
+    Dt0 = float(params.get('Dt0', 59.2))
+    target_z = float(params.get('DF', 23.6))
     
-    # Calcular índice focal para TFM
-    iz_focus = np.argmin(np.abs(data['z_tfm'] - target_z))
+    # FIX 1: Find actual peak in TFM axial profile
+    # First, find peak in the region after the interface
+    mask_post_interface = data['z_tfm'] > Dt0 + 5.0  # Start searching 5mm after interface
+    if np.any(mask_post_interface):
+        # Get indices where mask is True
+        valid_indices = np.where(mask_post_interface)[0]
+        # Find peak among valid indices
+        peak_value = -np.inf
+        peak_idx = 0
+        for idx in valid_indices:
+            if data['tfm_axial'][idx] > peak_value:
+                peak_value = data['tfm_axial'][idx]
+                peak_idx = idx
+        
+        actual_peak_z = data['z_tfm'][peak_idx]
+        print(f"[INFO] TFM peak at depth: {actual_peak_z:.1f} mm (target: {target_z:.1f} mm)")
+        
+        # Use this peak depth for lateral profile
+        iz_focus = peak_idx
+    else:
+        # Fallback: use target depth
+        iz_focus = np.argmin(np.abs(data['z_tfm'] - target_z))
+        actual_peak_z = data['z_tfm'][iz_focus]
+        print(f"[WARNING] Using target depth: {actual_peak_z:.1f} mm")
+    
+    # Extract lateral profile at the actual peak depth
     data['tfm_lateral'] = data['envelope_2d'][:, iz_focus]
+    
+    # Find peak in lateral profile
+    peak_idx_lateral = np.argmax(data['tfm_lateral'])
+    peak_x_lateral = data['x_tfm'][peak_idx_lateral]
+    print(f"[DEBUG] TFM lateral peak at: x = {peak_x_lateral:.1f} mm")
+    
+    # DEBUG: Check the lateral profile
+    print(f"[DEBUG] TFM lateral profile shape: {data['tfm_lateral'].shape}")
+    print(f"[DEBUG] TFM x range: {data['x_tfm'].min():.1f} to {data['x_tfm'].max():.1f} mm")
     
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     
-    # Normalizar perfis
-    dt_axial_norm = data['dt_axial'] / np.max(data['dt_axial'])
-    dt_lateral_norm = data['dt_lateral'] / np.max(data['dt_lateral'])
-    tfm_axial_norm = data['tfm_axial'] / np.max(data['tfm_axial'])
-    tfm_lateral_norm = data['tfm_lateral'] / np.max(data['tfm_lateral'])
+    # FIXED: Normalizar pelo máximo global, não local
+    global_max_dt = np.max(data['p_field'])
+    global_max_tfm = np.max(data['envelope_2d'])
+    
+    dt_axial_norm = data['dt_axial'] / global_max_dt
+    dt_lateral_norm = data['dt_lateral'] / global_max_dt
+    tfm_axial_norm = data['tfm_axial'] / global_max_tfm
+    tfm_lateral_norm = data['tfm_lateral'] / global_max_tfm
     
     # 1. Perfis Axiais (DT vs TFM)
     ax1 = axes[0, 0]
@@ -365,15 +406,19 @@ def calculate_and_plot_fwhm_comparison(data, params, output_dir="plots"):
     """
     print(f"[PLOT] Generating FWHM Comparison Charts with Enhanced Legend...")
     
-    Dt0 = params.get('Dt0', 59.2)
-    target_z = Dt0 + params.get('DF', 23.6)
-    theoretical_fwhm = params.get('theoretical_fwhm_mm', 0.0)
+    Dt0 = float(params.get('Dt0', 59.2))
+    target_z = float(params.get('DF', 23.6))
+    theoretical_fwhm = float(params.get('theoretical_fwhm_mm', 0.0))
     
-    # Normalizar perfis para cálculo de FWHM
-    dt_axial_norm = data['dt_axial'] / np.max(data['dt_axial'])
-    dt_lateral_norm = data['dt_lateral'] / np.max(data['dt_lateral'])
-    tfm_axial_norm = data['tfm_axial'] / np.max(data['tfm_axial'])
-    tfm_lateral_norm = data['tfm_lateral'] / np.max(data['tfm_lateral'])
+    # FIXED: Calculate global maxima
+    global_max_dt = np.max(data['p_field'])
+    global_max_tfm = np.max(data['envelope_2d'])
+    
+    # FIXED: Normalizar perfis usando máximo global
+    dt_axial_norm = data['dt_axial'] / global_max_dt
+    dt_lateral_norm = data['dt_lateral'] / global_max_dt
+    tfm_axial_norm = data['tfm_axial'] / global_max_tfm
+    tfm_lateral_norm = data['tfm_lateral'] / global_max_tfm
     
     # Calcular FWHM para todos os métodos
     # Axial - Digital Twin (na profundidade focal)
@@ -570,9 +615,9 @@ def generate_comprehensive_report(fwhm_results, params, data, output_dir="plots"
     """
     print(f"[REPORT] Generating Comprehensive CSV Report...")
     
-    Dt0 = params.get('Dt0', 59.2)
-    target_z = Dt0 + params.get('DF', 23.6)
-    theoretical_fwhm = params.get('theoretical_fwhm_mm', 0.0)
+    Dt0 = float(params.get('Dt0', 59.2))
+    target_z = float(params.get('DF', 23.6))
+    theoretical_fwhm = float(params.get('theoretical_fwhm_mm', 0.0))
     
     methods = ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7']
     
@@ -694,13 +739,113 @@ def generate_comprehensive_report(fwhm_results, params, data, output_dir="plots"
             ])
     
     print(f"✅ Comprehensive report saved to: {report_path}")
+    
+def plot_debug_lateral(data, params, output_dir="plots"):
+    """
+    Debug plot to understand lateral profile extraction
+    """
+    Dt0 = float(params.get('Dt0', 59.2))
+    target_z = float(params.get('DF', 23.6))
+    
+    # Find multiple depths around focus
+    depth_indices = []
+    depth_labels = []
+    
+    # Target depth
+    iz_target = np.argmin(np.abs(data['z_tfm'] - target_z))
+    depth_indices.append(iz_target)
+    depth_labels.append(f"Target z={target_z:.1f}mm")
+    
+    # Actual peak
+    mask_post_interface = data['z_tfm'] > Dt0 + 5.0
+    if np.any(mask_post_interface):
+        valid_indices = np.where(mask_post_interface)[0]
+        peak_idx = valid_indices[np.argmax(data['tfm_axial'][valid_indices])]
+        depth_indices.append(peak_idx)
+        depth_labels.append(f"Peak z={data['z_tfm'][peak_idx]:.1f}mm")
+    
+    # ±5mm from target
+    for offset in [-5, 5]:
+        z_test = target_z + offset
+        if z_test >= data['z_tfm'].min() and z_test <= data['z_tfm'].max():
+            iz = np.argmin(np.abs(data['z_tfm'] - z_test))
+            depth_indices.append(iz)
+            depth_labels.append(f"z={z_test:.1f}mm")
+    
+    # Plot
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    
+    # 1. TFM 2D map with depth lines
+    ax1 = axes[0, 0]
+    envelope_norm = data['envelope_2d'] / np.max(data['envelope_2d'])
+    im1 = ax1.pcolormesh(data['z_tfm'], data['x_tfm'], envelope_norm,
+                        cmap='hot', vmin=0, vmax=1, shading='auto')
+    for iz, label in zip(depth_indices, depth_labels):
+        ax1.axvline(data['z_tfm'][iz], color='white', ls='--', alpha=0.7, label=label)
+    ax1.set_xlabel('Depth z (mm)')
+    ax1.set_ylabel('Lateral x (mm)')
+    ax1.set_title('TFM Reconstruction with Depth Markers')
+    ax1.legend(fontsize=10)
+    
+    # 2. Axial profile at x=0
+    ax2 = axes[0, 1]
+    ax2.plot(data['z_tfm'], data['tfm_axial'], 'b-', linewidth=2)
+    for iz, label in zip(depth_indices, depth_labels):
+        ax2.axvline(data['z_tfm'][iz], color='red', ls='--', alpha=0.7)
+        ax2.plot(data['z_tfm'][iz], data['tfm_axial'][iz], 'ro', markersize=8)
+    ax2.set_xlabel('Depth z (mm)')
+    ax2.set_ylabel('Amplitude')
+    ax2.set_title('TFM Axial Profile (x=0)')
+    ax2.grid(True, alpha=0.3)
+    
+    # 3. Lateral profiles at different depths
+    ax3 = axes[1, 0]
+    for iz, label in zip(depth_indices, depth_labels):
+        lateral_profile = data['envelope_2d'][:, iz]
+        lateral_norm = lateral_profile / np.max(lateral_profile)
+        ax3.plot(data['x_tfm'], lateral_norm, label=label, linewidth=2)
+    
+    ax3.set_xlabel('Lateral x (mm)')
+    ax3.set_ylabel('Normalized Amplitude')
+    ax3.set_title('Lateral Profiles at Different Depths')
+    ax3.legend()
+    ax3.grid(True, alpha=0.3)
+    
+    # 4. Find peak positions in lateral profiles
+    ax4 = axes[1, 1]
+    peak_positions = []
+    depths = []
+    
+    for iz, label in zip(depth_indices, depth_labels):
+        lateral_profile = data['envelope_2d'][:, iz]
+        peak_idx = np.argmax(lateral_profile)
+        peak_x = data['x_tfm'][peak_idx]
+        peak_positions.append(peak_x)
+        depths.append(data['z_tfm'][iz])
+        
+        ax4.plot(peak_x, data['z_tfm'][iz], 'o', markersize=10, label=f"{label}: x={peak_x:.1f}mm")
+    
+    ax4.set_xlabel('Peak Lateral Position (mm)')
+    ax4.set_ylabel('Depth (mm)')
+    ax4.set_title('Peak Position vs Depth')
+    ax4.legend()
+    ax4.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, "debug_lateral_extraction.png"), dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Print summary
+    print("\n[DEBUG] Lateral Profile Peak Positions:")
+    for iz, label, peak_x in zip(depth_indices, depth_labels, peak_positions):
+        print(f"  {label}: peak at x = {peak_x:.1f} mm")
 
 def main():
     """Função principal"""
     
     # 1. Localizar arquivo de parâmetros
     possible_paths = [
-        os.path.join("results/run12", "run_params.json"),
+        os.path.join("results/final/test_12", "run_params.json"),
         "run_params.json"
     ]
     
@@ -738,6 +883,7 @@ def main():
     
     # 5. Gerar todos os plots
     plot_field_maps_2d(data, params)
+    plot_debug_lateral(data, params)
     plot_profiles_comparison(data, params)
     fwhm_results = calculate_and_plot_fwhm_comparison(data, params)
     
@@ -766,13 +912,17 @@ def create_one_page_summary(data, params, fwhm_results):
     """
     fig = plt.figure(figsize=(20, 15))
     
-    Dt0 = params.get('Dt0', 59.2)
-    target_z = Dt0 + params.get('DF', 23.6)
-    theoretical_fwhm = params.get('theoretical_fwhm_mm', 0.0)
+    Dt0 = float(params.get('Dt0', 59.2))
+    target_z = float(params.get('DF', 23.6))
+    theoretical_fwhm = float(params.get('theoretical_fwhm_mm', 0.0))
+    
+    # FIXED: Calculate global maxima
+    global_max_dt = np.max(data['p_field'])
+    global_max_tfm = np.max(data['envelope_2d'])
     
     # 1. TFM 2D Map (top left)
     ax1 = plt.subplot(3, 3, 1)
-    envelope_norm = data['envelope_2d'] / np.max(data['envelope_2d'])
+    envelope_norm = data['envelope_2d'] / global_max_tfm  # FIXED: Use global max
     im1 = ax1.pcolormesh(data['z_tfm'], data['x_tfm'], envelope_norm,
                         cmap='hot', vmin=0, vmax=1, shading='auto')
     ax1.axvline(Dt0, color='cyan', ls='--', alpha=0.7, label='Interface')
@@ -785,8 +935,9 @@ def create_one_page_summary(data, params, fwhm_results):
     
     # 2. Axial Profile Comparison (top middle)
     ax2 = plt.subplot(3, 3, 2)
-    dt_axial_norm = data['dt_axial'] / np.max(data['dt_axial'])
-    tfm_axial_norm = data['tfm_axial'] / np.max(data['tfm_axial'])
+    # FIXED: Use global normalization
+    dt_axial_norm = data['dt_axial'] / global_max_dt
+    tfm_axial_norm = data['tfm_axial'] / global_max_tfm
     
     ax2.plot(data['z_dt'], dt_axial_norm, 'b-', linewidth=2, label='Digital Twin')
     ax2.plot(data['z_tfm'], tfm_axial_norm, 'r--', linewidth=2, label='TFM')
@@ -799,8 +950,9 @@ def create_one_page_summary(data, params, fwhm_results):
     
     # 3. Lateral Profile Comparison (top right)
     ax3 = plt.subplot(3, 3, 3)
-    dt_lateral_norm = data['dt_lateral'] / np.max(data['dt_lateral'])
-    tfm_lateral_norm = data['tfm_lateral'] / np.max(data['tfm_lateral'])
+    # FIXED: Use global normalization
+    dt_lateral_norm = data['dt_lateral'] / global_max_dt
+    tfm_lateral_norm = data['tfm_lateral'] / global_max_tfm
     
     ax3.plot(data['x_dt'], dt_lateral_norm, 'b-', linewidth=2, label='Digital Twin')
     ax3.plot(data['x_tfm'], tfm_lateral_norm, 'r--', linewidth=2, label='TFM')

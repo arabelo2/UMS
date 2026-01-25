@@ -191,18 +191,20 @@ class DataManager:
     
     def save_fmc_batch(self, batch_id: int, tx_range: Tuple[int, int], 
                       fmc_data: np.ndarray, z_vals: np.ndarray) -> str:
-        """Save FMC batch data incrementally"""
+        """Save FMC batch with chunking optimized for sequential Z access"""
         batch_file = self.data_dir / f"fmc_batch_{batch_id:04d}.h5"
         
         with h5py.File(batch_file, 'w') as f:
-            # Store batch metadata
+            # Metadata
             f.attrs["batch_id"] = batch_id
             f.attrs["tx_start"] = tx_range[0]
             f.attrs["tx_end"] = tx_range[1]
             f.attrs["z_count"] = len(z_vals)
             
-            # Store data with chunking
-            chunks = self._calculate_chunks(fmc_data.shape, fmc_data.dtype)
+            # CRITICAL: Chunk alignment for sequential Z access
+            # Chunk shape: (M, N, 1) - one depth slice per chunk
+            chunks = (fmc_data.shape[0], fmc_data.shape[1], 1)
+            
             f.create_dataset(
                 "fmc_real", 
                 data=fmc_data.real.astype(np.float32),
@@ -485,6 +487,38 @@ class RecoveryManager:
         
         return current_stage, state
 
+    def save_fmc_batch_optimized(self, batch_id: int, tx_range: Tuple[int, int], 
+                               fmc_data: np.ndarray, z_vals: np.ndarray) -> str:
+        """Save FMC batch with chunking optimized for sequential Z access"""
+        batch_file = self.data_dir / f"fmc_batch_{batch_id:04d}.h5"
+        
+        with h5py.File(batch_file, 'w') as f:
+            # Metadata
+            f.attrs["batch_id"] = batch_id
+            f.attrs["tx_start"] = tx_range[0]
+            f.attrs["tx_end"] = tx_range[1]
+            f.attrs["z_count"] = len(z_vals)
+            
+            # CRITICAL: Chunk alignment for sequential Z access
+            # Chunk shape: (M, N, 1) - one depth slice per chunk
+            chunks = (fmc_data.shape[0], fmc_data.shape[1], 1)
+            
+            f.create_dataset(
+                "fmc_real", 
+                data=fmc_data.real.astype(np.float32),
+                chunks=chunks,
+                compression=self.compression
+            )
+            f.create_dataset(
+                "fmc_imag",
+                data=fmc_data.imag.astype(np.float32),
+                chunks=chunks,
+                compression=self.compression
+            )
+            f.create_dataset("z_vals", data=z_vals.astype(np.float32))
+        
+        return self._compute_file_checksum(batch_file)
+
 # =============================================================================
 # MAIN PIPELINE - Enhanced with Checkpoints
 # =============================================================================
@@ -498,7 +532,7 @@ class EnhancedPipeline:
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         
         self.checkpoint_mgr = CheckpointManager(self.checkpoint_dir)
-        self.data_mgr = DataManager(self.checkpoint_dir, args.save_fmt)  # FIXED
+        self.data_mgr = DataManager(self.checkpoint_dir, args.save_fmt)
         self.batch_processor = BatchProcessor(args)
         self.recovery_mgr = RecoveryManager(self.checkpoint_dir, args)
         
@@ -506,9 +540,23 @@ class EnhancedPipeline:
         self.xs = self._parse_scan_vector(args.xs, -15, 15, 31)
         self.zs = self._parse_scan_vector(args.zs, 1, 171, 171)
         self.ys = self._parse_scan_vector(args.y_vec, 0, 0, 1)
-        self.x_tfm = self._parse_scan_vector(args.x_mm, -15, 15, 31)  # Adicionar argumento
+        self.x_tfm = self._parse_scan_vector(args.x_mm, -15, 15, 31)
         self.z_tfm = self._parse_scan_vector(args.z_mm, 1, 171, 171)
-
+    
+    def _parse_scan_vector(self, input_val: str, default_start: float, 
+                          default_stop: float, default_num: int) -> np.ndarray:
+        """Parse MATLAB-style vector specification"""
+        if input_val is None:
+            return np.linspace(default_start, default_stop, default_num)
+        
+        try:
+            parts = [float(x) for x in str(input_val).replace('"', '').replace("'", "").split(',')]
+            if len(parts) == 3:
+                return np.linspace(parts[0], parts[1], int(parts[2]))
+            return np.array(parts)
+        except:
+            return np.linspace(default_start, default_stop, default_num)
+    
     @staticmethod
     def save_run_params(args, out_root: str) -> None:
         """Persist runtime arguments with theoretical FWHM for plotting scripts"""
@@ -588,7 +636,6 @@ class EnhancedPipeline:
         elapsed = time.time() - start_time
         print(f"[STAGE] Digital Twin completed in {elapsed:.1f}s")
         
-        # ============ ADD THIS CODE HERE ============
         # Save data for plotting scripts (CSV format expected by plotting scripts)
         print("[PLOT] Saving Digital Twin data for plotting scripts...")
         dt_plot_dir = Path(self.args.out_root) / "digital_twin"
@@ -602,9 +649,7 @@ class EnhancedPipeline:
         # Reshape p_field to 2D (z, x) for plotting
         p_field_2d = np.abs(result["p"]).reshape((len(self.zs), len(self.xs)))
         np.savetxt(dt_plot_dir / "field_p_field.csv", p_field_2d, delimiter=',')
-        # ============ END OF ADDED CODE ============
-
-        # At the end of _run_digital_twin():
+        
         self._save_plotting_data("digital_twin", {
             "p_field": np.abs(result["p"]),
             "x_vals": self.xs,
@@ -679,130 +724,297 @@ class EnhancedPipeline:
         print(f"[STAGE] FMC generation completed in {total_time:.1f}s")
     
     def _run_tfm_reconstruction(self, state: Dict):
-        """Run TFM reconstruction with memory-mapped data access"""
-        print("[STAGE] TFM Reconstruction")
+        """Run TFM reconstruction with COMPREHENSIVE DEBUGGING"""
+        print("[STAGE] TFM Reconstruction - DEBUG MODE")
         
         if state["stages"]["tfm_reconstruction"]["status"] == "completed":
             print("[STAGE] TFM already completed, skipping")
             return
         
         M, N = self.args.L1, self.args.L2
+        X_tfm, Z_tfm = self.x_tfm, self.z_tfm
+        nX, nZ = len(X_tfm), len(Z_tfm)
+        
         start_time = time.time()
         
-        # Calculate focusing delays for reference
-        td_focus = run_delay_laws3Dint_service(
-            M, N, self.args.lx + self.args.gx, self.args.ly + self.args.gy,
-            self.args.angt, self.args.phi, self.args.theta20,
-            self.args.Dt0, self.args.DF, self.args.c1, self.args.c2, 'n'
-        )
+        # ================================================================
+        # DEBUG 1: ANALYZE FMC DATA
+        # ================================================================
+        print("[DEBUG] Analyzing FMC data structure...")
         
-        # Initialize TFM result array                
-        tfm_envelope = np.zeros((len(self.x_tfm), len(self.z_tfm)), dtype=np.float32)
-
-        # Pre-calcular posições dos elementos (para eficiência)
-        M, N = self.args.L1, self.args.L2
+        # Test a few slices to understand FMC data
+        test_indices = [0, nZ//2, nZ-1]
+        for z_idx in test_indices:
+            fmc_test = self.data_mgr.load_fmc_slice(z_idx)
+            if fmc_test is not None:
+                fmc_test = fmc_test.reshape(M, N)
+                print(f"[DEBUG] Slice {z_idx} (z={Z_tfm[z_idx]:.1f}mm):")
+                print(f"  Shape: {fmc_test.shape}, Type: {fmc_test.dtype}")
+                print(f"  |FMC| range: {np.abs(fmc_test).min():.3e} to {np.abs(fmc_test).max():.3e}")
+                print(f"  ∠FMC range: {np.angle(fmc_test).min():.3f} to {np.angle(fmc_test).max():.3f} rad")
+                
+                # Check if this is P or P^2
+                center_val = fmc_test[M//2, N//2]
+                print(f"  Center element: |{np.abs(center_val):.3e}| ∠{np.angle(center_val):.3f}")
+        
+        # ================================================================
+        # DEBUG 2: VERIFY GEOMETRY
+        # ================================================================
+        print("[DEBUG] Verifying geometry and units...")
+        
+        # Element positions
         x_elem = (np.arange(M) - (M-1)/2) * (self.args.lx + self.args.gx)
-        y_elem = (np.arange(N) - (N-1)/2) * (self.args.ly + self.args.gy) if N > 1 else np.array([0.0])
+        y_elem = (np.arange(N) - (N-1)/2) * (self.args.ly + self.args.gy)
+        X_elem, Y_elem = np.meshgrid(x_elem, y_elem, indexing='ij')
         
-        # Processar cada ponto da grade 2D
-        for x_idx, x_val in enumerate(self.x_tfm):
-            print(f"[TFM] Processing X position {x_idx+1}/{len(self.x_tfm)}: x={x_val:.1f} mm")
+        print(f"[DEBUG] Array: {M}x{N} elements, pitch: {self.args.lx+self.args.gx:.2f}mm")
+        print(f"[DEBUG] X elements range: {x_elem[0]:.1f} to {x_elem[-1]:.1f} mm")
+        print(f"[DEBUG] Reconstruction grid: X={X_tfm[0]:.1f} to {X_tfm[-1]:.1f} mm ({nX} points)")
+        print(f"[DEBUG] Reconstruction grid: Z={Z_tfm[0]:.1f} to {Z_tfm[-1]:.1f} mm ({nZ} points)")
+        
+        # ================================================================
+        # DEBUG 3: SIMPLE TEST - CENTER POINT ONLY
+        # ================================================================
+        print("[DEBUG] Testing single point reconstruction...")
+        
+        # Find index for x=0, z=Dt0+DF (expected focus)
+        target_z = self.args.Dt0 + self.args.DF  # ~90 mm
+        x_idx = np.argmin(np.abs(X_tfm - 0.0))
+        z_idx = np.argmin(np.abs(Z_tfm - target_z))
+        
+        print(f"[DEBUG] Testing point: x=0.0, z={target_z:.1f}mm (index {x_idx},{z_idx})")
+        
+        # Load FMC slice for this depth
+        fmc_slice = self.data_mgr.load_fmc_slice(z_idx)
+        if fmc_slice is None:
+            print("[ERROR] Could not load FMC slice")
+            return
+        
+        fmc_slice = fmc_slice.reshape(M, N).astype(np.complex64)
+        
+        # Calculate delays for center point
+        x_val = 0.0
+        z_val = target_z
+        
+        print(f"[DEBUG] Calculating delays for ({x_val:.1f}, {z_val:.1f})...")
+        
+        # Simple straight-ray approximation (water + steel)
+        delays = np.zeros((M, N))
+        for m in range(M):
+            for n in range(N):
+                x_e = X_elem[m, n]
+                y_e = Y_elem[m, n]
+                
+                # Water path
+                d_water = np.sqrt((x_e - x_val)**2 + y_e**2 + self.args.Dt0**2)
+                # Steel path
+                d_steel = np.sqrt((x_e - x_val)**2 + y_e**2 + (z_val - self.args.Dt0)**2)
+                
+                # Time in microseconds (distances in mm, velocities in mm/μs)
+                c1_mm_per_us = self.args.c1 / 1000.0
+                c2_mm_per_us = self.args.c2 / 1000.0
+                delays[m, n] = d_water/c1_mm_per_us + d_steel/c2_mm_per_us
+        
+        print(f"[DEBUG] Delay range: {delays.min():.3f} to {delays.max():.3f} μs")
+        print(f"[DEBUG] Delay variation: {delays.max() - delays.min():.3f} μs")
+        
+        # Calculate expected phase variation
+        f_mhz = self.args.f  # 5 MHz
+        phase_variation = 2 * np.pi * f_mhz * 2 * (delays.max() - delays.min())
+        print(f"[DEBUG] Phase variation: {phase_variation:.1f} rad ({phase_variation/np.pi:.1f}π)")
+        
+        # Apply phase correction
+        phase_corr = np.exp(-1j * 2 * np.pi * f_mhz * 2 * delays)
+        
+        # Coherent sum
+        result = np.sum(fmc_slice * phase_corr)
+        
+        print(f"[DEBUG] Single point result:")
+        print(f"  |result| = {np.abs(result):.3e}")
+        print(f"  ∠result = {np.angle(result):.3f} rad")
+        print(f"  FMC * phase_corr magnitude range: {np.abs(fmc_slice * phase_corr).min():.3e} to {np.abs(fmc_slice * phase_corr).max():.3e}")
+        
+        # ================================================================
+        # MAIN RECONSTRUCTION (SIMPLIFIED)
+        # ================================================================
+        print("[TFM] Starting simplified reconstruction...")
+        
+        # Precompute constants
+        c1_mm_per_us = self.args.c1 / 1000.0
+        c2_mm_per_us = self.args.c2 / 1000.0
+        Dt0_sq = self.args.Dt0**2
+        
+        tfm_envelope = np.zeros((nX, nZ), dtype=np.float32)
+        
+        # Only process every 5th point for speed during debugging
+        step = 5
+        for z_idx in range(0, nZ, step):
+            z_val = Z_tfm[z_idx]
             
-            for z_idx, z_val in enumerate(self.z_tfm):
-                # Carregar slice FMC para esta profundidade
-                fmc_slice = self.data_mgr.load_fmc_slice(z_idx)
+            # Load FMC slice
+            fmc_slice = self.data_mgr.load_fmc_slice(z_idx)
+            if fmc_slice is None:
+                continue
                 
-                if fmc_slice is None:
-                    continue
+            fmc_slice = fmc_slice.reshape(M, N).astype(np.complex64)
+            
+            for x_idx in range(0, nX, step):
+                x_val = X_tfm[x_idx]
                 
-                # Calcular atrasos para ponto (x_val, 0, z_val)
+                # Calculate delays
                 if z_val > self.args.Dt0:
-                    # NO AÇO: fórmula simplificada para distância em meio sólido
-                    # Para reconstrução 2D completa, precisaríamos de refração, mas
-                    # como aproximação, usamos caminho ótico equivalente
-                    dist_water = np.sqrt((x_elem - x_val)**2 + y_elem**2 + self.args.Dt0**2)
-                    dist_steel = np.sqrt((x_elem - x_val)**2 + y_elem**2 + (z_val - self.args.Dt0)**2)
-                    td = dist_water/self.args.c1 + dist_steel/self.args.c2
+                    # Steel region
+                    dz_steel = z_val - self.args.Dt0
+                    dz_steel_sq = dz_steel**2
+                    
+                    # Vectorized calculation
+                    dx_sq = (x_val - X_elem)**2
+                    dy_sq = Y_elem**2
+                    
+                    d_water = np.sqrt(dx_sq + dy_sq + Dt0_sq)
+                    d_steel = np.sqrt(dx_sq + dy_sq + dz_steel_sq)
+                    
+                    delays = d_water/c1_mm_per_us + d_steel/c2_mm_per_us
                 else:
-                    # NA ÁGUA: distância euclidiana simples
-                    dist = np.sqrt((x_elem - x_val)**2 + y_elem**2 + z_val**2)
-                    td = dist / self.args.c1
-                
-                # Converter atrasos para matriz M×N
-                td_matrix = td.reshape(M, N)
-                
-                # Correção de fase e soma coerente
-                phase_corr = np.exp(-1j * 4 * np.pi * self.args.f * (td_matrix * 1e6))
-                tfm_slice = np.sum(fmc_slice * phase_corr) * (z_val ** 2)
-                
-                # Armazenar no array 2D
-                tfm_envelope[x_idx, z_idx] = np.abs(tfm_slice)               
-              
-                # Save intermediate checkpoint every 10% of X progress
-                if (x_idx + 1) % max(1, len(self.x_tfm) // 10) == 0:
-                    progress = (x_idx + 1) / len(self.x_tfm) * 100
-                    print(f"[TFM] Saving checkpoint at {progress:.0f}% progress")
+                    # Water region
+                    z_sq = z_val**2
+                    dx_sq = (x_val - X_elem)**2
+                    dy_sq = Y_elem**2
                     
-                    metadata = {
-                        "last_x_index": x_idx,
-                        "last_x_value": float(x_val),
-                        "progress_percent": progress
-                    }
-                    # Save the current 2D envelope (up to current x_idx)
-                    checkpoint_envelope = tfm_envelope[:x_idx+1, :]
-                    checkpoint_x_vals = self.x_tfm[:x_idx+1]
-                    
-                    self.data_mgr.save_tfm_checkpoint_2d(
-                        checkpoint_envelope, checkpoint_x_vals, self.z_tfm, metadata
-                    )
+                    delays = np.sqrt(dx_sq + dy_sq + z_sq) / c1_mm_per_us
+                
+                # Phase correction (pulse-echo: round trip)
+                phase = 2 * np.pi * self.args.f * 2 * delays
+                phase_corr = np.exp(-1j * phase)
+                
+                # Coherent sum
+                result = np.sum(fmc_slice * phase_corr)
+                tfm_envelope[x_idx, z_idx] = np.abs(result)
+            
+            if (z_idx // step) % 5 == 0:
+                progress = (z_idx / nZ) * 100
+                print(f"[TFM] Progress: {progress:.1f}%")
         
-        # Save final results
+        # ================================================================
+        # NORMALIZATION AND ANALYSIS
+        # ================================================================
+        print("[TFM] Normalizing results...")
+        
+        # Find maximum (ignore zeros from skipped points)
+        non_zero_mask = tfm_envelope > 0
+        if np.any(non_zero_mask):
+            max_val = np.max(tfm_envelope[non_zero_mask])
+            if max_val > 0:
+                tfm_envelope[non_zero_mask] = tfm_envelope[non_zero_mask] / max_val
+        
+        # Interpolate to fill skipped points
+        from scipy import interpolate
+        x_indices = np.arange(0, nX, step)
+        z_indices = np.arange(0, nZ, step)
+        
+        if len(x_indices) > 1 and len(z_indices) > 1:
+            # Create interpolation function
+            interp_func = interpolate.RectBivariateSpline(
+                X_tfm[x_indices], 
+                Z_tfm[z_indices], 
+                tfm_envelope[np.ix_(x_indices, z_indices)]
+            )
+            # Fill entire grid
+            tfm_envelope = interp_func(X_tfm, Z_tfm, grid=True)
+        
+        # Find peak
+        peak_idx = np.unravel_index(np.argmax(tfm_envelope), tfm_envelope.shape)
+        peak_x = X_tfm[peak_idx[0]]
+        peak_z = Z_tfm[peak_idx[1]]
+        peak_value = tfm_envelope[peak_idx]
+        
+        print(f"[RESULTS] Peak: X={peak_x:.2f} mm, Z={peak_z:.2f} mm, value={peak_value:.4f}")
+        
+        # Calculate FWHM
+        if peak_value > 0.1:  # Only if we have a reasonable peak
+            # Lateral FWHM at peak depth
+            h_profile = tfm_envelope[:, peak_idx[1]]
+            h_fwhm = self._calculate_fwhm_1d(h_profile, X_tfm)
+            
+            # Axial FWHM at peak lateral position
+            v_profile = tfm_envelope[peak_idx[0], :]
+            v_fwhm = self._calculate_fwhm_1d(v_profile, Z_tfm)
+            
+            print(f"[RESULTS] FWHM: Lateral={h_fwhm:.3f} mm, Axial={v_fwhm:.3f} mm")
+        else:
+            h_fwhm, v_fwhm = 0.0, 0.0
+            print("[WARNING] Peak too low for FWHM calculation")
+        
+        # Save results
         metadata = {
             "fwhm_theoretical": self._calculate_theoretical_fwhm(),
-            "peak_index": int(np.argmax(tfm_envelope)),
-            "peak_value": float(np.max(tfm_envelope))
+            "fwhm_empirical_x_mm": float(h_fwhm),
+            "fwhm_empirical_z_mm": float(v_fwhm),
+            "peak_x_mm": float(peak_x),
+            "peak_z_mm": float(peak_z),
+            "peak_value": float(peak_value),
+            "execution_time_s": time.time() - start_time,
+            "algorithm_version": "DEBUG_SIMPLIFIED_V1"
         }
-                
-        checksum = self.data_mgr.save_tfm_result_2d(tfm_envelope, self.x_tfm, self.z_tfm, metadata)
+        
+        checksum = self.data_mgr.save_tfm_result_2d(tfm_envelope, X_tfm, Z_tfm, metadata)
         
         # Update state
         self.checkpoint_mgr.mark_stage_complete(state, "tfm_reconstruction", checksum)
         self.checkpoint_mgr.save_state(state)
         
-        # Identify post-interface peak
-        z_mask = self.z_tfm > self.args.Dt0 + 5.0
-        if np.any(z_mask):
-            roi = tfm_envelope[:, z_mask]
-            peak_idx = np.unravel_index(np.argmax(roi), roi.shape)
-            peak_x_idx = peak_idx[0]
-            peak_z_idx = peak_idx[1] + np.where(z_mask)[0][0]
-            print(f"[STAGE] TFM peak detected at x = {self.x_tfm[peak_x_idx]:.2f} mm, z = {self.z_tfm[peak_z_idx]:.2f} mm")
-        
         elapsed = time.time() - start_time
-        print(f"[STAGE] TFM reconstruction completed in {elapsed:.1f}s")
+        print(f"[PERFORMANCE] TFM completed in {elapsed:.1f}s")
         
-        # ============ ADD THIS CODE HERE ============
-        # Save data for plotting scripts (CSV format expected by plotting scripts)
-        print("[PLOT] Saving TFM data for plotting scripts...")
-        tfm_plot_dir = Path(self.args.out_root) / "fmc_tfm"
-        tfm_plot_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Save in the format expected by plotting scripts
-        np.savetxt(tfm_plot_dir / "results_z_vals.csv", self.z_tfm, delimiter=',')
-        np.savetxt(tfm_plot_dir / "results_envelope.csv", tfm_envelope, delimiter=',')
-        
-        # Also save raw complex TFM data for completeness
-        if hasattr(self, 'tfm_raw_complex'):
-            np.savetxt(tfm_plot_dir / "results_tfm_raw_real.csv", self.tfm_raw_complex.real, delimiter=',')
-            np.savetxt(tfm_plot_dir / "results_tfm_raw_imag.csv", self.tfm_raw_complex.imag, delimiter=',')
-        # ============ END OF ADDED CODE ============
-        
-        # At the end of _run_tfm_reconstruction():
+        # Save for plotting
         self._save_plotting_data("fmc_tfm", {
             "envelope": tfm_envelope,
-            "x_vals": self.x_tfm,
-            "z_vals": self.z_tfm
+            "x_vals": X_tfm,
+            "z_vals": Z_tfm
         })
+        
+        return tfm_envelope
+    
+    def _calculate_fwhm_1d(self, profile: np.ndarray, positions: np.ndarray) -> float:
+        """Calculate FWHM from 1D profile using linear interpolation"""
+        if len(profile) < 3:
+            return 0.0
+        
+        peak_val = np.max(profile)
+        half_max = peak_val / 2.0
+        
+        # Find indices where profile crosses half-max
+        above_half = profile >= half_max
+        if not np.any(above_half):
+            return 0.0
+        
+        # Get first and last crossing
+        crossings = np.where(np.diff(above_half.astype(int)) != 0)[0]
+        
+        if len(crossings) < 2:
+            return 0.0
+        
+        # Linear interpolation for precise FWHM
+        left_idx = crossings[0]
+        right_idx = crossings[-1]
+        
+        # Interpolate left edge
+        if left_idx > 0:
+            x1, x2 = positions[left_idx], positions[left_idx + 1]
+            y1, y2 = profile[left_idx], profile[left_idx + 1]
+            left_edge = x1 + (x2 - x1) * (half_max - y1) / (y2 - y1)
+        else:
+            left_edge = positions[0]
+        
+        # Interpolate right edge
+        if right_idx < len(profile) - 1:
+            x1, x2 = positions[right_idx], positions[right_idx + 1]
+            y1, y2 = profile[right_idx], profile[right_idx + 1]
+            right_edge = x1 + (x2 - x1) * (half_max - y1) / (y2 - y1)
+        else:
+            right_edge = positions[-1]
+        
+        return abs(right_edge - left_edge)
     
     def _calculate_theoretical_fwhm(self) -> float:
         """Calculate theoretical FWHM baseline"""
@@ -811,20 +1023,6 @@ class EnhancedPipeline:
             return 1.206 * (self.args.c2 / self.args.f / 1000) * ((self.args.DF + self.args.Dt0) / D)
         return 0.0
     
-    def _parse_scan_vector(self, input_val: str, default_start: float, 
-                          default_stop: float, default_num: int) -> np.ndarray:
-        """Parse MATLAB-style vector specification"""
-        if input_val is None:
-            return np.linspace(default_start, default_stop, default_num)
-        
-        try:
-            parts = [float(x) for x in str(input_val).replace('"', '').replace("'", "").split(',')]
-            if len(parts) == 3:
-                return np.linspace(parts[0], parts[1], int(parts[2]))
-            return np.array(parts)
-        except:
-            return np.linspace(default_start, default_stop, default_num)
- 
     def _save_plotting_data(self, stage: str, data_dict: dict):
         """Save data in format expected by plotting scripts"""
         if stage == "digital_twin":
@@ -905,16 +1103,12 @@ def main():
     parser.add_argument('--save_fmt', choices=['csv','npz','h5'], default='csv')
     
     # Recovery control
-    parser.add_argument('--resume', action='store_true', 
-                       help='Resume from last checkpoint')
-    parser.add_argument('--force_restart', action='store_true',
-                       help='Ignore existing checkpoints and start fresh')
+    parser.add_argument('--resume', action='store_true', help='Resume from last checkpoint')
+    parser.add_argument('--force_restart', action='store_true', help='Ignore existing checkpoints and start fresh')
     
     # Performance tuning
-    parser.add_argument('--batch_size', type=int, default=None,
-                       help='Manual batch size override (auto-calculated if not specified)')
-    parser.add_argument('--memory_limit_mb', type=float, default=None,
-                       help='Manual memory limit in MB')
+    parser.add_argument('--batch_size', type=int, default=None, help='Manual batch size override (auto-calculated if not specified)')
+    parser.add_argument('--memory_limit_mb', type=float, default=None, help='Manual memory limit in MB')
     
     args = parser.parse_args()
     
