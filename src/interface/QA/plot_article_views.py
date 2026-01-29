@@ -91,7 +91,6 @@ def plot_publication_figure(root_dir):
     # Plot 1: Main 2D Map (dB Scale) [Top Left]
     ax_map = fig.add_subplot(gs[:, 0])
     im = ax_map.pcolormesh(x, z, p_db, cmap='jet', shading='auto', vmin=-30, vmax=0)
-    ax_map.invert_yaxis()
     ax_map.set_xlabel('Lateral Position (mm)')
     ax_map.set_ylabel('Depth (mm)')
     ax_map.set_title(f'Acoustic Pressure Field (dB)\nPeak at z={peak_z:.1f}mm')

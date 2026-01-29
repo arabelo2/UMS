@@ -188,8 +188,9 @@ def plot_field_maps_2d(data, params, output_dir="plots"):
     im1 = ax1.pcolormesh(data['x_dt'], data['z_dt'], p_db, 
                         cmap='jet', vmin=-40, vmax=0, shading='auto')
     ax1.set_title("Digital Twin Field Map (dB)")
-    ax1.axhline(Dt0, color='white', ls='--', alpha=0.7, label='Interface')
-    ax1.axhline(target_z, color='cyan', ls='--', alpha=0.7, label='Focus')
+    ax1.axvline(0, color='gray', ls='--', alpha=0.5)
+    ax1.axhline(Dt0, color='cyan', ls='--', alpha=0.7, label='Interface')
+    ax1.axhline(target_z, color='white', ls='--', alpha=0.7, label='Focus')
     ax1.set_xlabel("x (mm)")
     ax1.set_ylabel("z (mm)")
     plt.colorbar(im1, ax=ax1, label='dB')
@@ -202,41 +203,44 @@ def plot_field_maps_2d(data, params, output_dir="plots"):
         im2 = ax2.pcolormesh(data['x_dt'], data['z_dt'][z_mask], 
                             p_db[z_mask, :], cmap='jet', vmin=-20, vmax=0, shading='auto')
         ax2.set_title("Digital Twin - Focal Zone")
-        ax2.axvline(0, color='white', ls='--', alpha=0.5)
-        ax2.axhline(target_z, color='cyan', ls='--', alpha=0.7)
+        ax2.axvline(0, color='gray', ls='--', alpha=0.5)
+        ax2.axhline(target_z, color='white', ls='--', alpha=0.7)
         ax2.set_xlabel("x (mm)")
         ax2.set_ylabel("z (mm)")
     
     # 3. TFM Reconstruction (Full)
-    ax3 = plt.subplot(2, 3, 3)
+    ax3 = plt.subplot(2, 3, 4)
     # Normalizar envelope para [0, 1]
-    envelope_norm = data['envelope_2d'] / np.max(data['envelope_2d'])
+    envelope_norm = 20 * np.log10(data['envelope_2d'] / np.max(data['envelope_2d']) + 1e-6) 
+    
     # Note: envelope_2d tem shape (31, 151) -> (x_tfm, z_tfm)
-    im3 = ax3.pcolormesh(data['z_tfm'], data['x_tfm'], envelope_norm,
-                        cmap='hot', vmin=0, vmax=1, shading='auto')
-    ax3.set_title("TFM Reconstruction (Normalized)")
-    ax3.axvline(Dt0, color='cyan', ls='--', alpha=0.7, label='Interface')
-    ax3.axvline(target_z, color='white', ls='--', alpha=0.7, label='Focus')
-    ax3.set_xlabel("z (mm)")
-    ax3.set_ylabel("x (mm)")
-    plt.colorbar(im3, ax=ax3, label='Normalized Amplitude')
-    ax3.legend(loc='upper right', fontsize=10)
+    im3 = ax3.pcolormesh(data['x_tfm'], data['z_tfm'], envelope_norm, 
+                        cmap='hot', vmin=-40, vmax=0, shading='auto')
+    ax3.set_title("TFM Reconstruction Field Map (dB)")
+    ax3.axvline(0, color='gray', ls='--', alpha=0.5)
+    ax3.axhline(Dt0, color='cyan', ls='--', alpha=0.7, label='Interface')
+    ax3.axhline(target_z, color='white', ls='--', alpha=0.7, label='Focus')     
+    ax3.set_xlabel("x (mm)")
+    ax3.set_ylabel("z (mm)")
+    plt.colorbar(im3, ax=ax3, label='dB')
+    ax3.legend(loc='upper right', fontsize=10)    
     
     # 4. TFM (Zoom)
-    ax4 = plt.subplot(2, 3, 4)
+    ax4 = plt.subplot(2, 3, 5)
     z_mask_tfm = (data['z_tfm'] > target_z - 30) & (data['z_tfm'] < target_z + 30)
     if np.any(z_mask_tfm):
         # envelope_norm tem shape (31, 151), precisamos cortar as colunas (z)
-        zoom_envelope = envelope_norm[:, z_mask_tfm]
-        im4 = ax4.pcolormesh(data['z_tfm'][z_mask_tfm], data['x_tfm'], 
-                            zoom_envelope, cmap='hot', vmin=0, vmax=1, shading='auto')
+        zoom_envelope = envelope_norm[z_mask_tfm, :]
+        im4 = ax4.pcolormesh(data['x_tfm'], data['z_tfm'][z_mask_tfm],
+                            zoom_envelope, cmap='hot', vmin=-40, vmax=0, shading='auto')
         ax4.set_title("TFM - Focal Zone")
-        ax4.axvline(target_z, color='white', ls='--', alpha=0.7)
-        ax4.set_xlabel("z (mm)")
-        ax4.set_ylabel("x (mm)")
+        ax4.axvline(0, color='gray', ls='--', alpha=0.5)
+        ax4.axhline(target_z, color='white', ls='--', alpha=0.7)        
+        ax4.set_xlabel("x (mm)")
+        ax4.set_ylabel("z (mm)")
     
     # 5. Diferença entre DT e TFM (na região focal)
-    ax5 = plt.subplot(2, 3, 5)
+    ax5 = plt.subplot(2, 3, 6)
     # Interpolar Digital Twin para mesma grade do TFM
     from scipy.interpolate import griddata
     
@@ -254,21 +258,23 @@ def plot_field_maps_2d(data, params, output_dir="plots"):
     
     # Interpolar Digital Twin para a grade do TFM
     p_db_interp_flat = griddata(points_dt, values_dt, points_tfm, method='linear', fill_value=np.nan)
-    p_db_interp = p_db_interp_flat.reshape(X_tfm.shape)  # (31, 151)
+    p_db_interp = p_db_interp_flat.reshape(X_tfm.shape)
     
     # Calcular diferença (apenas na região onde temos dados)
     mask = ~np.isnan(p_db_interp)
     if np.any(mask):
-        # Convert envelope_norm to dB for comparison
-        envelope_db = 20 * np.log10(envelope_norm + 1e-6)
-        diff = np.zeros_like(p_db_interp)
-        diff[mask] = p_db_interp[mask] - envelope_db[mask]
         
-        im5 = ax5.pcolormesh(data['z_tfm'], data['x_tfm'], diff, 
+        diff = np.zeros_like(p_db_interp)
+        diff[mask] = p_db_interp[mask] - envelope_norm[mask]
+        
+        im5 = ax5.pcolormesh(data['x_tfm'], data['z_tfm'], diff.T, 
                             cmap='RdBu_r', vmin=-20, vmax=20, shading='auto')
-        ax5.set_title("Difference: DT(dB) - TFM(dB)")
-        ax5.set_xlabel("z (mm)")
-        ax5.set_ylabel("x (mm)")
+        ax5.axvline(0, color='gray', ls='--', alpha=0.5)
+        ax5.axhline(Dt0, color='cyan', ls='--', alpha=0.7, label='Interface')
+        ax5.axhline(target_z, color='white', ls='--', alpha=0.7, label='Focus')
+        ax5.set_title("Difference: DT(dB) - TFM(dB)")        
+        ax5.set_xlabel("x (mm)")
+        ax5.set_ylabel("z (mm)")
         plt.colorbar(im5, ax=ax5, label='dB Difference')
     
     plt.tight_layout()
@@ -312,11 +318,6 @@ def plot_profiles_comparison(data, params, output_dir="plots"):
     # Extract lateral profile at the actual peak depth
     data['tfm_lateral'] = data['envelope_2d'][:, iz_focus]
     
-    # Find peak in lateral profile
-    peak_idx_lateral = np.argmax(data['tfm_lateral'])
-    peak_x_lateral = data['x_tfm'][peak_idx_lateral]
-    print(f"[DEBUG] TFM lateral peak at: x = {peak_x_lateral:.1f} mm")
-    
     # DEBUG: Check the lateral profile
     print(f"[DEBUG] TFM lateral profile shape: {data['tfm_lateral'].shape}")
     print(f"[DEBUG] TFM x range: {data['x_tfm'].min():.1f} to {data['x_tfm'].max():.1f} mm")
@@ -330,12 +331,16 @@ def plot_profiles_comparison(data, params, output_dir="plots"):
     dt_axial_norm = data['dt_axial'] / global_max_dt
     dt_lateral_norm = data['dt_lateral'] / global_max_dt
     tfm_axial_norm = data['tfm_axial'] / global_max_tfm
+    
     tfm_lateral_norm = data['tfm_lateral'] / global_max_tfm
+    # MIRROR THE DATA (Flip the array order)
+    tfm_lateral_norm = np.flip(tfm_lateral_norm)
     
     # 1. Perfis Axiais (DT vs TFM)
     ax1 = axes[0, 0]
     ax1.plot(data['z_dt'], dt_axial_norm, 'b-', linewidth=2, label='Digital Twin')
     ax1.plot(data['z_tfm'], tfm_axial_norm, 'r--', linewidth=2, label='TFM Reconstruction')
+    ax1.axvline(0, color='gray', ls='--', alpha=0.5)
     ax1.axvline(Dt0, color='gray', linestyle=':', alpha=0.7, label='Interface')
     ax1.axvline(target_z, color='green', linestyle='--', alpha=0.7, label='Target Focus')
     ax1.set_xlabel('Depth z (mm)')
@@ -775,16 +780,19 @@ def plot_debug_lateral(data, params, output_dir="plots"):
     # Plot
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     
-    # 1. TFM 2D map with depth lines
+    # 1. TFM 2D map with depth lines (Corrected Orientation)
     ax1 = axes[0, 0]
-    envelope_norm = data['envelope_2d'] / np.max(data['envelope_2d'])
-    im1 = ax1.pcolormesh(data['z_tfm'], data['x_tfm'], envelope_norm,
-                        cmap='hot', vmin=0, vmax=1, shading='auto')
-    for iz, label in zip(depth_indices, depth_labels):
-        ax1.axvline(data['z_tfm'][iz], color='white', ls='--', alpha=0.7, label=label)
-    ax1.set_xlabel('Depth z (mm)')
-    ax1.set_ylabel('Lateral x (mm)')
-    ax1.set_title('TFM Reconstruction with Depth Markers')
+    envelope_norm = 20 * np.log10(data['envelope_2d'] / np.max(data['envelope_2d']) + 1e-6)
+    im1 = ax1.pcolormesh(data['x_tfm'], data['z_tfm'], envelope_norm, 
+                        cmap='hot', vmin=-40, vmax=0, shading='auto')
+    ax1.axvline(0, color='gray', ls='--', alpha=0.5)
+    ax1.axhline(Dt0, color='white', ls='--', alpha=0.7, label='Interface')
+    ax1.axhline(target_z, color='cyan', ls='--', alpha=0.7, label='Focus')
+                        
+    ax1.set_xlabel('Lateral x (mm)')
+    ax1.set_ylabel('Depth z (mm)')
+    ax1.set_title('TFM Reconstruction Field Map (dB)')
+    plt.colorbar(im1, ax=ax1, label='dB')
     ax1.legend(fontsize=10)
     
     # 2. Axial profile at x=0
@@ -803,6 +811,8 @@ def plot_debug_lateral(data, params, output_dir="plots"):
     for iz, label in zip(depth_indices, depth_labels):
         lateral_profile = data['envelope_2d'][:, iz]
         lateral_norm = lateral_profile / np.max(lateral_profile)
+        # MIRROR THE DATA (Flip the array order)
+        lateral_norm = np.flip(lateral_norm)
         ax3.plot(data['x_tfm'], lateral_norm, label=label, linewidth=2)
     
     ax3.set_xlabel('Lateral x (mm)')
@@ -818,8 +828,12 @@ def plot_debug_lateral(data, params, output_dir="plots"):
     
     for iz, label in zip(depth_indices, depth_labels):
         lateral_profile = data['envelope_2d'][:, iz]
+        
+        # MIRROR THE DATA (Flip the array order)
+        lateral_profile = np.flip(lateral_profile)
+        
         peak_idx = np.argmax(lateral_profile)
-        peak_x = data['x_tfm'][peak_idx]
+        peak_x = data['x_tfm'][peak_idx]        
         peak_positions.append(peak_x)
         depths.append(data['z_tfm'][iz])
         
@@ -845,7 +859,7 @@ def main():
     
     # 1. Localizar arquivo de parâmetros
     possible_paths = [
-        os.path.join("results/final/test_12", "run_params.json"),
+        os.path.join("results/final/test_20", "run_params.json"),
         "run_params.json"
     ]
     
@@ -922,16 +936,18 @@ def create_one_page_summary(data, params, fwhm_results):
     
     # 1. TFM 2D Map (top left)
     ax1 = plt.subplot(3, 3, 1)
-    envelope_norm = data['envelope_2d'] / global_max_tfm  # FIXED: Use global max
-    im1 = ax1.pcolormesh(data['z_tfm'], data['x_tfm'], envelope_norm,
-                        cmap='hot', vmin=0, vmax=1, shading='auto')
-    ax1.axvline(Dt0, color='cyan', ls='--', alpha=0.7, label='Interface')
-    ax1.axvline(target_z, color='white', ls='--', alpha=0.7, label='Target')
-    ax1.set_xlabel('Depth (mm)')
-    ax1.set_ylabel('Lateral (mm)')
-    ax1.set_title('TFM Reconstruction')
-    plt.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
-    ax1.legend(fontsize=9, loc='upper right')
+    envelope_norm = 20 * np.log10(data['envelope_2d'] / global_max_tfm + 1e-6)
+    im1 = ax1.pcolormesh(data['x_tfm'], data['z_tfm'], envelope_norm, 
+                        cmap='hot', vmin=-40, vmax=0, shading='auto')
+    ax1.axvline(0, color='gray', ls='--', alpha=0.5)
+    ax1.axhline(Dt0, color='white', ls='--', alpha=0.7, label='Interface')
+    ax1.axhline(target_z, color='cyan', ls='--', alpha=0.7, label='Focus')
+                        
+    ax1.set_xlabel('Lateral x (mm)')
+    ax1.set_ylabel('Depth z (mm)')
+    ax1.set_title('TFM Reconstruction Field Map (dB)')
+    plt.colorbar(im1, ax=ax1, label='dB', fraction=0.046, pad=0.04)
+    ax1.legend(fontsize=10, loc='upper right')
     
     # 2. Axial Profile Comparison (top middle)
     ax2 = plt.subplot(3, 3, 2)
@@ -951,8 +967,10 @@ def create_one_page_summary(data, params, fwhm_results):
     # 3. Lateral Profile Comparison (top right)
     ax3 = plt.subplot(3, 3, 3)
     # FIXED: Use global normalization
-    dt_lateral_norm = data['dt_lateral'] / global_max_dt
+    dt_lateral_norm = data['dt_lateral'] / global_max_dt    
     tfm_lateral_norm = data['tfm_lateral'] / global_max_tfm
+    # MIRROR THE DATA (Flip the array order)
+    tfm_lateral_norm = np.flip(tfm_lateral_norm)
     
     ax3.plot(data['x_dt'], dt_lateral_norm, 'b-', linewidth=2, label='Digital Twin')
     ax3.plot(data['x_tfm'], tfm_lateral_norm, 'r--', linewidth=2, label='TFM')

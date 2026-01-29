@@ -70,8 +70,7 @@ def plot_publication_figure_tfm(root_dir):
 
         # A: Map
         ax_map = fig.add_subplot(gs[:, 0])
-        im = ax_map.pcolormesh(x_vals, z_vals, p_db, cmap='jet', shading='auto', vmin=-30, vmax=0)
-        ax_map.invert_yaxis()
+        im = ax_map.pcolormesh(x_vals, z_vals, p_db, cmap='jet', shading='auto', vmin=-30, vmax=0)        
         ax_map.set_xlabel('Lateral Position (mm)')
         ax_map.set_ylabel('Depth (mm)')
         ax_map.set_title(f'TFM Reconstruction Field (dB)\nPeak at z={peak_z:.1f}mm')
