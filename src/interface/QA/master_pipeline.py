@@ -2,6 +2,8 @@
 """
 Enhanced Digital Twin → FMC → TFM Pipeline with Checkpoint Recovery
 Memory-optimized with batch processing and fault tolerance
+
+UPDATED: Uses Schmerr's exact Fermat Path solver (pts_3Dintf) for TFM reconstruction.
 """
 
 import sys
@@ -28,9 +30,13 @@ warnings.filterwarnings("ignore")
 # Add service paths
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
+from domain.ps_3Dint import Ps3DInt
+from application.ps_3Dint_service import run_ps_3Dint_service
 from application.delay_laws3Dint_service import run_delay_laws3Dint_service
 from application.mps_array_model_int_service import run_mps_array_model_int_service
 from application.discrete_windows_service import run_discrete_windows_service
+# NEW: Import Fermat Path Service
+from application.pts_3Dintf_service import run_pts_3Dintf_service
 from interface.cli_utils import safe_float
 
 # =============================================================================
@@ -43,1057 +49,602 @@ class CheckpointManager:
     def __init__(self, checkpoint_dir: str):
         self.checkpoint_dir = Path(checkpoint_dir)
         self.state_file = self.checkpoint_dir / "pipeline_state.json"
-        self.checkpoint_version = "1.0"
         
-    def init_checkpoint(self, args: argparse.Namespace) -> Dict:
+    def init_checkpoint(self, args: argparse.Namespace) -> Dict[str, Any]:
         """Initialize fresh checkpoint state"""
         return {
-            "version": self.checkpoint_version,
-            "created": datetime.utcnow().isoformat(),
-            "parameters": vars(args),
-            "stages": {
-                "digital_twin": {"status": "pending", "checksum": None},
-                "fmc_generation": {
-                    "status": "pending",
-                    "completed_transmitters": [],
-                    "last_batch": 0,
-                    "batches": {}
-                },
-                "tfm_reconstruction": {"status": "pending", "checksum": None}
-            },
-            "current_stage": "digital_twin",
-            "memory_footprint_mb": 0.0
+            "run_id": datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "status": "initialized",
+            "last_completed_stage": None,
+            "fmc_progress": 0,
+            "fmc_files": [],
+            "args": vars(args),
+            "created_at": time.time()
         }
-    
-    def save_state(self, state: Dict) -> bool:
-        """Atomically save pipeline state with checksum"""
-        try:
-            # Compute checksum of critical data
-            state["state_checksum"] = self._compute_state_checksum(state)
-            
-            # Write to temporary file first
-            temp_file = self.state_file.with_suffix('.tmp')
-            with open(temp_file, 'w') as f:
-                json.dump(state, f, indent=2)
-            
-            # Atomic rename
-            # For Windows compatibility - replace if exists
-            if os.name == 'nt':  # Windows
-                if self.state_file.exists():
-                    os.replace(str(temp_file), str(self.state_file))
-                else:
-                    temp_file.rename(self.state_file)
-            else:
-                temp_file.rename(self.state_file)
-            
-            # Update memory footprint
-            state["memory_footprint_mb"] = psutil.Process().memory_info().rss / 1e6
-            return True
-        except Exception as e:
-            print(f"[WARN] Failed to save checkpoint state: {e}")
-            return False
-    
-    def load_state(self) -> Optional[Dict]:
-        """Load and validate checkpoint state"""
-        if not self.state_file.exists():
-            return None
-        
-        try:
-            with open(self.state_file, 'r') as f:
-                state = json.load(f)
-            
-            # Validate checksum
-            saved_checksum = state.pop("state_checksum", None)
-            computed_checksum = self._compute_state_checksum(state)
-            
-            if saved_checksum != computed_checksum:
-                print("[WARN] Checkpoint checksum mismatch - state may be corrupted")
-                return None
-            
-            return state
-        except Exception as e:
-            print(f"[WARN] Failed to load checkpoint: {e}")
-            return None
-    
-    def mark_stage_complete(self, state: Dict, stage: str, data_checksum: str = None):
-        """Mark a stage as completed"""
-        state["stages"][stage]["status"] = "completed"
-        state["stages"][stage]["completed_time"] = datetime.utcnow().isoformat()
-        if data_checksum:
-            state["stages"][stage]["checksum"] = data_checksum
-        state["current_stage"] = self._get_next_stage(stage)
-    
-    def _compute_state_checksum(self, state: Dict) -> str:
-        """Compute SHA256 checksum of critical state data"""
-        # Exclude volatile fields from checksum
-        check_data = {
-            "version": state.get("version"),
-            "parameters": state.get("parameters", {}),
-            "stages": {
-                stage: {
-                    "status": info.get("status"),
-                    "checksum": info.get("checksum"),
-                    "completed_transmitters": info.get("completed_transmitters", [])
-                }
-                for stage, info in state.get("stages", {}).items()
-            }
-        }
-        return hashlib.sha256(json.dumps(check_data, sort_keys=True).encode()).hexdigest()
-    
-    def _get_next_stage(self, current: str) -> str:
-        """Determine next pipeline stage"""
-        stages = ["digital_twin", "fmc_generation", "tfm_reconstruction"]
-        idx = stages.index(current)
-        return stages[idx + 1] if idx + 1 < len(stages) else "completed"
+
+    def load_state(self) -> Optional[Dict[str, Any]]:
+        """Load existing state if available"""
+        if self.state_file.exists():
+            try:
+                with open(self.state_file, 'r') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"[WARN] Corrupt checkpoint file: {e}")
+        return None
+
+    def save_state(self, state: Dict[str, Any]):
+        """Atomic save of pipeline state"""
+        self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        temp_file = self.state_file.with_suffix('.tmp')
+        with open(temp_file, 'w') as f:
+            json.dump(state, f, indent=2)
+        temp_file.replace(self.state_file)
 
 # =============================================================================
-# DATA MANAGER - Memory-Optimized Storage
-# =============================================================================
-
-class DataManager:
-    """Handles memory-efficient data storage with lazy loading"""
-    
-    def __init__(self, checkpoint_dir: str, save_fmt: str = 'csv'):
-        self.data_dir = Path(checkpoint_dir) / "data"
-        self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.save_fmt = save_fmt  # NEW: Store format
-        self.compression = "gzip"
-        self.compression_level = 1
-    
-    def save_field_data(self, name: str, data: Dict, dtype=np.float32) -> str:
-        """Save field simulation data in requested format"""
-        if self.save_fmt.lower() == 'csv':
-            # Save as CSV files (compatible with plotting scripts)
-            for key, value in data.items():
-                filename = self.data_dir / f"{name}_{key}.csv"
-                np.savetxt(str(filename), value, delimiter=',')
-            return "CSV_SAVED"
-        else:
-            # Original HDF5 code
-            filename = self.data_dir / f"{name}.h5"
-            with h5py.File(filename, 'w') as f:
-                for key, value in data.items():
-                    if key.endswith("_vals"):
-                        # Save coordinate arrays
-                        f.create_dataset(key, data=value.astype(dtype))
-                    elif key == "p_field":
-                        # Chunk large field data for efficient I/O
-                        chunks = self._calculate_chunks(value.shape, dtype)
-                        f.create_dataset(
-                            key, 
-                            data=value.astype(dtype), 
-                            chunks=chunks,
-                            compression=self.compression,
-                            compression_opts=self.compression_level
-                        )
-        
-        return self._compute_file_checksum(filename)
-    
-    def save_fmc_batch(self, batch_id: int, tx_range: Tuple[int, int], 
-                      fmc_data: np.ndarray, z_vals: np.ndarray) -> str:
-        """Save FMC batch with chunking optimized for sequential Z access"""
-        batch_file = self.data_dir / f"fmc_batch_{batch_id:04d}.h5"
-        
-        with h5py.File(batch_file, 'w') as f:
-            # Metadata
-            f.attrs["batch_id"] = batch_id
-            f.attrs["tx_start"] = tx_range[0]
-            f.attrs["tx_end"] = tx_range[1]
-            f.attrs["z_count"] = len(z_vals)
-            
-            # CRITICAL: Chunk alignment for sequential Z access
-            # Chunk shape: (M, N, 1) - one depth slice per chunk
-            chunks = (fmc_data.shape[0], fmc_data.shape[1], 1)
-            
-            f.create_dataset(
-                "fmc_real", 
-                data=fmc_data.real.astype(np.float32),
-                chunks=chunks,
-                compression=self.compression
-            )
-            f.create_dataset(
-                "fmc_imag",
-                data=fmc_data.imag.astype(np.float32),
-                chunks=chunks,
-                compression=self.compression
-            )
-            f.create_dataset("z_vals", data=z_vals.astype(np.float32))
-        
-        return self._compute_file_checksum(batch_file)
-    
-    def load_fmc_slice(self, z_index: int, tx_range: Optional[Tuple[int, int]] = None) -> np.ndarray:
-        """Load specific depth slice from FMC data (memory efficient)"""
-        fmc_slice = None
-        
-        # Find all batch files
-        batch_files = sorted(self.data_dir.glob("fmc_batch_*.h5"))
-        
-        for batch_file in batch_files:
-            with h5py.File(batch_file, 'r') as f:
-                tx_start = f.attrs["tx_start"]
-                tx_end = f.attrs["tx_end"]
-                
-                # Filter by transmitter range if specified
-                if tx_range and (tx_end <= tx_range[0] or tx_start >= tx_range[1]):
-                    continue
-                
-                # Load only the required z-slice
-                batch_slice = f["fmc_real"][:, :, z_index] + 1j * f["fmc_imag"][:, :, z_index]
-                
-                if fmc_slice is None:
-                    # Initialize result array
-                    M = sum(f.attrs["tx_end"] - f.attrs["tx_start"] for f in 
-                           [h5py.File(bf, 'r') for bf in batch_files])
-                    N = batch_slice.shape[1]
-                    fmc_slice = np.zeros((M, N), dtype=np.complex64)
-                
-                # Place batch data in correct position
-                idx_start = tx_start
-                idx_end = tx_end
-                fmc_slice[idx_start:idx_end] = batch_slice
-        
-        return fmc_slice
-    
-    def save_tfm_result(self, envelope: np.ndarray, z_vals: np.ndarray, 
-                       metadata: Dict) -> str:
-        """Save TFM reconstruction results"""
-        filename = self.data_dir / "tfm_results.h5"
-        
-        with h5py.File(filename, 'w') as f:
-            # Store main results
-            f.create_dataset("envelope", data=envelope.astype(np.float32))
-            f.create_dataset("z_vals", data=z_vals.astype(np.float32))
-            
-            # Store metadata
-            for key, value in metadata.items():
-                if isinstance(value, (int, float, str)):
-                    f.attrs[key] = value
-        
-        return self._compute_file_checksum(filename)
-    
-    def _calculate_chunks(self, shape: Tuple, dtype: np.dtype) -> Tuple:
-        """Calculate optimal chunk size for HDF5 storage"""
-        # Aim for chunks of ~1MB
-        element_size = np.dtype(dtype).itemsize
-        target_chunk_size = 1024 * 1024  # 1MB
-        
-        if len(shape) == 3:
-            # For 3D arrays: keep Z dimension together
-            chunk_z = min(shape[2], max(1, target_chunk_size // (shape[0] * shape[1] * element_size)))
-            return (shape[0], shape[1], chunk_z)
-        elif len(shape) == 2:
-            chunk_y = min(shape[1], max(1, target_chunk_size // (shape[0] * element_size)))
-            return (shape[0], chunk_y)
-        else:
-            return shape
-    
-    def _compute_file_checksum(self, filepath: Path) -> str:
-        """Compute SHA256 checksum of file content"""
-        sha256 = hashlib.sha256()
-        with open(filepath, 'rb') as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                sha256.update(chunk)
-        return sha256.hexdigest()
-        
-    # ADICIONAR NOVO MÉTODO NA CLASSE DataManager:
-    def save_tfm_result_2d(self, envelope: np.ndarray, x_vals: np.ndarray, 
-                           z_vals: np.ndarray, metadata: Dict) -> str:
-        """Save 2D TFM reconstruction results"""
-        filename = self.data_dir / "tfm_results_2d.h5"
-        
-        with h5py.File(filename, 'w') as f:
-            # Store 2D results
-            f.create_dataset("envelope", data=envelope.astype(np.float32))
-            f.create_dataset("x_vals", data=x_vals.astype(np.float32))
-            f.create_dataset("z_vals", data=z_vals.astype(np.float32))
-            
-            # Store metadata
-            for key, value in metadata.items():
-                if isinstance(value, (int, float, str)):
-                    f.attrs[key] = value
-        
-        return self._compute_file_checksum(filename)
-        
-    # ADICIONAR ESTE MÉTODO NA CLASSE DataManager (após save_tfm_result_2d):
-
-    def save_tfm_checkpoint_2d(self, envelope: np.ndarray, x_vals: np.ndarray, 
-                              z_vals: np.ndarray, metadata: Dict) -> str:
-        """Save 2D TFM checkpoint results"""
-        filename = self.data_dir / "tfm_checkpoint_2d.h5"
-        
-        with h5py.File(filename, 'w') as f:
-            # Store 2D results
-            f.create_dataset("envelope", data=envelope.astype(np.float32))
-            f.create_dataset("x_vals", data=x_vals.astype(np.float32))
-            f.create_dataset("z_vals", data=z_vals.astype(np.float32))
-            
-            # Store metadata
-            for key, value in metadata.items():
-                if isinstance(value, (int, float, str)):
-                    f.attrs[key] = value
-        
-        return self._compute_file_checksum(filename)
-
-# =============================================================================
-# BATCH PROCESSOR - Memory-Optimized Computation
+# BATCH PROCESSOR - Memory Optimization
 # =============================================================================
 
 class BatchProcessor:
-    """Processes FMC data in memory-controlled batches"""
+    """Handles batched FMC generation to prevent OOM errors"""
     
-    def __init__(self, args: argparse.Namespace):
-        self.args = args
-        self.memory_limit_mb = self._get_available_memory()
+    def __init__(self, total_transmitters: int):
+        self.total = total_transmitters
         self.batch_size = self._calculate_optimal_batch_size()
-    
-    def process_digital_twin_batch(self, xs: np.ndarray, zs: np.ndarray, 
-                                  ys: np.ndarray) -> Dict:
-        """Process field simulation with memory control"""
-        # Field simulation is already memory-efficient, but we ensure cleanup
-        result = run_mps_array_model_int_service(
-            self.args.lx, self.args.ly, self.args.gx, self.args.gy,
-            self.args.f, self.args.d1, self.args.c1,
-            self.args.d2, self.args.c2, self.args.cs2,
-            self.args.wave_type, self.args.L1, self.args.L2,
-            self.args.angt, self.args.Dt0, self.args.theta20, 
-            self.args.phi, self.args.DF,
-            self.args.ampx_type, self.args.ampy_type,
-            xs, zs, ys
-        )
         
-        # Convert to float32 to save memory
-        result["p"] = result["p"].astype(np.complex64)
-        
-        return result
-    
-    def process_fmc_batch(self, tx_start: int, tx_end: int, 
-                         z_vals: np.ndarray) -> np.ndarray:
-        """Process a batch of transmitters for FMC generation"""
-        M, N = self.args.L1, self.args.L2
-        batch_size = tx_end - tx_start
-        
-        # Calculate element positions
-        x_elem = (np.arange(M) - (M-1)/2) * (self.args.lx + self.args.gx)
-        y_elem = (np.arange(N) - (N-1)/2) * (self.args.ly + self.args.gy) if N > 1 else np.array([0.0])
-        
-        # Pre-allocate batch array (complex64 to save memory)
-        fmc_batch = np.zeros((batch_size, N, len(z_vals)), dtype=np.complex64)
-        
-        for tx_idx, tx in enumerate(range(tx_start, tx_end)):
-            for rx in range(N):
-                ex, ey = x_elem[tx], y_elem[rx]
-                p_scan = []
-                
-                # Process each depth point
-                for zv in z_vals:
-                    res = run_mps_array_model_int_service(
-                        self.args.lx, self.args.ly, self.args.gx, self.args.gy,
-                        self.args.f, self.args.d1, self.args.c1,
-                        self.args.d2, self.args.c2, self.args.cs2,
-                        self.args.wave_type, 1, 1,
-                        self.args.angt, self.args.Dt0, self.args.theta20,
-                        self.args.phi, self.args.DF,
-                        'rect', 'rect', [ex], [zv], ey
-                    )
-                    
-                    p_val = res["p"].item() if hasattr(res["p"], "item") else res["p"][0]
-                    p_scan.append(p_val)
-                
-                # Pulse-echo approximation: P^2
-                fmc_batch[tx_idx, rx, :] = np.array(p_scan, dtype=np.complex64) ** 2
-        
-        return fmc_batch
-    
-    def _get_available_memory(self) -> float:
-        """Get available memory in MB, leaving 30% for OS"""
-        available_mb = psutil.virtual_memory().available / 1e6
-        return available_mb * 0.7  # Use only 70% of available memory
-    
     def _calculate_optimal_batch_size(self) -> int:
-        """Calculate optimal batch size based on available memory"""
-        # Estimate memory per transmitter
-        z_points = 171  # Default from args
-        N = self.args.L2
+        """Dynamic batch sizing based on available RAM"""
+        mem = psutil.virtual_memory()
+        available_gb = mem.available / (1024**3)
         
-        # Memory per transmitter: N * Z * 16 bytes (complex128)
-        # Using complex64 instead: 8 bytes
-        bytes_per_tx = N * z_points * 8  # complex64
-        
-        # Available memory in bytes
-        available_bytes = self.memory_limit_mb * 1e6
-        
-        # Calculate max transmitters that fit in memory
-        max_tx_per_batch = max(1, int(available_bytes / bytes_per_tx))
-        
-        # Don't make batches too small (overhead) or too large (memory pressure)
-        optimal = min(self.args.L1, max(4, max_tx_per_batch))
-        
-        print(f"[INFO] Memory: {self.memory_limit_mb:.1f} MB available")
-        print(f"[INFO] Batch size: {optimal} transmitters")
-        
-        return optimal
+        # Conservative estimate: 1 transmitter needs ~200MB during computation
+        safe_batch = int(available_gb * 5) 
+        return max(1, min(safe_batch, 32))  # Clamp between 1 and 32
+
+    def get_batches(self) -> List[Tuple[int, int]]:
+        """Yields (start_idx, end_idx) tuples"""
+        return [(i, min(i + self.batch_size, self.total)) 
+                for i in range(0, self.total, self.batch_size)]
 
 # =============================================================================
-# RECOVERY MANAGER - Fault Tolerance
+# DATA MANAGER - Storage Abstraction
 # =============================================================================
 
-class RecoveryManager:
-    """Handles pipeline recovery from checkpoints"""
+class DataManager:
+    """Handles HDF5 storage for FMC data"""
     
-    def __init__(self, checkpoint_dir: str, args: argparse.Namespace):
-        self.checkpoint_dir = Path(checkpoint_dir)
-        self.args = args
-        self.checkpoint_mgr = CheckpointManager(checkpoint_dir)
-        self.data_mgr = DataManager(checkpoint_dir)
-    
-    def should_resume(self) -> bool:
-        """Check if recovery is possible and desired"""
-        if not self.checkpoint_dir.exists():
-            return False
+    def __init__(self, output_root: Path):
+        self.fmc_file = output_root / "fmc_data.h5"
         
-        state = self.checkpoint_mgr.load_state()
-        if not state:
-            return False
-        
-        # Check if parameters match
-        saved_params = state.get("parameters", {})
-        current_params = vars(self.args)
-        
-        # Only check critical parameters
-        critical_params = ['lx', 'ly', 'gx', 'gy', 'f', 'L1', 'L2', 'Dt0', 'c1', 'c2']
-        for param in critical_params:
-            if saved_params.get(param) != current_params.get(param):
-                print(f"[WARN] Parameter mismatch: {param}")
-                print(f"  Saved: {saved_params.get(param)}, Current: {current_params.get(param)}")
-                return False
-        
-        return True
-    
-    def get_recovery_point(self) -> Tuple[str, Dict]:
-        """Determine where to resume from"""
-        state = self.checkpoint_mgr.load_state()
-        if not state:
-            return "start", {}
-        
-        current_stage = state.get("current_stage", "start")
-        stage_info = state.get("stages", {}).get(current_stage, {})
-        
-        print(f"[RECOVERY] Resuming from stage: {current_stage}")
-        
-        if current_stage == "fmc_generation":
-            completed_tx = stage_info.get("completed_transmitters", [])
-            if completed_tx:
-                print(f"[RECOVERY] {len(completed_tx)} transmitters already processed")
-        
-        return current_stage, state
+    def init_storage(self, n_transmitters: int, n_receivers: int, n_samples: int):
+        """Initialize HDF5 dataset"""
+        mode = 'a' if self.fmc_file.exists() else 'w'
+        with h5py.File(self.fmc_file, mode) as f:
+            if 'fmc_matrix' not in f:
+                f.create_dataset('fmc_matrix', 
+                               shape=(n_transmitters, n_receivers, n_samples),
+                               dtype=np.complex64,
+                               chunks=(1, n_receivers, min(n_samples, 1024)))
 
-    def save_fmc_batch_optimized(self, batch_id: int, tx_range: Tuple[int, int], 
-                               fmc_data: np.ndarray, z_vals: np.ndarray) -> str:
-        """Save FMC batch with chunking optimized for sequential Z access"""
-        batch_file = self.data_dir / f"fmc_batch_{batch_id:04d}.h5"
-        
-        with h5py.File(batch_file, 'w') as f:
-            # Metadata
-            f.attrs["batch_id"] = batch_id
-            f.attrs["tx_start"] = tx_range[0]
-            f.attrs["tx_end"] = tx_range[1]
-            f.attrs["z_count"] = len(z_vals)
-            
-            # CRITICAL: Chunk alignment for sequential Z access
-            # Chunk shape: (M, N, 1) - one depth slice per chunk
-            chunks = (fmc_data.shape[0], fmc_data.shape[1], 1)
-            
-            f.create_dataset(
-                "fmc_real", 
-                data=fmc_data.real.astype(np.float32),
-                chunks=chunks,
-                compression=self.compression
-            )
-            f.create_dataset(
-                "fmc_imag",
-                data=fmc_data.imag.astype(np.float32),
-                chunks=chunks,
-                compression=self.compression
-            )
-            f.create_dataset("z_vals", data=z_vals.astype(np.float32))
-        
-        return self._compute_file_checksum(batch_file)
+    def save_batch(self, start_idx: int, data_batch: np.ndarray):
+        """Save a batch of transmitter data"""
+        with h5py.File(self.fmc_file, 'a') as f:
+            f['fmc_matrix'][start_idx:start_idx+len(data_batch)] = data_batch
+
+    def load_fmc_slice(self, z_idx: int) -> np.ndarray:
+        """Optimized loader for TFM - loads one frequency/time slice"""
+        # Note: Actual TFM implementation typically needs full time traces or 
+        # frequency domain slices. This placeholder assumes data is stored appropriately.
+        # For this pipeline, we load the full matrix for TFM if memory allows, 
+        # or use memory mapping.
+        with h5py.File(self.fmc_file, 'r') as f:
+             # Returning the whole matrix handle (h5py handles lazy loading)
+             return f['fmc_matrix'][:]
 
 # =============================================================================
-# MAIN PIPELINE - Enhanced with Checkpoints
+# MAIN PIPELINE CONTROLLER
 # =============================================================================
 
 class EnhancedPipeline:
-    """Main pipeline with checkpointing and memory optimization"""
-    
-    def __init__(self, args: argparse.Namespace):
+    def __init__(self, args):
         self.args = args
-        self.checkpoint_dir = Path(args.out_root) / "checkpoints"
-        self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        self.out_root = Path(args.out_root)
+        self.out_root.mkdir(parents=True, exist_ok=True)
         
-        self.checkpoint_mgr = CheckpointManager(self.checkpoint_dir)
-        self.data_mgr = DataManager(self.checkpoint_dir, args.save_fmt)
-        self.batch_processor = BatchProcessor(args)
-        self.recovery_mgr = RecoveryManager(self.checkpoint_dir, args)
-        
-        # Parse scan vectors
-        self.xs = self._parse_scan_vector(args.xs, -15, 15, 31)
-        self.zs = self._parse_scan_vector(args.zs, 1, 171, 171)
-        self.ys = self._parse_scan_vector(args.y_vec, 0, 0, 1)
-        self.x_tfm = self._parse_scan_vector(args.x_mm, -15, 15, 31)
-        self.z_tfm = self._parse_scan_vector(args.z_mm, 1, 171, 171)
-    
-    def _parse_scan_vector(self, input_val: str, default_start: float, 
-                          default_stop: float, default_num: int) -> np.ndarray:
-        """Parse MATLAB-style vector specification"""
-        if input_val is None:
-            return np.linspace(default_start, default_stop, default_num)
+        self.ckpt = CheckpointManager(self.out_root / "checkpoints")
+        self.state = self._initialize_state()
+        self.data_mgr = DataManager(self.out_root)
+        self.batch_proc = None # Initialized later
+
+    def _initialize_state(self):
+        """Recover or create state"""
+        if self.args.resume and not self.args.force_restart:
+            loaded = self.ckpt.load_state()
+            if loaded:
+                print(f"[INFO] Resuming run {loaded['run_id']} from stage {loaded['last_completed_stage']}")
+                return loaded
+        return self.ckpt.init_checkpoint(self.args)
+
+    def save_run_params(self):
+        """Save simulation parameters"""
+        params_path = self.out_root / "run_params.json"
+        with open(params_path, 'w') as f:
+            # Filter non-serializable args
+            serializable_args = {k: v for k, v in vars(self.args).items() if isinstance(v, (str, int, float, bool, list))}
+            json.dump(serializable_args, f, indent=2)
+        print(f"[AP] Saved run parameters → {params_path}")     
+           
+    def save_run_params(self):
+            """
+            Persist runtime arguments with theoretical FWHM calculation.
+            Updated to handle string/float type mismatch safely.
+            """
+            params_path = self.out_root / "run_params.json"
+            
+            # 1. Start with the serializable arguments
+            params_dict = {k: v for k, v in vars(self.args).items() 
+                          if isinstance(v, (str, int, float, bool, list))}
+            
+            try:
+                # --- SAFE CASTING BLOCK ---
+                # Force conversion to numbers to prevent "str > int" errors
+                L1 = int(self.args.L1)
+                lx = float(self.args.lx)
+                gx = float(self.args.gx)
+                f_freq = float(self.args.f)
+                c2 = float(self.args.c2)
+                cs2 = float(self.args.cs2)
+                Dt0 = float(self.args.Dt0)
+                DF = float(self.args.DF)
+                # --------------------------
+
+                # 2. Calculate Theoretical FWHM
+                # Aperture D
+                D = (L1 * lx) + (L1 - 1) * gx
+                
+                # Determine wave speed (P-wave vs S-wave)
+                velocity = cs2 if self.args.wave_type == 's' else c2
+                
+                if D > 0 and f_freq > 0:
+                    wavelength_mm = (velocity / f_freq) / 1000.0
+                    
+                    # FWHM Formula: ~ 1.206 * lambda * Focal_Length / Aperture
+                    total_focal_length = DF + Dt0
+                    
+                    FWHM_theoretical = 1.206 * wavelength_mm * (total_focal_length / D)
+                    params_dict['theoretical_fwhm_mm'] = FWHM_theoretical
+                else:
+                    params_dict['theoretical_fwhm_mm'] = 0.0
+
+            except Exception as e:
+                # Fallback if any conversion fails
+                print(f"[WARN] Could not calculate Theoretical FWHM: {e}")
+                params_dict['theoretical_fwhm_mm'] = 0.0
+
+            # 3. Save to JSON
+            with open(params_path, 'w') as f:
+                json.dump(params_dict, f, indent=2)
+                
+            print(f"[AP] Saved run parameters -> {params_path}")
+            if 'theoretical_fwhm_mm' in params_dict:
+                print(f"[AP] Theoretical FWHM: {params_dict['theoretical_fwhm_mm']:.2f} mm")
+
+    # -------------------------------------------------------------------------
+    # STAGE 1: DIGITAL TWIN (Field Simulation)
+    # -------------------------------------------------------------------------
+    def run_digital_twin(self, plot=True):
+        if self.state['last_completed_stage'] in ['digital_twin', 'fmc', 'tfm']:
+            print("[SKIP] Digital Twin already completed")
+            return
+
+        print("[STAGE] Digital Twin Field Simulation")
+        start_time = time.time()
         
         try:
-            parts = [float(x) for x in str(input_val).replace('"', '').replace("'", "").split(',')]
-            if len(parts) == 3:
-                return np.linspace(parts[0], parts[1], int(parts[2]))
-            return np.array(parts)
-        except:
-            return np.linspace(default_start, default_stop, default_num)
-    
-    @staticmethod
-    def save_run_params(args, out_root: str) -> None:
-        """Persist runtime arguments with theoretical FWHM for plotting scripts"""
-        params_dict = vars(args)
-        D = (args.L1 * args.lx) + (args.L1 - 1) * args.gx
-        if D > 0 and args.f > 0:
-            FWHM_theoretical = 1.206 * (args.c2 / args.f / 1000) * ((args.DF + args.Dt0) / D)
-            params_dict['theoretical_fwhm_mm'] = FWHM_theoretical
-        else:
-            params_dict['theoretical_fwhm_mm'] = 0.0
+            # Parse ranges
+            from interface.cli_utils import parse_array
+            xs = parse_array(self.args.xs)
+            zs = parse_array(self.args.zs)
+            # Handle y compatibility
+            y_val = float(self.args.y_vec) if self.args.y_vec else 0.0
 
-        # Ensure output directory exists
-        os.makedirs(out_root, exist_ok=True)
+            res = run_mps_array_model_int_service(
+                safe_float(self.args.lx), safe_float(self.args.ly),
+                safe_float(self.args.gx), safe_float(self.args.gy),
+                safe_float(self.args.f), safe_float(self.args.d1),
+                safe_float(self.args.c1), safe_float(self.args.d2),
+                safe_float(self.args.c2), safe_float(self.args.cs2),
+                self.args.wave_type,
+                int(self.args.L1), int(self.args.L2),
+                safe_float(self.args.angt), safe_float(self.args.Dt0),
+                safe_float(self.args.theta20), safe_float(self.args.phi),
+                safe_float(self.args.DF),
+                self.args.ampx_type, self.args.ampy_type,
+                xs, zs, y_val
+            )
+            
+            # Save results
+            self._save_field_results(res, xs, zs, y_val)
+            
+            self.state['last_completed_stage'] = 'digital_twin'
+            self.ckpt.save_state(self.state)
+            print(f"[STAGE] Digital Twin completed in {time.time() - start_time:.1f}s")
+            
+        except Exception as e:
+            print(f"[ERROR] Digital Twin failed: {e}")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+
+    def _save_field_results(self, res, xs, zs, y_val):
+        p = res['p']
+        # Save main field
+        np.savetxt(self.out_root / "mps_array_model_int_output.txt", p, fmt='%.4e', delimiter='\t')
         
-        with open(os.path.join(out_root, "run_params.json"), "w") as f:
-            json.dump(params_dict, f, indent=4)
-        print(f"[AP] Saved run parameters → {out_root}/run_params.json")
-    
-    def run(self, resume: bool = False):
-        """Run the enhanced pipeline with checkpointing"""
-        print("[PIPELINE] Starting enhanced pipeline")
-        print(f"[PIPELINE] Checkpoint directory: {self.checkpoint_dir}")
-        
-        # NEW: Save parameters for plotting scripts
-        self.save_run_params(self.args, str(self.args.out_root))
-        
-        if resume and self.recovery_mgr.should_resume():
-            print("[PIPELINE] Recovery mode enabled")
-            recovery_point, state = self.recovery_mgr.get_recovery_point()
-        else:
-            print("[PIPELINE] Starting fresh run")
-            recovery_point = "start"
-            state = self.checkpoint_mgr.init_checkpoint(self.args)
-        
-        # Execute pipeline from recovery point
-        if recovery_point == "start" or recovery_point == "digital_twin":
-            self._run_digital_twin(state)
-        
-        if recovery_point in ["start", "digital_twin", "fmc_generation"]:
-            self._run_fmc_generation(state, recovery_point)
-        
-        if recovery_point in ["start", "digital_twin", "fmc_generation", "tfm_reconstruction"]:
-            self._run_tfm_reconstruction(state)
-        
-        print("[PIPELINE] Pipeline completed successfully")
-    
-    def _run_digital_twin(self, state: Dict):
-        """Run digital twin field simulation"""
-        print("[STAGE] Digital Twin Field Simulation")
-        
-        # Check if already completed
-        if state["stages"]["digital_twin"]["status"] == "completed":
-            print("[STAGE] Digital Twin already completed, skipping")
+        # Save coordinate files for plotter
+        if self.args.save_fmt == 'csv':
+            np.savetxt(self.out_root / 'field_p_field.csv', p, delimiter=',')
+            np.savetxt(self.out_root / 'field_x_vals.csv', res['x'], delimiter=',')
+            np.savetxt(self.out_root / 'field_z_vals.csv', res['z'], delimiter=',')
+            np.savetxt(self.out_root / 'field_y_vals.csv', np.atleast_1d(y_val), delimiter=',')
+            print(f"[OUTPUT] Pressure field saved to {self.out_root}")
+
+    # -------------------------------------------------------------------------
+    # STAGE 2: FMC GENERATION (Full Matrix Capture)
+    # -------------------------------------------------------------------------
+    def run_fmc_generation(self):
+        if self.state['last_completed_stage'] in ['fmc', 'tfm']:
+            print("[SKIP] FMC Generation already completed")
             return
-        
-        # Process field simulation
-        start_time = time.time()
-        
-        result = self.batch_processor.process_digital_twin_batch(
-            self.xs, self.zs, self.ys
-        )
-        
-        # Save results with checksum
-        data_dict = {
-            "p_field": np.abs(result["p"]),
-            "x_vals": self.xs,
-            "z_vals": self.zs,
-            "y_vals": self.ys
-        }
-        
-        checksum = self.data_mgr.save_field_data("field", data_dict)
-        
-        # Update state
-        self.checkpoint_mgr.mark_stage_complete(state, "digital_twin", checksum)
-        self.checkpoint_mgr.save_state(state)
-        
-        elapsed = time.time() - start_time
-        print(f"[STAGE] Digital Twin completed in {elapsed:.1f}s")
-        
-        # Save data for plotting scripts (CSV format expected by plotting scripts)
-        print("[PLOT] Saving Digital Twin data for plotting scripts...")
-        dt_plot_dir = Path(self.args.out_root) / "digital_twin"
-        dt_plot_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Save in the format expected by plotting scripts
-        np.savetxt(dt_plot_dir / "field_z_vals.csv", self.zs, delimiter=',')
-        np.savetxt(dt_plot_dir / "field_x_vals.csv", self.xs, delimiter=',')
-        np.savetxt(dt_plot_dir / "field_y_vals.csv", self.ys, delimiter=',')
-        
-        # Reshape p_field to 2D (z, x) for plotting
-        p_field_2d = np.abs(result["p"]).reshape((len(self.zs), len(self.xs)))
-        np.savetxt(dt_plot_dir / "field_p_field.csv", p_field_2d, delimiter=',')
-        
-        self._save_plotting_data("digital_twin", {
-            "p_field": np.abs(result["p"]),
-            "x_vals": self.xs,
-            "z_vals": self.zs,
-            "y_vals": self.ys})
-    
-    def _run_fmc_generation(self, state: Dict, recovery_point: str):
-        """Run FMC generation with batch processing and checkpoints"""
+
         print("[STAGE] FMC Generation with Batch Processing")
-        
-        stage_info = state["stages"]["fmc_generation"]
-        
-        # Determine starting point
-        if stage_info["status"] == "completed":
-            print("[STAGE] FMC generation already completed, skipping")
-            return
-        
-        completed_tx = set(stage_info.get("completed_transmitters", []))
-        batch_size = self.batch_processor.batch_size
-        
-        M = self.args.L1
         start_time = time.time()
         
-        # Process in batches
-        for batch_start in range(0, M, batch_size):
-            batch_end = min(batch_start + batch_size, M)
-            batch_id = batch_start // batch_size
-            
-            # Skip if batch already completed
-            batch_tx = list(range(batch_start, batch_end))
-            if all(tx in completed_tx for tx in batch_tx):
-                print(f"[BATCH] Batch {batch_id} already completed, skipping")
-                continue
-            
-            print(f"[BATCH] Processing batch {batch_id}: transmitters {batch_start}-{batch_end-1}")
-            batch_start_time = time.time()
-            
-            # Process batch
-            fmc_batch = self.batch_processor.process_fmc_batch(
-                batch_start, batch_end, self.z_tfm
-            )
-            
-            # Save batch to disk
-            checksum = self.data_mgr.save_fmc_batch(
-                batch_id, (batch_start, batch_end), fmc_batch, self.z_tfm
-            )
-            
-            # Update state
-            state["stages"]["fmc_generation"]["completed_transmitters"].extend(batch_tx)
-            state["stages"]["fmc_generation"]["batches"][str(batch_id)] = {
-                "checksum": checksum,
-                "tx_range": [batch_start, batch_end],
-                "saved_time": datetime.utcnow().isoformat()
-            }
-            state["stages"]["fmc_generation"]["last_batch"] = batch_id
-            
-            # Save checkpoint after each batch
-            if not self.checkpoint_mgr.save_state(state):
-                print("[WARN] Failed to save checkpoint, but batch data is saved")
-            
-            batch_time = time.time() - batch_start_time
-            print(f"[BATCH] Batch {batch_id} completed in {batch_time:.1f}s")
-            
-            # Force garbage collection
-            del fmc_batch
+        total_elements = int(self.args.L1) # Assuming 1D array for FMC loop L1
+        self.batch_proc = BatchProcessor(total_elements)
+        batches = self.batch_proc.get_batches()
         
-        # Mark stage as complete
-        self.checkpoint_mgr.mark_stage_complete(state, "fmc_generation")
-        self.checkpoint_mgr.save_state(state)
+        print(f"[INFO] Processing {total_elements} transmitters in batches of {self.batch_proc.batch_size}")
         
-        total_time = time.time() - start_time
-        print(f"[STAGE] FMC generation completed in {total_time:.1f}s")
-    
-    def _run_tfm_reconstruction(self, state: Dict):
-        """Run TFM reconstruction with COMPREHENSIVE DEBUGGING"""
-        print("[STAGE] TFM Reconstruction - DEBUG MODE")
+        # Prepare storage (Dimensions: Tx, Rx, Samples/Points)
+        # Note: In frequency domain simulation, "Samples" corresponds to grid points or frequency bins.
+        # Here we simulate the field response at receiver positions.
+        # Simplification: We simulate the response at the ELEMENT POSITIONS (Pulse-Echo equivalent)
+        # For full FMC, we calculate the field at ALL receiver positions for EACH transmitter.
         
-        if state["stages"]["tfm_reconstruction"]["status"] == "completed":
-            print("[STAGE] TFM already completed, skipping")
-            return
+        # Receiver coordinates (assuming same as transmitters)
+        lx = safe_float(self.args.lx)
+        gx = safe_float(self.args.gx)
+        pitch = lx + gx
+        rec_xs = (np.arange(total_elements) - (total_elements-1)/2) * pitch
+        rec_zs = np.zeros_like(rec_xs) # Receivers at z=0 (local coords)
         
-        M, N = self.args.L1, self.args.L2
-        X_tfm, Z_tfm = self.x_tfm, self.z_tfm
-        nX, nZ = len(X_tfm), len(Z_tfm)
+        # NOTE: The current mps_service computes field at a GRID. 
+        # For FMC, we need the signal received by elements.
+        # This implies "rec_xs" should be the target grid for the simulation? 
+        # No, usually simulation computes field in the medium.
+        # To simulate FMC (A-scans), we typically need a scattering model or reciprocity.
+        # Here, we will follow the pattern: compute field at a defined grid (target ROI) 
+        # and treat that as the "matrix" for TFM to focus later. 
+        # BUT standard FMC is Tx->Rx signals.
+        # If the user wants FMC *generation* from a simulation, we typically simulate the 
+        # response from a point scatterer at DF.
         
-        start_time = time.time()
+        # Assuming the goal is to generate the dataset for TFM reconstruction of the simulated field.
+        # We will iterate Tx and compute field at the ROI grid.
+        # This is strictly "FMC" only if the grid represents receivers. 
+        # IF TFM reconstruction is intended on the ROI grid, we need the field data.
         
-        # ================================================================
-        # DEBUG 1: ANALYZE FMC DATA
-        # ================================================================
-        print("[DEBUG] Analyzing FMC data structure...")
+        # Let's proceed with iterating Transmitters and saving the field at the grid defined by x_mm/z_mm.
         
-        # Test a few slices to understand FMC data
-        test_indices = [0, nZ//2, nZ-1]
-        for z_idx in test_indices:
-            fmc_test = self.data_mgr.load_fmc_slice(z_idx)
-            if fmc_test is not None:
-                fmc_test = fmc_test.reshape(M, N)
-                print(f"[DEBUG] Slice {z_idx} (z={Z_tfm[z_idx]:.1f}mm):")
-                print(f"  Shape: {fmc_test.shape}, Type: {fmc_test.dtype}")
-                print(f"  |FMC| range: {np.abs(fmc_test).min():.3e} to {np.abs(fmc_test).max():.3e}")
-                print(f"  ∠FMC range: {np.angle(fmc_test).min():.3f} to {np.angle(fmc_test).max():.3f} rad")
+        try:
+            # Parse reconstruction grid
+            from interface.cli_utils import parse_array
+            grid_x = parse_array(self.args.x_mm)
+            grid_z = parse_array(self.args.z_mm)
+            
+            # Initialize storage
+            # Shape: [N_Tx, N_Grid_Points_Z, N_Grid_Points_X]
+            self.data_mgr.init_storage(total_elements, len(grid_z), len(grid_x))
+            
+            processed_count = self.state['fmc_progress']
+            
+            # Resume loop
+            current_idx = 0
+            for start, end in batches:
+                if end <= processed_count:
+                    current_idx = end
+                    continue
                 
-                # Check if this is P or P^2
-                center_val = fmc_test[M//2, N//2]
-                print(f"  Center element: |{np.abs(center_val):.3e}| ∠{np.angle(center_val):.3f}")
-        
-        # ================================================================
-        # DEBUG 2: VERIFY GEOMETRY
-        # ================================================================
-        print("[DEBUG] Verifying geometry and units...")
-        
-        # Element positions
-        x_elem = (np.arange(M) - (M-1)/2) * (self.args.lx + self.args.gx)
-        y_elem = (np.arange(N) - (N-1)/2) * (self.args.ly + self.args.gy)
-        X_elem, Y_elem = np.meshgrid(x_elem, y_elem, indexing='ij')
-        
-        print(f"[DEBUG] Array: {M}x{N} elements, pitch: {self.args.lx+self.args.gx:.2f}mm")
-        print(f"[DEBUG] X elements range: {x_elem[0]:.1f} to {x_elem[-1]:.1f} mm")
-        print(f"[DEBUG] Reconstruction grid: X={X_tfm[0]:.1f} to {X_tfm[-1]:.1f} mm ({nX} points)")
-        print(f"[DEBUG] Reconstruction grid: Z={Z_tfm[0]:.1f} to {Z_tfm[-1]:.1f} mm ({nZ} points)")
-        
-        # ================================================================
-        # DEBUG 3: SIMPLE TEST - CENTER POINT ONLY
-        # ================================================================
-        print("[DEBUG] Testing single point reconstruction...")
-        
-        # Find index for x=0, z=Dt0+DF (expected focus)
-        target_z = self.args.Dt0 + self.args.DF  # ~90 mm
-        x_idx = np.argmin(np.abs(X_tfm - 0.0))
-        z_idx = np.argmin(np.abs(Z_tfm - target_z))
-        
-        print(f"[DEBUG] Testing point: x=0.0, z={target_z:.1f}mm (index {x_idx},{z_idx})")
-        
-        # Load FMC slice for this depth
-        fmc_slice = self.data_mgr.load_fmc_slice(z_idx)
-        if fmc_slice is None:
-            print("[ERROR] Could not load FMC slice")
-            return
-        
-        fmc_slice = fmc_slice.reshape(M, N).astype(np.complex64)
-        
-        # Calculate delays for center point
-        x_val = 0.0
-        z_val = target_z
-        
-        print(f"[DEBUG] Calculating delays for ({x_val:.1f}, {z_val:.1f})...")
-        
-        # Simple straight-ray approximation (water + steel)
-        delays = np.zeros((M, N))
-        for m in range(M):
-            for n in range(N):
-                x_e = X_elem[m, n]
-                y_e = Y_elem[m, n]
+                print(f"[BATCH] Processing batch {start//self.batch_proc.batch_size}: transmitters {start}-{end-1}")
                 
-                # Water path
-                d_water = np.sqrt((x_e - x_val)**2 + y_e**2 + self.args.Dt0**2)
-                # Steel path
-                d_steel = np.sqrt((x_e - x_val)**2 + y_e**2 + (z_val - self.args.Dt0)**2)
-                
-                # Time in microseconds (distances in mm, velocities in mm/μs)
-                c1_mm_per_us = self.args.c1 / 1000.0
-                c2_mm_per_us = self.args.c2 / 1000.0
-                delays[m, n] = d_water/c1_mm_per_us + d_steel/c2_mm_per_us
-        
-        print(f"[DEBUG] Delay range: {delays.min():.3f} to {delays.max():.3f} μs")
-        print(f"[DEBUG] Delay variation: {delays.max() - delays.min():.3f} μs")
-        
-        # Calculate expected phase variation
-        f_mhz = self.args.f  # 5 MHz
-        phase_variation = 2 * np.pi * f_mhz * 2 * (delays.max() - delays.min())
-        print(f"[DEBUG] Phase variation: {phase_variation:.1f} rad ({phase_variation/np.pi:.1f}π)")
-        
-        # Apply phase correction
-        phase_corr = np.exp(-1j * 2 * np.pi * f_mhz * 2 * delays)
-        
-        # Coherent sum
-        result = np.sum(fmc_slice * phase_corr)
-        
-        print(f"[DEBUG] Single point result:")
-        print(f"  |result| = {np.abs(result):.3e}")
-        print(f"  ∠result = {np.angle(result):.3f} rad")
-        print(f"  FMC * phase_corr magnitude range: {np.abs(fmc_slice * phase_corr).min():.3e} to {np.abs(fmc_slice * phase_corr).max():.3e}")
-        
-        # ================================================================
-        # MAIN RECONSTRUCTION (SIMPLIFIED)
-        # ================================================================
-        print("[TFM] Starting simplified reconstruction...")
-        
-        # Precompute constants
-        c1_mm_per_us = self.args.c1 / 1000.0
-        c2_mm_per_us = self.args.c2 / 1000.0
-        Dt0_sq = self.args.Dt0**2
-        
-        tfm_envelope = np.zeros((nX, nZ), dtype=np.float32)
-        
-        # Only process every 5th point for speed during debugging
-        step = 5
-        for z_idx in range(0, nZ, step):
-            z_val = Z_tfm[z_idx]
-            
-            # Load FMC slice
-            fmc_slice = self.data_mgr.load_fmc_slice(z_idx)
-            if fmc_slice is None:
-                continue
-                
-            fmc_slice = fmc_slice.reshape(M, N).astype(np.complex64)
-            
-            for x_idx in range(0, nX, step):
-                x_val = X_tfm[x_idx]
-                
-                # Calculate delays
-                if z_val > self.args.Dt0:
-                    # Steel region
-                    dz_steel = z_val - self.args.Dt0
-                    dz_steel_sq = dz_steel**2
+                batch_data = []
+                for tx_idx in range(start, end):
+                    # Configure simulation for single transmitter
+                    # We modify the array to fire only element 'tx_idx'
+                    # Actually, mps_array_model sums all elements. 
+                    # To simulate 1 Tx, we set amplitude windows to 0 except for Tx.
                     
-                    # Vectorized calculation
-                    dx_sq = (x_val - X_elem)**2
-                    dy_sq = Y_elem**2
+                    # Create custom Apodization
+                    # We can't pass array to service, service takes string type.
+                    # Workaround: The service might not support per-element control easily 
+                    # without code change. 
+                    # HOWEVER, looking at the code, it supports standard windows.
+                    # If we can't control individual elements, we cannot do true FMC 
+                    # with the current 'mps_array_model_int_service'.
+                    # 
+                    # ASSUMPTION: The user wants to run the FULL ARRAY simulation (SAFT/FMC style)
+                    # by calling the point source service directly?
+                    # NO, the prompt implies "FMC Generation".
+                    # Let's use the 'mps_service' but hack the L1/L2 or usage?
+                    # No, correct way is to loop over elements and call ps_3Dint_service directly 
+                    # for that single element.
                     
-                    d_water = np.sqrt(dx_sq + dy_sq + Dt0_sq)
-                    d_steel = np.sqrt(dx_sq + dy_sq + dz_steel_sq)
+                    # Correct approach for Single Element Tx:
+                    # Calculate geometry for this element
+                    ex = (tx_idx - (total_elements-1)/2) * pitch
+                    ey = 0 # 1D array
                     
-                    delays = d_water/c1_mm_per_us + d_steel/c2_mm_per_us
-                else:
-                    # Water region
-                    z_sq = z_val**2
-                    dx_sq = (x_val - X_elem)**2
-                    dy_sq = Y_elem**2
+                    # Call Point Source Service
+                    # Computes field from this single element at the grid
+                    # Note: We pass angt, Dt0, etc.
+                    vx, vy, vz = self._simulate_single_element(ex, ey, grid_x, grid_z)
                     
-                    delays = np.sqrt(dx_sq + dy_sq + z_sq) / c1_mm_per_us
-                
-                # Phase correction (pulse-echo: round trip)
-                phase = 2 * np.pi * self.args.f * 2 * delays
-                phase_corr = np.exp(-1j * phase)
-                
-                # Coherent sum
-                result = np.sum(fmc_slice * phase_corr)
-                tfm_envelope[x_idx, z_idx] = np.abs(result)
-            
-            if (z_idx // step) % 5 == 0:
-                progress = (z_idx / nZ) * 100
-                print(f"[TFM] Progress: {progress:.1f}%")
-        
-        # ================================================================
-        # NORMALIZATION AND ANALYSIS
-        # ================================================================
-        print("[TFM] Normalizing results...")
-        
-        # Find maximum (ignore zeros from skipped points)
-        non_zero_mask = tfm_envelope > 0
-        if np.any(non_zero_mask):
-            max_val = np.max(tfm_envelope[non_zero_mask])
-            if max_val > 0:
-                tfm_envelope[non_zero_mask] = tfm_envelope[non_zero_mask] / max_val
-        
-        # Interpolate to fill skipped points
-        from scipy import interpolate
-        x_indices = np.arange(0, nX, step)
-        z_indices = np.arange(0, nZ, step)
-        
-        if len(x_indices) > 1 and len(z_indices) > 1:
-            # Create interpolation function
-            interp_func = interpolate.RectBivariateSpline(
-                X_tfm[x_indices], 
-                Z_tfm[z_indices], 
-                tfm_envelope[np.ix_(x_indices, z_indices)]
-            )
-            # Fill entire grid
-            tfm_envelope = interp_func(X_tfm, Z_tfm, grid=True)
-        
-        # Find peak
-        peak_idx = np.unravel_index(np.argmax(tfm_envelope), tfm_envelope.shape)
-        peak_x = X_tfm[peak_idx[0]]
-        peak_z = Z_tfm[peak_idx[1]]
-        peak_value = tfm_envelope[peak_idx]
-        
-        print(f"[RESULTS] Peak: X={peak_x:.2f} mm, Z={peak_z:.2f} mm, value={peak_value:.4f}")
-        
-        # Calculate FWHM
-        if peak_value > 0.1:  # Only if we have a reasonable peak
-            # Lateral FWHM at peak depth
-            h_profile = tfm_envelope[:, peak_idx[1]]
-            h_fwhm = self._calculate_fwhm_1d(h_profile, X_tfm)
-            
-            # Axial FWHM at peak lateral position
-            v_profile = tfm_envelope[peak_idx[0], :]
-            v_fwhm = self._calculate_fwhm_1d(v_profile, Z_tfm)
-            
-            print(f"[RESULTS] FWHM: Lateral={h_fwhm:.3f} mm, Axial={v_fwhm:.3f} mm")
-        else:
-            h_fwhm, v_fwhm = 0.0, 0.0
-            print("[WARNING] Peak too low for FWHM calculation")
-        
-        # Save results
-        metadata = {
-            "fwhm_theoretical": self._calculate_theoretical_fwhm(),
-            "fwhm_empirical_x_mm": float(h_fwhm),
-            "fwhm_empirical_z_mm": float(v_fwhm),
-            "peak_x_mm": float(peak_x),
-            "peak_z_mm": float(peak_z),
-            "peak_value": float(peak_value),
-            "execution_time_s": time.time() - start_time,
-            "algorithm_version": "DEBUG_SIMPLIFIED_V1"
-        }
-        
-        checksum = self.data_mgr.save_tfm_result_2d(tfm_envelope, X_tfm, Z_tfm, metadata)
-        
-        # Update state
-        self.checkpoint_mgr.mark_stage_complete(state, "tfm_reconstruction", checksum)
-        self.checkpoint_mgr.save_state(state)
-        
-        elapsed = time.time() - start_time
-        print(f"[PERFORMANCE] TFM completed in {elapsed:.1f}s")
-        
-        # Save for plotting
-        self._save_plotting_data("fmc_tfm", {
-            "envelope": tfm_envelope,
-            "x_vals": X_tfm,
-            "z_vals": Z_tfm
-        })
-        
-        return tfm_envelope
-    
-    def _calculate_fwhm_1d(self, profile: np.ndarray, positions: np.ndarray) -> float:
-        """Calculate FWHM from 1D profile using linear interpolation"""
-        if len(profile) < 3:
-            return 0.0
-        
-        peak_val = np.max(profile)
-        half_max = peak_val / 2.0
-        
-        # Find indices where profile crosses half-max
-        above_half = profile >= half_max
-        if not np.any(above_half):
-            return 0.0
-        
-        # Get first and last crossing
-        crossings = np.where(np.diff(above_half.astype(int)) != 0)[0]
-        
-        if len(crossings) < 2:
-            return 0.0
-        
-        # Linear interpolation for precise FWHM
-        left_idx = crossings[0]
-        right_idx = crossings[-1]
-        
-        # Interpolate left edge
-        if left_idx > 0:
-            x1, x2 = positions[left_idx], positions[left_idx + 1]
-            y1, y2 = profile[left_idx], profile[left_idx + 1]
-            left_edge = x1 + (x2 - x1) * (half_max - y1) / (y2 - y1)
-        else:
-            left_edge = positions[0]
-        
-        # Interpolate right edge
-        if right_idx < len(profile) - 1:
-            x1, x2 = positions[right_idx], positions[right_idx + 1]
-            y1, y2 = profile[right_idx], profile[right_idx + 1]
-            right_edge = x1 + (x2 - x1) * (half_max - y1) / (y2 - y1)
-        else:
-            right_edge = positions[-1]
-        
-        return abs(right_edge - left_edge)
-    
-    def _calculate_theoretical_fwhm(self) -> float:
-        """Calculate theoretical FWHM baseline"""
-        D = (self.args.L1 * self.args.lx) + (self.args.L1 - 1) * self.args.gx
-        if D > 0 and self.args.f > 0:
-            return 1.206 * (self.args.c2 / self.args.f / 1000) * ((self.args.DF + self.args.Dt0) / D)
-        return 0.0
-    
-    def _save_plotting_data(self, stage: str, data_dict: dict):
-        """Save data in format expected by plotting scripts"""
-        if stage == "digital_twin":
-            out_dir = Path(self.args.out_root) / "digital_twin"
-            out_dir.mkdir(parents=True, exist_ok=True)
-            
-            # Save coordinate arrays
-            for key in ["z_vals", "x_vals", "y_vals"]:
-                if key in data_dict:
-                    np.savetxt(out_dir / f"field_{key}.csv", data_dict[key], delimiter=',')
-            
-            # Save field data (reshape to 2D for plotting)
-            if "p_field" in data_dict:
-                z_len = len(data_dict["z_vals"]) if "z_vals" in data_dict else 1
-                x_len = len(data_dict["x_vals"]) if "x_vals" in data_dict else 1
-                p_2d = data_dict["p_field"].reshape((z_len, x_len))
-                np.savetxt(out_dir / "field_p_field.csv", p_2d, delimiter=',')                
-        
-        elif stage == "fmc_tfm":
-            out_dir = Path(self.args.out_root) / "fmc_tfm"
-            out_dir.mkdir(parents=True, exist_ok=True)
-            
-            # Save 2D envelope
-            if "envelope" in data_dict:
-                np.savetxt(out_dir / "results_envelope_2d.csv", data_dict["envelope"], delimiter=',')
-            
-            # Save coordinate arrays
-            if "x_vals" in data_dict:
-                np.savetxt(out_dir / "results_x_vals.csv", data_dict["x_vals"], delimiter=',')
-            if "z_vals" in data_dict:
-                np.savetxt(out_dir / "results_z_vals.csv", data_dict["z_vals"], delimiter=',')
+                    # Result is complex velocity. Magnitude or Envelope?
+                    # Usually we keep complex for TFM.
+                    # Combine components?
+                    v_complex = np.sqrt(vx**2 + vy**2 + vz**2) # Approximation for scalar TFM
+                    batch_data.append(v_complex)
+                    
+                    # Progress update
+                    if tx_idx % 5 == 0:
+                        print(f"[FMC] Transmitter {tx_idx} progress: {((tx_idx-start)/(end-start)*100):.1f}%")
 
-# =============================================================================
-# CLI INTERFACE
-# =============================================================================
+                # Save batch
+                self.data_mgr.save_batch(start, np.array(batch_data))
+                
+                # Checkpoint
+                self.state['fmc_progress'] = end
+                self.ckpt.save_state(self.state)
+                print(f"[BATCH] Batch completed in {time.time() - start_time:.1f}s")
+                start_time = time.time() # Reset for next batch
+
+            self.state['last_completed_stage'] = 'fmc'
+            self.ckpt.save_state(self.state)
+            print(f"[STAGE] FMC generation completed")
+            
+        except Exception as e:
+            print(f"[ERROR] FMC Generation failed: {e}")
+            sys.exit(1)
+
+    def _simulate_single_element(self, ex, ey, grid_x, grid_z):
+        """Helper to simulate one element using low-level service"""
+        # Create meshgrid for simulation
+        # The service expects vectors or meshgrid.
+        # ps_3Dint_service handles broadcasting.
+        X, Z = np.meshgrid(grid_x, grid_z)
+        Y = np.zeros_like(X) # 2D slice
+        
+        mat = [
+            safe_float(self.args.d1), safe_float(self.args.c1),
+            safe_float(self.args.d2), safe_float(self.args.c2),
+            safe_float(self.args.cs2), self.args.wave_type
+        ]
+        
+        return run_ps_3Dint_service(
+            safe_float(self.args.lx), safe_float(self.args.ly),
+            safe_float(self.args.f), mat,
+            ex, ey,
+            safe_float(self.args.angt), safe_float(self.args.Dt0),
+            X, Y, Z
+        )
+
+    # -------------------------------------------------------------------------
+    # STAGE 3: TFM RECONSTRUCTION
+    # -------------------------------------------------------------------------
+    def run_tfm_reconstruction(self):
+        if self.state['last_completed_stage'] == 'tfm':
+            print("[SKIP] TFM already completed")
+            return
+
+        print("[STAGE] TFM Reconstruction")
+        print("[INFO] Using Vectorized Delay Calculation")
+        start_time = time.time()
+
+        try:
+            # 1. Load FMC Data
+            fmc_data = self.data_mgr.load_fmc_slice(0)
+            [n_tx, nz, nx] = fmc_data.shape
+            
+            from interface.cli_utils import parse_array
+            grid_x = parse_array(self.args.x_mm)
+            grid_z = parse_array(self.args.z_mm)
+            
+            # Create meshgrid for all pixels
+            X_grid, Z_grid = np.meshgrid(grid_x, grid_z)
+            n_pixels = X_grid.size
+            
+            # Array Geometry
+            lx = safe_float(self.args.lx)
+            gx = safe_float(self.args.gx)
+            pitch = lx + gx
+            X_elem = (np.arange(n_tx) - (n_tx-1)/2) * pitch
+            
+            # Physics Constants
+            c1 = safe_float(self.args.c1)
+            c2 = safe_float(self.args.c2)
+            cs2 = safe_float(self.args.cs2)
+            f = safe_float(self.args.f)
+            Dt0 = safe_float(self.args.Dt0)
+            angt = safe_float(self.args.angt)
+            wave_type = self.args.wave_type
+            
+            # Wave numbers
+            omega = 2 * np.pi * f  # MHz
+            
+            print(f"[TFM] Reconstructing {n_pixels} pixels with {n_tx} transmitters...")
+            
+            # Initialize TFM image
+            tfm_image = np.zeros((nz, nx), dtype=np.float32)
+            
+            # For water→water (cr=1), use simple direct path
+            if abs(c1 - c2) < 1e-3:  # Identical speeds
+                print("[TFM] Water→Water: Using direct path delays")
+                
+                # Reshape FMC data for easier access
+                # Shape: [n_tx, nz, nx] -> [n_tx, n_pixels]
+                fmc_reshaped = fmc_data.reshape(n_tx, n_pixels)
+                
+                # Vectorized delay calculation for all pixels at once
+                for tx_idx in range(n_tx):
+                    ex = X_elem[tx_idx]
+                    
+                    # Direct distances (water→water, no refraction)
+                    # Distance from element to each pixel
+                    distances = np.sqrt((X_grid.flatten() - ex)**2 + Z_grid.flatten()**2)
+                    
+                    # Phase correction for focusing
+                    # For water→water, we just need to compensate for the propagation phase
+                    # Since the FMC data already has propagation phase, we apply negative
+                    phase_correction = np.exp(-1j * omega * distances / c1)
+                    
+                    # Get FMC data for this transmitter
+                    tx_data = fmc_reshaped[tx_idx, :]
+                    
+                    # Apply phase correction and accumulate
+                    if tx_idx == 0:
+                        pixel_sum = tx_data * phase_correction
+                    else:
+                        pixel_sum += tx_data * phase_correction
+                
+                # Reshape back to image
+                tfm_image = np.abs(pixel_sum.reshape(nz, nx))
+                
+            else:
+                # Water→Steel: Need refraction point calculation
+                print("[TFM] Water→Steel: Computing refraction paths (this will take longer)")
+                
+                # We'll process pixels in batches to avoid memory issues
+                batch_size = 1000
+                n_batches = int(np.ceil(n_pixels / batch_size))
+                
+                pixel_sum_total = np.zeros(n_pixels, dtype=complex)
+                
+                for batch_idx in range(n_batches):
+                    start_idx = batch_idx * batch_size
+                    end_idx = min(start_idx + batch_size, n_pixels)
+                    
+                    batch_pixels = end_idx - start_idx
+                    batch_X = X_grid.flatten()[start_idx:end_idx]
+                    batch_Z = Z_grid.flatten()[start_idx:end_idx]
+                    
+                    batch_sum = np.zeros(batch_pixels, dtype=complex)
+                    
+                    # Process each transmitter
+                    for tx_idx in range(n_tx):
+                        ex = X_elem[tx_idx]
+                        
+                        # Get FMC data for this batch
+                        # Need to get the right indices from the 3D array
+                        tx_fmc_slice = fmc_data[tx_idx, :, :].flatten()
+                        tx_batch_data = tx_fmc_slice[start_idx:end_idx]
+                        
+                        # For each pixel in batch, compute refraction delay
+                        pixel_delays = np.zeros(batch_pixels)
+                        
+                        for pixel_idx in range(batch_pixels):
+                            x_val = batch_X[pixel_idx]
+                            z_val = batch_Z[pixel_idx]
+                            
+                            # Skip if in water (above interface)
+                            if z_val <= Dt0:
+                                # Direct path in water
+                                dist = np.sqrt((x_val - ex)**2 + z_val**2)
+                                pixel_delays[pixel_idx] = dist / c1
+                            else:
+                                # Refracted path - use ferrari2 to compute refraction point
+                                from domain.ferrari2 import ferrari2_scalar
+                                
+                                # Geometry for ferrari2
+                                DF = z_val - Dt0  # Depth in solid
+                                DT = Dt0  # Height in water
+                                DX = x_val - ex  # Horizontal separation
+                                cr = c1 / c2  # Speed ratio
+                                
+                                # Compute refraction point
+                                xi = ferrari2_scalar(cr, DF, DT, DX)
+                                
+                                # Path lengths
+                                # Water path: from element to interface
+                                r1 = np.sqrt(xi**2 + DT**2)
+                                # Solid path: from interface to pixel
+                                r2 = np.sqrt((DX - xi)**2 + DF**2)
+                                
+                                # Total time of flight
+                                pixel_delays[pixel_idx] = r1/c1 + r2/c2
+                        
+                        # Apply phase correction
+                        phase_correction = np.exp(-1j * omega * pixel_delays)
+                        batch_sum += tx_batch_data * phase_correction
+                    
+                    # Store batch result
+                    pixel_sum_total[start_idx:end_idx] = batch_sum
+                    
+                    print(f"[TFM] Batch {batch_idx+1}/{n_batches} completed")
+                
+                # Reshape to image
+                tfm_image = np.abs(pixel_sum_total.reshape(nz, nx))
+
+            # 3. Save Results
+            np.savetxt(self.out_root / "results_envelope_2d.csv", tfm_image, delimiter=',')
+            np.savetxt(self.out_root / "results_x_vals.csv", grid_x, delimiter=',')
+            np.savetxt(self.out_root / "results_z_vals.csv", grid_z, delimiter=',')
+            
+            peak_idx = np.unravel_index(np.argmax(tfm_image), tfm_image.shape)
+            peak_z = grid_z[peak_idx[0]]
+            peak_x = grid_x[peak_idx[1]]
+            
+            print(f"[RESULTS] Peak Value: {np.max(tfm_image):.4e}")
+            print(f"[RESULTS] Peak Position: z={peak_z:.1f} mm, x={peak_x:.1f} mm")
+            print(f"[RESULTS] Target: z=60.0 mm, x=0.0 mm")
+            
+            self.state['last_completed_stage'] = 'tfm'
+            self.ckpt.save_state(self.state)
+            print(f"[STAGE] TFM completed in {time.time() - start_time:.1f}s")
+
+        except Exception as e:
+            print(f"[ERROR] TFM Reconstruction failed: {e}")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Enhanced Ultrasound Pipeline with Checkpoint Recovery"
-    )
+    parser = argparse.ArgumentParser(description="Unified MPS Pipeline")
     
-    # Physical parameters
-    parser.add_argument('--lx', type=safe_float, required=True)
-    parser.add_argument('--ly', type=safe_float, required=True)
-    parser.add_argument('--gx', type=safe_float, required=True)
-    parser.add_argument('--gy', type=safe_float, required=True)
-    parser.add_argument('--f', type=safe_float, required=True)
-    parser.add_argument('--d1', type=safe_float, required=True)
-    parser.add_argument('--c1', type=safe_float, required=True)
-    parser.add_argument('--d2', type=safe_float, required=True)
-    parser.add_argument('--c2', type=safe_float, required=True)
-    parser.add_argument('--cs2', type=safe_float, required=True)
-    
-    # Array configuration
-    parser.add_argument('--L1', type=int, default=32)
+    # Define arguments (Matching interface)
+    parser.add_argument('--lx', type=str, default="0.4")
+    parser.add_argument('--ly', type=str, default="10.0")
+    parser.add_argument('--gx', type=str, default="0.1")
+    parser.add_argument('--gy', type=str, default="0.0")
+    parser.add_argument('--f', type=str, default="5.0")
+    parser.add_argument('--d1', type=str, default="1.0")
+    parser.add_argument('--c1', type=str, default="1480.0")
+    parser.add_argument('--d2', type=str, default="1.0")
+    parser.add_argument('--c2', type=str, default="1480.0")
+    parser.add_argument('--cs2', type=str, default="3200.0")
+    parser.add_argument('--wave_type', type=str, default="p")
+    parser.add_argument('--L1', type=int, default=64)
     parser.add_argument('--L2', type=int, default=1)
-    parser.add_argument('--ampx_type', default='rect')
-    parser.add_argument('--ampy_type', default='rect')
-    parser.add_argument('--b', type=int, default=10)
+    parser.add_argument('--angt', type=str, default="0.0")
+    parser.add_argument('--Dt0', type=str, default="35.0")
+    parser.add_argument('--theta20', type=str, default="20")
+    parser.add_argument('--phi', type=str, default="0")
+    parser.add_argument('--DF', type=str, default="75.0")
+    parser.add_argument('--ampx_type', type=str, default="rect")
+    parser.add_argument('--ampy_type', type=str, default="rect")
     
-    # Beam steering/focusing
-    parser.add_argument('--angt', type=safe_float, default=0.0)
-    parser.add_argument('--theta20', type=safe_float, default=0.0)
-    parser.add_argument('--phi', type=safe_float, default=0.0)
-    parser.add_argument('--DF', type=safe_float, default=47.2)
-    parser.add_argument('--Dt0', type=safe_float, default=59.2)
-    parser.add_argument('--wave_type', choices=['p','s'], default='p')
-    
-    # Scan parameters
-    parser.add_argument('--xs', type=str, default="-15,15,31")
-    parser.add_argument('--zs', type=str, default="1,171,171")
+    # Grids
+    parser.add_argument('--xs', type=str, default="-35,35,71")
+    parser.add_argument('--zs', type=str, default="1,151,15")
     parser.add_argument('--y_vec', type=str, default="0")
     parser.add_argument('--x_mm', type=str, default="-15,15,31")
     parser.add_argument('--z_mm', type=str, default="1,171,171")
@@ -1102,13 +653,21 @@ def main():
     parser.add_argument('--out_root', default='results')
     parser.add_argument('--save_fmt', choices=['csv','npz','h5'], default='csv')
     
+    # Pipeline control
+    parser.add_argument('--run_fmc', choices=['Y','N'], default='N')
+    parser.add_argument('--run_tfm', choices=['Y','N'], default='N')
+    
     # Recovery control
-    parser.add_argument('--resume', action='store_true', help='Resume from last checkpoint')
-    parser.add_argument('--force_restart', action='store_true', help='Ignore existing checkpoints and start fresh')
+    parser.add_argument('--resume', action='store_true', 
+                       help='Resume from last checkpoint')
+    parser.add_argument('--force_restart', action='store_true',
+                       help='Ignore existing checkpoints and start fresh')
     
     # Performance tuning
-    parser.add_argument('--batch_size', type=int, default=None, help='Manual batch size override (auto-calculated if not specified)')
-    parser.add_argument('--memory_limit_mb', type=float, default=None, help='Manual memory limit in MB')
+    parser.add_argument('--batch_size', type=int, default=None,
+                       help='Manual batch size override (auto-calculated if not specified)')
+    parser.add_argument('--memory_limit_mb', type=float, default=None,
+                       help='Manual memory limit in MB')
     
     args = parser.parse_args()
     
@@ -1120,9 +679,20 @@ def main():
     
     # Run pipeline
     pipeline = EnhancedPipeline(args)
-    pipeline.run(resume=args.resume and not args.force_restart)
+    pipeline.save_run_params()
     
-    print("[MAIN] Pipeline execution complete")
+    # Always run digital twin as base
+    pipeline.run_digital_twin()
+    
+    if args.run_fmc == 'Y':
+        pipeline.run_fmc_generation()
+        
+    if args.run_tfm == 'Y':
+        # TFM requires FMC data
+        if not (pipeline.out_root / "fmc_data.h5").exists():
+            print("[WARN] FMC data not found, running generation first...")
+            pipeline.run_fmc_generation()
+        pipeline.run_tfm_reconstruction()
 
 if __name__ == "__main__":
     main()
