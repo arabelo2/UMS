@@ -50,9 +50,11 @@ def plot_publication_figure_tfm(root_dir):
             p_db = np.clip(p_db, -60, 0)
         else:
             p_db = np.zeros_like(p_norm) - 60
+            
+        p_db = np.flip(p_db, 1)
 
         # 4. Find Peak
-        max_idx = np.unravel_index(np.argmax(p_norm), p_norm.shape)
+        max_idx = np.unravel_index(np.argmax(p_db), p_db.shape)
         peak_z_idx, peak_x_idx = max_idx
         peak_z = z_vals[peak_z_idx]
         peak_x = x_vals[peak_x_idx]
@@ -69,6 +71,7 @@ def plot_publication_figure_tfm(root_dir):
         gs = GridSpec(2, 2, width_ratios=[2, 1], height_ratios=[1, 1])
 
         # A: Map
+        
         ax_map = fig.add_subplot(gs[:, 0])
         im = ax_map.pcolormesh(x_vals, z_vals, p_db, cmap='jet', shading='auto', vmin=-30, vmax=0)        
         ax_map.set_xlabel('Lateral Position (mm)')

@@ -285,11 +285,29 @@ class PipelineDataset:
         # Extract lateral profile at the actual peak depth
         lateral = self.tfm_data.lateral_profile_at_z(self.tfm_peak_idx)
         
-        # Apply MIRROR THE DATA fix from original code
-        if len(self.tfm_data.x_vals) == len(self.tfm_data.z_vals):
-            lateral = np.flip(lateral)
-        
         return lateral
+
+    def debug_data_orientation(self):
+        """Debug function to check data orientation"""
+        print("\n=== DEBUG DATA ORIENTATION ===")
+        print(f"DT raw shape: {self.dt_data.raw_matrix.shape}")
+        print(f"DT final shape: {self.dt_data.field_matrix.shape}")
+        print(f"DT x range: {self.dt_data.x_vals.min():.1f} to {self.dt_data.x_vals.max():.1f}")
+        print(f"DT z range: {self.dt_data.z_vals.min():.1f} to {self.dt_data.z_vals.max():.1f}")
+        
+        print(f"\nTFM raw shape: {self.tfm_data.raw_matrix.shape}")
+        print(f"TFM final shape: {self.tfm_data.field_matrix.shape}")
+        print(f"TFM x range: {self.tfm_data.x_vals.min():.1f} to {self.tfm_data.x_vals.max():.1f}")
+        print(f"TFM z range: {self.tfm_data.z_vals.min():.1f} to {self.tfm_data.z_vals.max():.1f}")
+        
+        # Check peak locations
+        dt_peak_idx = np.unravel_index(np.argmax(self.dt_data.field_matrix), 
+                                       self.dt_data.field_matrix.shape)
+        tfm_peak_idx = np.unravel_index(np.argmax(self.tfm_data.field_matrix), 
+                                        self.tfm_data.field_matrix.shape)
+        
+        print(f"\nDT peak at idx: {dt_peak_idx} -> x={self.dt_data.x_vals[dt_peak_idx[1]]:.1f}, z={self.dt_data.z_vals[dt_peak_idx[0]]:.1f}")
+        print(f"TFM peak at idx: {tfm_peak_idx} -> x={self.tfm_data.x_vals[tfm_peak_idx[0]]:.1f}, z={self.tfm_data.z_vals[tfm_peak_idx[1]]:.1f}")
 
 
 # =============================================================================
@@ -486,13 +504,10 @@ class FieldMapPlot(BasePlot):
             ax2.set_xlabel("x (mm)")
             ax2.set_ylabel("z (mm)")
         
-        # 3. TFM Reconstruction (Full) - with original SMART LOGIC
+        # 3. TFM Reconstruction (Full)
         ax3 = plt.subplot(2, 3, 4)
         envelope_norm = 20 * np.log10(self.dataset.tfm_data.normalized_matrix() + 1e-6)
-        
-        # Apply original SMART LOGIC for orientation correction
-        if len(self.dataset.tfm_data.x_vals) != len(self.dataset.tfm_data.z_vals):
-            envelope_norm = envelope_norm.T
+        envelope_norm = np.flip(envelope_norm.T, 1)
         
         # Plot with corrected orientation
         im3 = ax3.pcolormesh(self.dataset.tfm_data.x_vals, self.dataset.tfm_data.z_vals, envelope_norm, 
@@ -523,39 +538,17 @@ class FieldMapPlot(BasePlot):
         
         # 5. Difference between DT and TFM - matching original
         ax5 = plt.subplot(2, 3, 6)
-        
-        # Digital Twin grid
-        X_dt, Z_dt = np.meshgrid(self.dataset.dt_data.x_vals, self.dataset.dt_data.z_vals, indexing='xy')
-        points_dt = np.column_stack((X_dt.ravel(), Z_dt.ravel()))
-        values_dt = p_db.ravel()
-        
-        # TFM grid for interpolation (Target) - using original indexing='ij'
-        X_tfm, Z_tfm = np.meshgrid(self.dataset.tfm_data.x_vals, self.dataset.tfm_data.z_vals, indexing='ij')
-        points_tfm = np.column_stack((X_tfm.ravel(), Z_tfm.ravel()))
-        
-        # Interpolate
-        p_db_interp_flat = griddata(points_dt, values_dt, points_tfm, method='linear', fill_value=np.nan)
-        p_db_interp = p_db_interp_flat.reshape(X_tfm.shape)
-        
-        mask = ~np.isnan(p_db_interp)
-        if np.any(mask):
-            diff = np.zeros_like(p_db_interp)
+        diff = p_db - envelope_norm
+        im5 = ax5.pcolormesh(self.dataset.tfm_data.x_vals, self.dataset.tfm_data.z_vals, diff,
+                             cmap='RdBu_r', vmin=-20, vmax=20, shading='auto')
             
-            # MATH FIX from original: p_db_interp is (Lat, Depth). envelope_norm is (Depth, Lat).
-            # We must transpose envelope_norm back to subtract correctly.
-            diff[mask] = p_db_interp[mask] - envelope_norm.T[mask]
-            
-            # Plot Diff: diff is (Lat, Depth), so we use .T in pcolormesh to make it (Depth, Lat)
-            im5 = ax5.pcolormesh(self.dataset.tfm_data.x_vals, self.dataset.tfm_data.z_vals, diff.T, 
-                                 cmap='RdBu_r', vmin=-20, vmax=20, shading='auto')
-            
-            ax5.axvline(0, color='gray', ls='--', alpha=0.5)
-            ax5.axhline(Dt0, color='cyan', ls='--', alpha=0.7, label='Interface')
-            ax5.axhline(target_z, color='white', ls='--', alpha=0.7, label='Focus')
-            ax5.set_title("Difference: DT(dB) - TFM(dB)")
-            ax5.set_xlabel("x (mm)")
-            ax5.set_ylabel("z (mm)")
-            plt.colorbar(im5, ax=ax5, label='dB Difference')
+        ax5.axvline(0, color='gray', ls='--', alpha=0.5)
+        ax5.axhline(Dt0, color='cyan', ls='--', alpha=0.7, label='Interface')
+        ax5.axhline(target_z, color='white', ls='--', alpha=0.7, label='Focus')
+        ax5.set_title("Difference: DT(dB) - TFM(dB)")
+        ax5.set_xlabel("x (mm)")
+        ax5.set_ylabel("z (mm)")
+        plt.colorbar(im5, ax=ax5, label='dB Difference')
     
     def _save_plot(self) -> None:
         """Save plot to file with original name"""
@@ -596,9 +589,7 @@ class ProfileComparisonPlot(BasePlot):
         tfm_lateral_norm = tfm_lateral / global_max_tfm
         
         # MIRROR THE DATA (Flip the array order) - from original
-        if len(self.dataset.tfm_data.x_vals) == len(self.dataset.tfm_data.z_vals):
-            tfm_axial_norm = np.flip(tfm_axial_norm)
-        # tfm_lateral_norm = np.flip(tfm_lateral_norm)
+        tfm_lateral_norm = np.flip(tfm_lateral_norm)
         
         # 1. Perfis Axiais (DT vs TFM) - matching original
         ax1 = self.axes[0, 0]
@@ -879,10 +870,7 @@ class DebugLateralPlot(BasePlot):
         # 1. TFM 2D map with depth lines (Corrected Orientation)
         ax1 = self.axes[0, 0]
         envelope_norm = 20 * np.log10(self.dataset.tfm_data.normalized_matrix() + 1e-6)
-        
-        # Apply original SMART LOGIC
-        if len(self.dataset.tfm_data.x_vals) != len(self.dataset.tfm_data.z_vals):
-            envelope_norm = envelope_norm.T
+        envelope_norm = np.flip(envelope_norm.T, 1)
         
         im1 = ax1.pcolormesh(self.dataset.tfm_data.x_vals, self.dataset.tfm_data.z_vals, envelope_norm, 
                             cmap='jet', vmin=-40, vmax=0, shading='auto')
@@ -895,7 +883,7 @@ class DebugLateralPlot(BasePlot):
         ax1.set_title('TFM Reconstruction Field Map (dB)')
         plt.colorbar(im1, ax=ax1, label='dB')
         ax1.legend(fontsize=10)
-        
+
         # 2. Axial profile at x=0
         ax2 = self.axes[0, 1]
         tfm_axial = self.dataset.tfm_data.axial_profile()
@@ -1105,10 +1093,7 @@ class OnePageSummaryPlot(BasePlot):
     def _plot_tfm_map_with_original_logic(self, ax: plt.Axes) -> None:
         """Plot TFM 2D map with original SMART LOGIC"""
         envelope_norm = 20 * np.log10(self.dataset.tfm_data.normalized_matrix() + 1e-6)
-        
-        # Apply original SMART LOGIC
-        if len(self.dataset.tfm_data.x_vals) != len(self.dataset.tfm_data.z_vals):
-            envelope_norm = envelope_norm.T
+        envelope_norm = np.flip(envelope_norm.T, 1)
         
         im = ax.pcolormesh(self.dataset.tfm_data.x_vals, self.dataset.tfm_data.z_vals, envelope_norm, 
                           cmap='jet', vmin=-40, vmax=0, shading='auto')
@@ -1120,7 +1105,7 @@ class OnePageSummaryPlot(BasePlot):
         ax.set_ylabel('Depth z (mm)')
         ax.set_title('TFM Reconstruction Field Map (dB)')
         plt.colorbar(im, ax=ax, label='dB', fraction=0.046, pad=0.04)
-        ax.legend(fontsize=8, loc='upper right')
+        ax.legend(fontsize=8, loc='upper right')        
     
     def _plot_axial_profiles_with_original_logic(self, ax: plt.Axes) -> None:
         """Plot axial profiles with original normalization and flipping"""
@@ -1129,10 +1114,6 @@ class OnePageSummaryPlot(BasePlot):
         
         dt_axial_norm = self.dataset.dt_data.axial_profile() / global_max_dt
         tfm_axial_norm = self.dataset.tfm_data.axial_profile() / global_max_tfm
-        
-        # MIRROR THE DATA (Flip the array order) - from original
-        if len(self.dataset.tfm_data.x_vals) == len(self.dataset.tfm_data.z_vals):
-            tfm_axial_norm = np.flip(tfm_axial_norm)
         
         ax.plot(self.dataset.dt_data.z_vals, dt_axial_norm, 'b-', linewidth=2, label='Digital Twin')
         ax.plot(self.dataset.tfm_data.z_vals, tfm_axial_norm, 'r--', linewidth=2, label='TFM')
@@ -1153,6 +1134,9 @@ class OnePageSummaryPlot(BasePlot):
         ) / global_max_dt
         
         tfm_lateral_norm = self.dataset.get_tfm_lateral_profile() / global_max_tfm
+        
+        # MIRROR THE DATA (Flip the array order) - from original
+        tfm_lateral_norm = np.flip(tfm_lateral_norm)
         
         ax.plot(self.dataset.dt_data.x_vals, dt_lateral_norm, 'b-', linewidth=2, label='Digital Twin')
         ax.plot(self.dataset.tfm_data.x_vals, tfm_lateral_norm, 'r--', linewidth=2, label='TFM')
@@ -1281,7 +1265,123 @@ class OnePageSummaryPlot(BasePlot):
         ax.text(0.02, 0.95, summary_text, fontsize=14, 
                 verticalalignment='top', family='monospace',
                 bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+                
+class FarFieldDirectivityPlot(BasePlot):
+    """
+    Comparison of Theoretical Far Field Directivity vs. Digital Twin & TFM.
+    Validates physics and imaging performance in the angular domain.
+    """
+    def _setup_figure(self) -> None:
+        self.fig, self.ax = plt.subplots(figsize=self.config.figsize)
 
+    def _create_plot(self) -> None:
+        # ==========================================
+        # 1. Theoretical Calculation (Schmerr)
+        # ==========================================
+        try:
+            freq = float(self.params.raw_params.get('f', 5.0)) * 1e6
+            c_speed = float(self.params.raw_params.get('c1', 1480.0))
+            lx = float(self.params.raw_params.get('lx', 0.7)) * 1e-3
+            gx = float(self.params.raw_params.get('gx', 0.1)) * 1e-3
+            pitch = lx + gx
+            N = int(self.params.raw_params.get('L1', 64))
+            theta_steer_deg = float(self.params.raw_params.get('theta20', 0.0))
+        except (ValueError, TypeError) as e:
+            print(f"[ERROR] Invalid params for Directivity: {e}")
+            return
+
+        wavelength = c_speed / freq
+        k = 2 * np.pi / wavelength
+        theta_deg = np.linspace(-90, 90, 2000)
+        theta_rad = np.radians(theta_deg)
+        theta_s_rad = np.radians(theta_steer_deg)
+
+        # Element Factor (Sinc)
+        arg_element = (lx / wavelength) * np.sin(theta_rad)
+        De = np.abs(np.sinc(arg_element))
+
+        # Array Factor
+        psi = k * pitch * (np.sin(theta_rad) - np.sin(theta_s_rad))
+        with np.errstate(divide='ignore', invalid='ignore'):
+            numerator = np.sin(N * psi / 2)
+            denominator = N * np.sin(psi / 2)
+            Ds = np.abs(numerator / denominator)
+            Ds[np.isnan(Ds)] = 1.0
+            Ds[np.abs(denominator) < 1e-10] = 1.0
+
+        Dt = De * Ds
+
+        # Plot Theoretical
+        self.ax.plot(theta_deg, Dt, 'k-', linewidth=1.5, alpha=0.6, label='Theoretical (Schmerr)')
+
+        # ==========================================
+        # 2. Digital Twin (Simulated Physics)
+        # ==========================================
+        # We extract the profile from the deepest available Z to approximate "Far Field"
+        if self.dataset.dt_data and self.dataset.dt_data.z_vals.size > 0:
+            # Use the deepest Z layer
+            z_idx_dt = -1 
+            z_depth_dt = self.dataset.dt_data.z_vals[z_idx_dt]
+            
+            # Extract profile
+            dt_profile = self.dataset.dt_data.lateral_profile_at_z(z_idx_dt)
+            dt_x_vals = self.dataset.dt_data.x_vals
+            
+            # Convert X position to Angle (theta = atan(x/z))
+            dt_angles = np.degrees(np.arctan2(dt_x_vals, z_depth_dt))
+            
+            # Normalize
+            dt_profile_norm = dt_profile / np.max(dt_profile) if np.max(dt_profile) > 0 else dt_profile
+            
+            self.ax.plot(dt_angles, dt_profile_norm, 'b--', linewidth=2, label=f'Digital Twin (Simulated @ {z_depth_dt:.0f}mm)')
+
+        # ==========================================
+        # 3. TFM (Processed Image)
+        # ==========================================
+        # We extract TFM at the PEAK depth to see the final image resolution/contrast
+        if self.dataset.tfm_data and hasattr(self.dataset, 'tfm_peak_z'):
+            # Use the peak depth found by the Dataset class
+            z_depth_tfm = self.dataset.tfm_peak_z
+            
+            # Extract lateral profile using the dataset's helper (handles orientation/mirroring)
+            tfm_profile = self.dataset.get_tfm_lateral_profile()
+            tfm_x_vals = self.dataset.tfm_data.x_vals
+            
+            # Convert X position to Angle (theta = atan(x/z))
+            # Note: TFM is focused, so this represents "Image Spread" in degrees
+            tfm_angles = np.degrees(np.arctan2(tfm_x_vals, z_depth_tfm))
+            
+            # Normalize
+            tfm_profile_norm = tfm_profile / np.max(tfm_profile) if np.max(tfm_profile) > 0 else tfm_profile
+            
+            # MIRROR THE DATA (Flip the array order) - from original
+            tfm_profile_norm = np.flip(tfm_profile_norm)
+            
+            self.ax.plot(tfm_angles, tfm_profile_norm, 'r-', linewidth=2, label=f'TFM Result (Image @ {z_depth_tfm:.0f}mm)')
+
+        # ==========================================
+        # 4. Formatting & Analysis
+        # ==========================================
+        # Mark Grating Lobes
+        ratio = wavelength / pitch
+        for n in range(-3, 4):
+            if n == 0: continue
+            val = np.sin(theta_s_rad) + n * ratio
+            if abs(val) <= 1:
+                ang_gl = np.degrees(np.arcsin(val))
+                self.ax.axvline(x=ang_gl, color='gray', linestyle=':', alpha=0.5)
+                self.ax.text(ang_gl, 1.05, f'GL{n}', ha='center', fontsize=9, color='gray')
+
+        pitch_mm = pitch * 1000
+        self.ax.set_title(f'Directivity Comparison: Theory vs Simulation vs TFM\n'
+                          f'F: {freq/1e6} MHz, Pitch: {pitch_mm:.2f} mm ({pitch/wavelength:.1f}$\\lambda$)', 
+                          fontsize=14)
+        self.ax.set_xlabel('Angle (degrees)')
+        self.ax.set_ylabel('Normalized Amplitude')
+        self.ax.set_xlim(-60, 60) # Limit x-axis to focus on the main beam and first lobes
+        self.ax.set_ylim(0, 1.15)
+        self.ax.grid(True, alpha=0.3)
+        self.ax.legend(loc='upper right', fontsize=14)
 
 # =============================================================================
 # REPORT GENERATOR (REPLICATING ORIGINAL)
@@ -1425,7 +1525,6 @@ class ReportGenerator:
             lateral_quality
         ]
 
-
 # =============================================================================
 # PIPELINE CONTROLLER
 # =============================================================================
@@ -1514,6 +1613,7 @@ class PipelineController:
             ('fwhm_axial_vs_lateral_comparison', FWHMComparisonPlot),
             ('fwhm_methods_radar_chart', RadarChartPlot),
             ('one_page_summary', OnePageSummaryPlot),
+            ('far_field_directivity', FarFieldDirectivityPlot),
         ]
         
         for filename, plot_class in plots_to_generate:
